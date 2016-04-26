@@ -14,7 +14,7 @@ A = zeros(2*N + 3, 2*N + 3);
 for i = 1:N
    for j = 1:N 
        
-       n_outer = [nx(i), ny(i)]'*[nx(j), ny(j)];
+%       n_outer = [nx(i), ny(i)]'*[nx(j), ny(j)];
        
        if (i ~= j)
            r = [x(i), y(i)] - [x(j), y(j)];
@@ -33,11 +33,11 @@ for i = 1:N
            tau_outer = [tau_x(j), tau_y(j)]'*[tau_x(j), tau_y(j)];           
 
            
-           A(i,j) = -(1/pi)*tau_outer(1,1)*cur(j)*jac(j)/2;% + jac(j)*n_outer(1,1);
-           A(i,j+N) = -(1/pi)*tau_outer(1,2)*cur(j)*jac(j)/2;% + jac(j)*n_outer(1,2);
+           A(i,j) = (1/pi)*tau_outer(1,1)*cur(j)*jac(j)/2;% + jac(j)*n_outer(1,1);
+           A(i,j+N) = (1/pi)*tau_outer(1,2)*cur(j)*jac(j)/2;% + jac(j)*n_outer(1,2);
            
-           A(i+N,j) = -(1/pi)*tau_outer(2,1)*cur(j)*jac(j)/2;% + jac(j)*n_outer(2,1);
-           A(i+N,j+N) = -(1/pi)*tau_outer(2,2)*cur(j)*jac(j)/2;% + jac(j)*n_outer(2,2);
+           A(i+N,j) = (1/pi)*tau_outer(2,1)*cur(j)*jac(j)/2;% + jac(j)*n_outer(2,1);
+           A(i+N,j+N) = (1/pi)*tau_outer(2,2)*cur(j)*jac(j)/2;% + jac(j)*n_outer(2,2);
            
        end
        
