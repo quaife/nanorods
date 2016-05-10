@@ -8,9 +8,7 @@ properties
 N;        % number of points per componenet
 nv;       % number of components
 X;        % positions of component
-u;        % boundary condition of component 
 xt;       % tangent unit vector
-normal;   % outward unit normal vector
 sa;       % Jacobian
 cur;      % curvature
 length;   % total length of each component
@@ -20,72 +18,30 @@ end %properties
 methods
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function o = capsules(X,side)
+function o = capsules(X)
 % capsules(X,u) constructs an object of class capsules.  Mostly, it
 % takes the values of prams and options that it requires.
 % This is the constructor
 o.N = size(X,1)/2;              % points per component
 o.nv = size(X,2);               % number of components
 o.X = X;                        % position of component 
-if strcmp(side,'outer')
-  oc = curve;
-  [o.sa,o.xt,o.cur] = oc.diffProp(o.X);
-  % Jacobian, tangent, and curvature
-  o.normal = [o.xt(o.N+1:2*o.N,:);-o.xt(1:o.N,:)];
-  % Normal vector
-  o.u = o.bgFlow(X,side);
-  % Boundary condition
 
-  [~,~,o.length] = oc.geomProp(X);
-  % total arclength needed for near-singular integration
-end
-
-if strcmp(side,'inner')
-  oc = curve;
-  [o.sa] = oc.diffProp(o.X);
-%  o.u = o.bgFlow(X,side);
-  [~,~,o.length] = oc.geomProp(X);
-end
+oc = curve;
+[o.sa,o.xt,o.cur] = oc.diffProp(o.X);
+[~,o.length] = oc.geomProp(X);
 
 end % capsules: constructor
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function u = bgFlow(o,X,side);
-% [uInner,uOuter] = bgFlow(Xinner,Xouter,varargin) computes the 
-% velocity field at the points X.  Flows are given by:
-%     circles:        (0,0) on circles and something else 
-%     square:         poeusille-like flow at intake and outtake
-
+function u = bgFlow(o,X);
+% u = bgFlow(X) computes the velocity field at the points X
 
 oc = curve;
 N = size(X,1)/2;
 nv = size(X,2);
 
-if strcmp(side,'inner')
-  u = zeros(2*N,nv);
-elseif strcmp(side,'outer')
-  order = 10;
-  % controls how smooth the boundary data is
-  [x,y] = oc.getXY(X);
-  % Separate out x and y coordinates
-%  vx = zeros(N,1);
-%  vy = -exp(1./(((x-2.39)/max(x-2.39)).^2-1))/exp(-1);
-%  vy(abs(vy)==Inf) = 0;
-%  % fix points where we divided by 0.  Limiting value is 0
-%
-%  vy = sign(vy).*abs(vy).^(1/order);
-%  % smooth out boundary
-
-  vx = exp(1./(((y-2.6)/max(y-2.6)).^2-1))/exp(-1);
-  vx(abs(vx)==Inf) = 0;
-  vx = sign(vx).*abs(vx).^(1/order);
-  vy = zeros(N,1);
-
-  u = [vx;vy];
-else
-  u = [];
-end
+u = zeros(2*N,nv);
 
 end % bgFlow
 
@@ -467,9 +423,6 @@ if (relate == 2 || relate == 3)
 end % relate == 2 || relate == 3
 
 end % getZone
-
-
-
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

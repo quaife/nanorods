@@ -1,41 +1,23 @@
-clear all
+prams.N = 32; % points per body
+prams.nv = 2; % number of bodies
+prams.T = 1; % time horizon
+prams.m = 100; % number of time steps
+prams.gmresTol = 1e-8; % GMRES tolerance
+
+options.order = 1; 
+% time stepping order (only options is currently first)
+options.inear = false; % flag for near-singular integration
+
 addpath ../src
+% TODO: Need a routine to set the undefined prams and options
 
-prams.Nouter = 256;
-% number of points on outer solid wall
-prams.Ninner = 128;
-% number of points per circle exclusion
-prams.nv = 3;
-% number of exclusions
-prams.gmresTol = 1e-6;
-% gmres tolerance
-prams.maxIter = 100;
-% maximum number of gmres iterations
+theta = (0:prams.N-1)'*2*pi/prams.N;
+X = zeros(2*prams.N,prams.nv);
+X(:,1) = [cos(theta);3*sin(theta)];
+X(:,2) = [cos(theta) - 4;3*sin(theta)+3];
+% set initial configuration
 
-% Different options
-options.dataFile = 'output/example1.bin';
-options.farField = 'pipe';
-options.logFile = 'output/example1.log';
-options.saveData = true;
+tt = tstep(options,prams);
 
-oc = curve;
-Xouter = oc.initConfig(prams.Nouter,'square');
-% outer most boundary
-center = [[-0.3 -0.4];[0.4 0.5];[-0.2 0.2]];
-orientation = [pi/3;5*pi/4;2*pi/3];
-Xinner = oc.initConfig(prams.Ninner,'rod', ...
-          'nv',prams.nv, ...
-          'center',center, ...
-          'orientation',orientation, ...
-          'aspect_ratio',2);
-% inner rods
-
-clf; hold on;
-plot(Xouter(1:end/2),Xouter(end/2+1:end),'k')
-plot(Xinner(1:end/2,:),Xinner(end/2+1:end,:),'r')
-
-%stokesSolver(Xinner,Xouter,options,prams);
-% solve density function and write to .bin files
-
-
+[Xnew,iter,iflag] = tt.timeStep(X);
 
