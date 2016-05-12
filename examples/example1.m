@@ -1,23 +1,23 @@
-prams.N = 32; % points per body
+prams.N = 128; % points per body
 prams.nv = 2; % number of bodies
-prams.T = 1; % time horizon
+prams.T = 10; % time horizon
 prams.m = 100; % number of time steps
-prams.gmresTol = 1e-8; % GMRES tolerance
 
-options.order = 1; 
-% time stepping order (only options is currently first)
-options.inear = false; % flag for near-singular integration
+options.farField = 'extensional';
+options.usePlot = true;
+options.axis = [-10 10 -5 5];
 
-addpath ../src
-% TODO: Need a routine to set the undefined prams and options
+
+[options,prams] = initRigid2D(options,prams);
+% set options and parameters to default values
 
 theta = (0:prams.N-1)'*2*pi/prams.N;
 X = zeros(2*prams.N,prams.nv);
-X(:,1) = [cos(theta);3*sin(theta)];
-X(:,2) = [cos(theta) - 4;3*sin(theta)+3];
+X(:,1) = [cos(theta) - 8;3*sin(theta)];
+X(:,2) = [cos(theta) + 8;3*sin(theta)];
+%X(:,3) = [cos(theta) - 8;3*sin(theta)];
+%X(:,4) = [cos(theta) + 4;3*sin(theta)];
 % set initial configuration
 
-tt = tstep(options,prams);
-
-[Xnew,iter,iflag] = tt.timeStep(X);
+Xfinal = rigid2D(X,options,prams);
 

@@ -290,17 +290,17 @@ for k=1:vesicle.nv  % Loop over curves
   cur = vesicle.cur(:,k)';
   % curvature
 
-  xtar = xx(:,ones(N,1))';
-  ytar = yy(:,ones(N,1))';
+  xtar = xx(:,ones(N,1));
+  ytar = yy(:,ones(N,1));
   % target points
 
-  xsou = xx(:,ones(N,1));
-  ysou = yy(:,ones(N,1));
+  xsou = xx(:,ones(N,1))';
+  ysou = yy(:,ones(N,1))';
   % source points
 
   txsou = tx';
   tysou = ty';
-  % tangent at srouces
+  % tangent at sources
   sa = sa(ones(N,1),:);
   % Jacobian
 
@@ -310,10 +310,9 @@ for k=1:vesicle.nv  % Loop over curves
   rho4(1:N+1:N.^2) = 0;
   % set diagonal terms to 0
 
-  kernel = diffx.*(tysou(ones(N,1),:)) - ...
-          diffy.*(txsou(ones(N,1),:));
+  kernel = -diffx.*(tysou(ones(N,1),:)) + ...
+            diffy.*(txsou(ones(N,1),:));
   kernel = kernel.*rho4.*sa;
-  kernel = kernel;
 
   D11 = kernel.*diffx.^2;
   % (1,1) component
@@ -334,7 +333,6 @@ for k=1:vesicle.nv  % Loop over curves
   % build matrix with four blocks
   D(:,:,k) = 1/pi*D(:,:,k)*2*pi/N;
   % scale with the arclength spacing and divide by pi
-
 end % k
 
 end % stokesDLmatrix
@@ -379,15 +377,14 @@ end % exactStokesDLdiag
 % TARGET POINTS Xtar
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function [stokesDLP,stokesDLPtar] = ...
-    exactStokesDL(o,vesicle,f,Xtar,K1)
-% [stokesDLP,stokesDLPtar] = exactStokesDL(vesicle,f,Xtar,K1) computes
-% the double-layer potential due to f around all vesicles except
-% itself.  Also can pass a set of target points Xtar and a collection
-% of vesicles K1 and the double-layer potential due to vesicles in K1
-% will be evaluated at Xtar.  Everything but Xtar is in the 2*N x nv
-% format Xtar is in the 2*Ntar x ncol format
-normal = [vesicle.xt(vesicle.N+1:2*vesicle.N,:);...
-         -vesicle.xt(1:vesicle.N,:)]; 
+    exactStokesDL(o,geom,f,Xtar,K1)
+% [stokesDLP,stokesDLPtar] = exactStokesDL(geom,f,Xtar,K1) computes the
+% double-layer potential due to f around all parts of the geometry
+% except itself.  Also can pass a set of target points Xtar and a
+% collection of geom K1 and the double-layer potential due to components
+% of the geometry in K1 will be evaluated at Xtar.  Everything but Xtar
+% is in the 2*N x nv format Xtar is in the 2*Ntar x ncol format
+normal = [-geom.xt(geom.N+1:2*geom.N,:);geom.xt(1:geom.N,:)]; 
 % Normal vector
 
 if nargin == 5
@@ -402,11 +399,11 @@ else
   % if nargin ~= 5, the user does not need the velocity at arbitrary
   % points
 end
-den = f.*[vesicle.sa;vesicle.sa]*2*pi/vesicle.N;
+den = f.*[geom.sa;geom.sa]*2*pi/geom.N;
 % jacobian term and 2*pi/N accounted for here
 
 oc = curve;
-[xsou,ysou] = oc.getXY(vesicle.X(:,K1));
+[xsou,ysou] = oc.getXY(geom.X(:,K1));
 xsou = xsou(:); ysou = ysou(:);
 xsou = xsou(:,ones(Ntar,1))';
 ysou = ysou(:,ones(Ntar,1))';
@@ -423,8 +420,8 @@ normaly = normaly(:,ones(Ntar,1))';
 
 for k = 1:ncol % loop over columns of target points
   [xtar,ytar] = oc.getXY(Xtar(:,k));
-  xtar = xtar(:,ones(vesicle.N*numel(K1),1));
-  ytar = ytar(:,ones(vesicle.N*numel(K1),1));
+  xtar = xtar(:,ones(geom.N*numel(K1),1));
+  ytar = ytar(:,ones(geom.N*numel(K1),1));
   
   diffx = xtar-xsou; diffy = ytar-ysou;
   dis2 = (diffx).^2 + (diffy).^2;
@@ -434,8 +431,6 @@ for k = 1:ncol % loop over columns of target points
   rdotnTIMESrdotf = (diffx.*normalx + diffy.*normaly)./dis2.^2 .* ...
       (diffx.*denx + diffy.*deny);
   % \frac{(r \dot n)(r \dot density)}{\rho^{4}} term
-  rdotnTIMESrdotf = rdotnTIMESrdotf * diag(1-vesicle.viscCont(1));
-  % have accounted for the scaling with (1-\nu) here
   
   stokesDLPtar(1:Ntar,k) = stokesDLPtar(1:Ntar,k) + ...
       sum(rdotnTIMESrdotf.*diffx,2);
@@ -444,36 +439,33 @@ for k = 1:ncol % loop over columns of target points
   % r \otimes r term of the double-layer potential
 end
 stokesDLPtar = stokesDLPtar/pi;
-% double-layer potential due to vesicles indexed over K1 evaluated at
-% arbitrary points
+% double-layer potential due to geometry components indexed over K1
+% evaluated at arbitrary points
 
-stokesDLP = zeros(2*vesicle.N,vesicle.nv);
-if (nargin == 3 && vesicle.nv > 1)
-  oc = curve;
-  for k = 1:vesicle.nv
-    K = [(1:k-1) (k+1:vesicle.nv)];
-    [x,y] = oc.getXY(vesicle.X(:,K));
+stokesDLP = zeros(2*geom.N,geom.nv);
+if (nargin == 3 && geom.nv > 1)
+  for k = 1:geom.nv
+    K = [(1:k-1) (k+1:geom.nv)];
+    [x,y] = oc.getXY(geom.X(:,K));
     [nx,ny] = oc.getXY(normal(:,K));
     [denx,deny] = oc.getXY(den(:,K));
-    for j=1:vesicle.N
-      diffxy = [vesicle.X(j,k) - x ; vesicle.X(j+vesicle.N,k) - y];
-      dis2 = diffxy(1:vesicle.N,:).^2 + ...
-          diffxy(vesicle.N+1:2*vesicle.N,:).^2;
+    for j=1:geom.N
+      diffxy = [geom.X(j,k) - x ; geom.X(j+geom.N,k) - y];
+      dis2 = diffxy(1:geom.N,:).^2 + ...
+          diffxy(geom.N+1:2*geom.N,:).^2;
       % difference of source and target location and distance squared
 
       rdotfTIMESrdotn = ...
-        (diffxy(1:vesicle.N,:).*nx + ...
-        diffxy(vesicle.N+1:2*vesicle.N,:).*ny)./dis2.^2 .* ...
-        (diffxy(1:vesicle.N,:).*denx + ...
-        diffxy(vesicle.N+1:2*vesicle.N,:).*deny);
+        (diffxy(1:geom.N,:).*nx + ...
+        diffxy(geom.N+1:2*geom.N,:).*ny)./dis2.^2 .* ...
+        (diffxy(1:geom.N,:).*denx + ...
+        diffxy(geom.N+1:2*geom.N,:).*deny);
       % \frac{(r \dot n)(r \dot density)}{\rho^{4}} term
-      rdotfTIMESrdotn = rdotfTIMESrdotn * diag(1-vesicle.viscCont(K));
-      % have accounted for the scaling with (1-\nu) here
 
       stokesDLP(j,k) = stokesDLP(j,k) + ...
-          sum(sum(rdotfTIMESrdotn.*diffxy(1:vesicle.N,:)));
-      stokesDLP(j+vesicle.N,k) = stokesDLP(j+vesicle.N,k) + ...
-          sum(sum(rdotfTIMESrdotn.*diffxy(vesicle.N+1:2*vesicle.N,:)));
+          sum(sum(rdotfTIMESrdotn.*diffxy(1:geom.N,:)));
+      stokesDLP(j+geom.N,k) = stokesDLP(j+geom.N,k) + ...
+          sum(sum(rdotfTIMESrdotn.*diffxy(geom.N+1:2*geom.N,:)));
       % double-layer potential for Stokes
     end
   end
@@ -481,7 +473,8 @@ if (nargin == 3 && vesicle.nv > 1)
   stokesDLP = stokesDLP/pi;
   % 1/pi is the coefficient in front of the double-layer potential
 end
-% double-layer potential due to all vesicles except oneself
+% double-layer potential due to all components of the geometry except
+% oneself
 
 end % exactStokesDL
 
@@ -506,7 +499,6 @@ ny = -vesicle.xt(1:vesicle.N,:);
 % seperate the x and y coordinates of the normal vector
 
 den = f.*[vesicle.sa;vesicle.sa]*2*pi/vesicle.N;
-den = den * diag(1-vesicle.viscCont);
 
 if (nargin == 5)
   stokesDLP = [];
@@ -596,7 +588,6 @@ zn = nx + 1i*ny;
 
 % vector density used in the old fmm
 den = f.*[vesicle.sa;vesicle.sa]*2*pi/vesicle.N;
-den = den * diag(1-vesicle.viscCont);
 denx = den(1:vesicle.N,:);
 deny = den(vesicle.N+1:2*vesicle.N,:);
 

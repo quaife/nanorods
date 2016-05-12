@@ -8,6 +8,7 @@ properties
 N;        % number of points per componenet
 nv;       % number of components
 X;        % positions of component
+center;   % center of each rigid body
 xt;       % tangent unit vector
 sa;       % Jacobian
 cur;      % curvature
@@ -25,6 +26,8 @@ function o = capsules(X)
 o.N = size(X,1)/2;              % points per component
 o.nv = size(X,2);               % number of components
 o.X = X;                        % position of component 
+o.center = [mean(X(1:end/2,:));mean(X(end/2+1:end,:))];
+% centers of each component
 
 oc = curve;
 [o.sa,o.xt,o.cur] = oc.diffProp(o.X);
