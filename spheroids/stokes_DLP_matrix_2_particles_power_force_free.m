@@ -140,12 +140,12 @@ for i = 1:N1
     A(i+2*N1+N2, 2*N+4) = -1;
     
     r = [particle1.x(i), particle1.y(i)] - particle1.c;
-    A(i, 2*N+5) = -r(1);
-    A(i+N1,2*N+5) = -r(2);
+    A(i, 2*N+5) = -r(2);
+    A(i+N1,2*N+5) = r(1);
     
     r = [particle2.x(i), particle2.y(i)] - particle2.c;
-    A(i+2*N1, 2*N+6) = -r(1);
-    A(i+2*N1+N2,2*N+6) = -r(2); 
+    A(i+2*N1, 2*N+6) = -r(2);
+    A(i+2*N1+N2,2*N+6) = r(1); 
     
 %     A(i,2*N+7) = 1;
 %     A(i+N1, 2*N+8) = 1;
