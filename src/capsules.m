@@ -19,22 +19,48 @@ end %properties
 methods
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function o = capsules(X)
-% capsules(X,u) constructs an object of class capsules.  Mostly, it
+function o = capsules(prams, varargin)
+% capsules(X) constructs an object of class capsules.  Mostly, it
 % takes the values of prams and options that it requires.
 % This is the constructor
-o.N = size(X,1)/2;              % points per component
-o.nv = size(X,2);               % number of components
-o.X = X;                        % position of component 
-o.center = [mean(X(1:end/2,:));mean(X(end/2+1:end,:))];
-% centers of each component
+
+o.N = prams.N;              % points per component
+o.nv = prams.nv;               % number of components
+    
+if length(varargin) == 1 % coordinates provided directly
+    X = varargin{1}{1};
+    o.N = prams.N;              % points per component
+    o.nv = prams.nv;               % number of components
+    o.X = X;                        % position of component
+    o.center = [mean(X(1:end/2,:));mean(X(end/2+1:end,:))];
+    % centers of each component
+    
+else if length(varargin) == 2 %centres, orientation angles and N provided
+
+        xc = varargin{1};
+        tau = varargin{2};
+        
+        
+        theta = (0:prams.N-1)'*2*pi/prams.N;
+        X = zeros(2*prams.N,prams.nv);
+        
+        for k = 1:prams.nv
+            x_ellipse = prams.semimajors(k)*cos(theta);
+            y_ellipse = prams.semiminors(k)*sin(theta);
+
+            X(:,k) = [x_ellipse*cos(tau(k)) - y_ellipse*sin(tau(k)) + xc(1,k); x_ellipse*sin(tau(k)) + y_ellipse*cos(tau(k)) + xc(2,k)];
+        end
+
+        o.X = X;
+        o.center = xc;
+    end
+end
 
 oc = curve;
 [o.sa,o.xt,o.cur] = oc.diffProp(o.X);
-[~,o.length] = oc.geomProp(X);
-
+[~,o.length] = oc.geomProp(o.X);
+    
 end % capsules: constructor
-
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function u = bgFlow(o,X);
@@ -493,6 +519,10 @@ dist = sqrt((nearestx - xTar)^2 + (nearesty - ytar)^2);
 
 end % closestPnt
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+function X = getXY(o)
+    X = o.X;
+end % getXY
 
 end % methods
 

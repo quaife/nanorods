@@ -1,23 +1,22 @@
-prams.N = 128; % points per body
+prams.N = 192; % points per body
 prams.nv = 2; % number of bodies
-prams.T = 10; % time horizon
+prams.T = 20; % time horizon
 prams.m = 100; % number of time steps
+prams.semimajors = [3,3];
+prams.semiminors = [1,1];
 
-options.farField = 'extensional';
+options.farField = 'shear';
 options.usePlot = true;
-options.axis = [-10 10 -5 5];
+options.axis = [-20 20 -5 5];
+options.saveData = true;
+options.dataFile = 'velocities.dat';
+options.append = false;
 
+xc = [-5, 5; 0.3, -0.3]; % [x-coordinates; y-coordinates]
+tau = [pi/2, pi/2];
 
-[options,prams] = initRigid2D(options,prams);
-% set options and parameters to default values
+Xfinal = rigid2D(options, prams, xc, tau);
 
-theta = (0:prams.N-1)'*2*pi/prams.N;
-X = zeros(2*prams.N,prams.nv);
-X(:,1) = [cos(theta) - 8;3*sin(theta)];
-X(:,2) = [cos(theta) + 8;3*sin(theta)];
-%X(:,3) = [cos(theta) - 8;3*sin(theta)];
-%X(:,4) = [cos(theta) + 4;3*sin(theta)];
-% set initial configuration
-
-Xfinal = rigid2D(X,options,prams);
+pp = post(options.dataFile);
+pp.animated_gif('shear256.gif', 1)
 

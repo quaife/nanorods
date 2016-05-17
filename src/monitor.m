@@ -6,9 +6,10 @@ classdef monitor
 properties
 verbose         % write data to console
 usePlot         % plot the bodies
-%saveData        % save data to the dat files and log file
+saveData        % save data to the dat files and log file
 axis            % axis of the plot
-%dataFile        % name of the file to write the data
+dataFile        % name of the file to write the data
+append
 %logFile         % name of the file to write the log
 N               % number of points on inner boundaries
 %Nouter          % number of points on outer boundary
@@ -32,9 +33,10 @@ o.verbose = options.verbose;
 % write data to console
 o.usePlot = options.usePlot;
 % plot the rigid bodies
-%o.saveData = options.saveData;
+o.saveData = options.saveData;
 %% save messages to a log file
-%o.dataFile = options.dataFile;
+o.dataFile = options.dataFile;
+o.append = options.append;
 %% name of bin file for geometry
 %% Uses this file name to choose the file name for the tracers
 %o.logFile = options.logFile;
@@ -46,6 +48,21 @@ o.N = prams.N;
 o.nv = prams.nv;
 % number of inner boundaries
 
+%% start new data file if needed
+if (o.saveData && ~o.append)
+    o.clearFiles();
+    
+    o.writeMessage('Data file for nanorod simulation');
+    o.writeMessage('Line 6 contains semi-major axes for each elliptical rod')
+    o.writeMessage('Line 7 contains semi-minor axes for each elliptical rod');
+    o.writeMessage('Lines 8 onward contain the time, x centre coordinate, y centre coordinate and the orientation for each rod at time t');
+    o.writeMessage('BEGIN DATA');
+    
+    fid = fopen(o.dataFile,'a');
+    fprintf(fid,'%s\n', num2str(prams.semimajor));
+    fprintf(fid,'%s\n', num2str(prams.semiminor));
+    fclose(fid);
+end
 
 end % constructor: monitor
 
@@ -54,8 +71,8 @@ function clearFiles(o)
 % clearFiles() clears the log and bin file so that there is nothing from
 % previous runs
 
-fid = fopen(o.logFile,'w');
-fclose(fid);
+% fid = fopen(o.logFile,'w');
+% fclose(fid);
 fid = fopen(o.dataFile,'w');
 fclose(fid);
 % delete the previous log and data files
@@ -95,7 +112,7 @@ end
 % line
 
 if o.saveData
-  fid = fopen(o.logFile,'a');
+  fid = fopen(o.dataFile,'a');
   fprintf(fid,format,message);
   fclose(fid);
 end
@@ -125,12 +142,23 @@ function plotData(o,X);
 oc = curve;
 [x,y] = oc.getXY(X);
 figure(1);clf;
-plot([x;x(1,:)],[y;y(1,:)],'k','linewidth',2);
+fill([x;x(1,:)],[y;y(1,:)],'k');
 axis equal;
 axis(o.axis);
 
 end % plotData
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+function writeData(o, t, c, tau)
+% writeData(t, cp, tau) writes centre point and orientation of each fibre
+% to a csv file. This file can be read in to Matlab later for
+% postprocessing.
+
+fid = fopen(o.dataFile,'a');
+fprintf(fid,'%s\n', num2str([t, c(1,:), c(2,:), tau]));
+fclose(fid);
+
+end
 
 end % methods
 
