@@ -59,8 +59,8 @@ if (o.saveData && ~o.append)
     o.writeMessage('BEGIN DATA');
     
     fid = fopen(o.dataFile,'a');
-    fprintf(fid,'%s\n', num2str(prams.semimajor));
-    fprintf(fid,'%s\n', num2str(prams.semiminor));
+    fprintf(fid,'%s\n', num2str(prams.semimajors));
+    fprintf(fid,'%s\n', num2str(prams.semiminors));
     fclose(fid);
 end
 

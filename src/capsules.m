@@ -24,18 +24,17 @@ function o = capsules(prams, varargin)
 % takes the values of prams and options that it requires.
 % This is the constructor
 
-o.N = prams.N;              % points per component
-o.nv = prams.nv;               % number of components
     
 if length(varargin) == 1 % coordinates provided directly
-    X = varargin{1}{1};
-    o.N = prams.N;              % points per component
-    o.nv = prams.nv;               % number of components
-    o.X = X;                        % position of component
-    o.center = [mean(X(1:end/2,:));mean(X(end/2+1:end,:))];
-    % centers of each component
+  o.X = varargin{1};
+  o.N = size(o.X,1)/2; % points per component
+  o.nv = size(o.X,2);  % number of components
+  o.center = [mean(o.X(1:end/2,:));mean(o.X(end/2+1:end,:))];
+  % centers of each component
     
 else if length(varargin) == 2 %centres, orientation angles and N provided
+  o.N = prams.N;              % points per component
+  o.nv = prams.nv;               % number of components
 
         xc = varargin{1};
         tau = varargin{2};

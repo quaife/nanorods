@@ -30,8 +30,6 @@ defaultOption.farField = 'shear';
 defaultOption.usePlot = true;
 defaultOption.verbose = true;
 defaultOption.axis = [-10 10 -10 10];
-
-
 for k = 1:length(OptionList)
   if ~isfield(options,OptionList{k})
     eval(['options.' OptionList{k} '=defaultOption.' ...

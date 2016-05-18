@@ -15,8 +15,9 @@ D          % Stokes double-layer potential matrix
 ifmm       % flag for using the FMM
 inear      % flag for using near-singular integration
 gmresTol   % GMRES tolerance
-NearStruct % near-singular integration structure 
+nearStruct % near-singular integration structure 
 farField   % background flow
+op         % class for layer potentials
 end % properties
 
 
@@ -35,6 +36,7 @@ o.ifmm = false; % TODO: will need this to be true later
 o.inear = options.inear; % near-singular integration interpolation scheme
 o.gmresTol = prams.gmresTol;
 o.farField = @(X) o.bgFlow(X,options.farField);
+o.op = poten(prams.N);
 
 
 end % constructor: tstep
@@ -54,7 +56,9 @@ nv = geom.nv;
 Xm = geom.X;
 % this'll be a linear comination of Xstore if doing multistep
 
-op = poten(N);
+o.nearStruct = geom.getZone([],1);
+
+op = o.op;
 o.D = op.stokesDLmatrix(geom);
 % build double-layer potential matrix for each rigid body
 
@@ -100,7 +104,7 @@ function Tx = timeMatVec(o,Xn,geom)
 % body 2, etc
 
 N = geom.N; % points per body
-op = poten(N); 
+op = o.op; 
 % this can be setup as a property of tstep if it is too expensive
 nv = geom.nv; % number of bodies
 
@@ -131,9 +135,23 @@ valPos = valPos - 1/2*eta;
 valPos = valPos + op.exactStokesDLdiag(geom,o.D,eta);
 % self contribution
 
-valPos = valPos + op.exactStokesDL(geom,eta);
+
+kernel = @op.exactStokesDL;
+kernelDirect = @op.exactStokesDL;
+% kernel function for evaluating the double layer potential.  kernel
+% can be a call to a FMM, but for certain computations, direct
+% summation is faster, so also want kernelDirect
+%theta = (0:127)'*2*pi/128;
+%eta = [[exp(cos(theta));cos(theta)] [sin(cos(theta));ones(128,1)]];
+if o.inear
+  DLP = @(X) op.exactStokesDLdiag(geom,o.D,X) - 1/2*X;
+  Fdlp = op.nearSingInt(geom,eta,DLP,...
+      o.nearStruct,kernel,kernelDirect,geom,true,false);
+else
+  Fdlp = kernel(geom,eta);
+end
+valPos = valPos + Fdlp;
 % Add in contribution from other bodies using exactStokesDL
-% TODO: Need to use near-singular integration and FMM
 
 for k = 1:nv
   valPos(1:end/2,k) = valPos(1:end/2,k) - Up(1,k);

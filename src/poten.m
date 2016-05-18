@@ -45,7 +45,7 @@ end % poten: constructor
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function LP = nearSingInt(o,vesicleSou,f,selfMat,...
-    NearStruct,kernel,kernelDirect,vesicleTar,tEqualS,upNear,idebug)
+    NearStruct,kernel,kernelDirect,vesicleTar,tEqualS,idebug)
 % LP = nearSingInt(vesicle,f,selfMat,NearStruct,kernel,kernelDirect,
 % vesicleTar,tEqualS,idebug) computes a layer potential due to f at all
 % points in vesicleTar.X.  If tEqualS==true, then the vesicleTar ==
@@ -68,7 +68,7 @@ end
 % only a single vesicle, so velocity on all other vesicles will always
 % be zero
 
-if (nargin == 10)
+if (nargin == 9)
   idebug = false;
 end
 
@@ -97,8 +97,7 @@ Xup = [interpft(Xsou(1:Nsou,:),Nup);...
 fup = [interpft(f(1:Nsou,:),Nup);...
        interpft(f(Nsou+1:2*Nsou,:),Nup)];
 
-vesicleUp = capsules(Xup,[],[],...
-    vesicleSou.kappa,vesicleSou.viscCont,vesicleSou.antiAlias);
+vesicleUp = capsules([],Xup);
 % Build an object with the upsampled vesicle
 
 interpOrder = size(o.interpMat,1);
@@ -156,16 +155,16 @@ for k1 = 1:nvSou
       % closest point on vesicle k1 to each point on vesicle k2 
       % that is close to vesicle k1
       for j = 1:numel(J)
-          pn = mod((indcp(j)-p+1:indcp(j)-p+interpOrder)' - 1,Nsou) + 1;
-          % index of points to the left and right of the closest point
-          v = filter(1,[1 -full(argnear{k1}(J(j),k2))],...
-            o.interpMat*vself(pn,k1));
-          vel(J(j),k2,k1) = v(end);  
-          % x-component of the velocity at the closest point
-          v = filter(1,[1 -full(argnear{k1}(J(j),k2))],...
-            o.interpMat*vself(pn+Nsou,k1));
-          vel(J(j)+Ntar,k2,k1) = v(end);
-          % y-component of the velocity at the closest point
+        pn = mod((indcp(j)-p+1:indcp(j)-p+interpOrder)' - 1,Nsou) + 1;
+        % index of points to the left and right of the closest point
+        v = filter(1,[1 -full(argnear{k1}(J(j),k2))],...
+          o.interpMat*vself(pn,k1));
+        vel(J(j),k2,k1) = v(end);  
+        % x-component of the velocity at the closest point
+        v = filter(1,[1 -full(argnear{k1}(J(j),k2))],...
+          o.interpMat*vself(pn+Nsou,k1));
+        vel(J(j)+Ntar,k2,k1) = v(end);
+        % y-component of the velocity at the closest point
       end
 %     compute values of velocity at required intermediate points
 %     using local interpolant
@@ -191,9 +190,9 @@ for k1 = 1:nvSou
         ny = (Xtar(J(i)+Ntar,k2) - nearest{k1}(J(i)+Ntar,k2))/...
             dist{k1}(J(i),k2);
         XLag(i,:) = nearest{k1}(J(i),k2) + ...
-            beta*h*nx*(1:interpOrder-1);
+            beta*h(k1)*nx*(1:interpOrder-1);
         XLag(i+numel(J),:) = nearest{k1}(J(i)+Ntar,k2) + ...
-            beta*h*ny*(1:interpOrder-1);
+            beta*h(k1)*ny*(1:interpOrder-1);
         % Lagrange interpolation points coming off of vesicle k1 All
         % points are behind Xtar(J(i),k2) and are sufficiently far from
         % vesicle k1 so that the Nup-trapezoid rule gives sufficient
@@ -214,7 +213,7 @@ for k1 = 1:nvSou
             lagrangePts(i+numel(J),:)]';
         % Build polynomial interpolant along the one-dimensional
         % points coming out of the vesicle
-        dscaled = full(dist{k1}(J(i),k2)/(beta*h*(interpOrder-1)));
+        dscaled = full(dist{k1}(J(i),k2)/(beta*h(k1)*(interpOrder-1)));
         % Point where interpolant needs to be evaluated
 
         v = filter(1,[1 -dscaled],Px);
@@ -234,9 +233,9 @@ for k1 = 1:nvSou
           axis equal
 
           figure(1); clf; hold on
-          plot((0:interpOrder-1)*beta*h,...
+          plot((0:interpOrder-1)*beta*h(k1),...
               real([vel(J(i),k2,k1) lagrangePts(i,:)]),'g-o')
-          plot((0:interpOrder-1)*beta*h,...
+          plot((0:interpOrder-1)*beta*h(k1),...
               real([vel(J(i)+Ntar,k2,k1) lagrangePts(i+numel(J),:)]),'r--o')
           pause
         end
@@ -426,7 +425,6 @@ for k = 1:ncol % loop over columns of target points
   diffx = xtar-xsou; diffy = ytar-ysou;
   dis2 = (diffx).^2 + (diffy).^2;
   % difference of source and target location and distance squared
-  
   
   rdotnTIMESrdotf = (diffx.*normalx + diffy.*normaly)./dis2.^2 .* ...
       (diffx.*denx + diffy.*deny);
@@ -676,8 +674,12 @@ end % exactStokesDLnewFMM
 % WHEN SOURCES ~= TARGETS
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+end % methods
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+methods(Static)
+
 function LP = lagrangeInterp(o)
 % interpMap = lagrangeInterp builds the Lagrange interpolation
 % matrix that takes seven function values equally distributed
@@ -737,6 +739,6 @@ LP(7,1) = 1e0;
 
 end % lagrangeInterp
 
-end % methods 
+end % methods(Static)
 
 end % classdef
