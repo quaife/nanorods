@@ -40,9 +40,8 @@ end %post : constructor
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-function [] = animated_gif(o, gname, stride)
+function [] = animated_gif(o, gname, stride, itmax)
     
-
 prams.N = 128;
 prams.semimajors = o.semimajors';
 prams.semiminors = o.semiminors';
@@ -52,13 +51,19 @@ prams.nv = o.nv;
 h = figure();
 
 %% find axes limits
-xmin = min(min(o.centres_x)) - max(max(o.semimajors), max(o.semiminors));
-xmax = max(max(o.centres_x)) + max(max(o.semimajors), max(o.semiminors));
 
-ymin = min(min(o.centres_y)) - max(max(o.semimajors), max(o.semiminors));
-ymax = max(max(o.centres_y)) + max(max(o.semimajors), max(o.semiminors));
+if isempty(itmax)
+    itmax = length(o.times);
+end
 
-for i = 1:stride:length(o.times)
+xmin = min(min(o.centres_x(1:itmax,:))) - max(max(o.semimajors), max(o.semiminors));
+xmax = max(max(o.centres_x(1:itmax,:))) + max(max(o.semimajors), max(o.semiminors));
+
+ymin = min(min(o.centres_y(1:itmax,:))) - max(max(o.semimajors), max(o.semiminors));
+ymax = max(max(o.centres_y(1:itmax,:))) + max(max(o.semimajors), max(o.semiminors));
+
+
+for i = 1:stride:itmax
 
    clf;
 
