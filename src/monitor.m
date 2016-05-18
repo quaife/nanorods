@@ -166,13 +166,15 @@ function u = evaluateDLP(o, geom, eta, x, y)
 % TO DO, x, y can be a list of points, this could be faster especially using
 % the FMM
 
-geomTar.X = [x;y];
+geomTar = capsules([],[[x;0;y;0]]);
 
 pot = poten(geom.N);
-NearStruct = geom.getZone(geomTar.X,2);
+[~,NearStruct] = geom.getZone(geomTar,2);
 
-u = pot.nearSingInt(geom,eta, @null,...
-    NearStruct, @pot.exactStokesDL, @pot.exactStokesDL, geomTar, false, false);
+D = pot.stokesDLmatrix(geom);
+DLP = @(X) pot.exactStokesDLdiag(geom,D,X) - 1/2*X;
+u = pot.nearSingInt(geom,eta, DLP,...
+    NearStruct, @pot.exactStokesDL, @pot.exactStokesDL, geomTar,false,false);
 
 
 end % evaluateDLP
