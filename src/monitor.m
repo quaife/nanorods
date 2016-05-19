@@ -149,13 +149,13 @@ axis(o.axis);
 end % plotData
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function writeData(o, t, c, tau)
+function writeData(o, t, c, tau, Ux, Uy, omega)
 % writeData(t, cp, tau) writes centre point and orientation of each fiber
 % to a csv file. This file can be read in to Matlab later for
 % postprocessing.
 
 fid = fopen(o.dataFile,'a');
-fprintf(fid,'%s\n', num2str([t, c(1,:), c(2,:), tau]));
+fprintf(fid,'%s\n', num2str([t, c(1,:), c(2,:), tau, Ux, Uy, omega]));
 fclose(fid);
 
 end % writeData
@@ -187,8 +187,10 @@ function U = plotDLP(o, geom, eta, X,  Y, epsilon)
 
 U = zeros(nx,ny,2);
 
-figure();
-hold on
+figure(1);
+figure(2);
+figure(3);
+
 for i = 1:nx
     for j = 1:ny
         
@@ -199,7 +201,17 @@ for i = 1:nx
             Xcap = geom.X(1:geom.N, k);
             Ycap = geom.X(geom.N + 1:end, k);
             
-            if (i == 1 && j == 1)                
+            if (i == 1 && j == 1) 
+                figure(1);
+                hold on;
+                fill(Xcap, Ycap, 'k');
+                
+                figure(2);
+                hold on;
+                fill(Xcap, Ycap, 'k');
+                
+                figure(3);
+                hold on;
                 fill(Xcap, Ycap, 'k');
             end
             
@@ -211,7 +223,9 @@ for i = 1:nx
             YcapBottom = Ycap - epsilon;
             
             if (inpolygon(X(i,j), Y(i,j), XcapRight, Ycap) || inpolygon(X(i,j), Y(i,j), XcapLeft, Ycap) ...
-                    || inpolygon(X(i,j), Y(i,j), Xcap, YcapTop) || inpolygon(X(i,j), Y(i,j), Xcap, YcapBottom))
+                    || inpolygon(X(i,j), Y(i,j), Xcap, YcapTop) || inpolygon(X(i,j), Y(i,j), Xcap, YcapBottom)...
+                    || inpolygon(X(i,j), Y(i,j), XcapRight, YcapTop) || inpolygon(X(i,j), Y(i,j), XcapRight, YcapBottom) ...
+                    || inpolygon(X(i,j), Y(i,j), XcapLeft, YcapTop) || inpolygon(X(i,j), Y(i,j), XcapLeft, YcapBottom))
                 nearFiber = true;
             end
             
@@ -220,15 +234,33 @@ for i = 1:nx
         end
         
         if ~nearFiber
-            
-            U(i,j,:) = o.evaluateDLP(geom, eta, X(i,j), Y(i,j));
+            Utmp =  o.evaluateDLP(geom, eta, X(i,j), Y(i,j));
+            U(i,j,:) = [Utmp(1);Utmp(3)];
         else
             U(i,j,:) = nan;
         end        
     end
 end
 
+figure(1)
+hold on
 quiver(X, Y, U(:,:,1), U(:,:,2), 2);
+
+axis equal
+
+figure(2)
+hold on
+contourf(X, Y, U(:,:,1));
+colorbar
+
+axis equal
+
+figure(3)
+hold on
+contourf(X, Y, U(:,:,2));
+colorbar
+
+
 axis equal
 
 end % plotDLP

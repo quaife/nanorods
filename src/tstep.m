@@ -62,9 +62,10 @@ op = o.op;
 o.D = op.stokesDLmatrix(geom);
 % build double-layer potential matrix for each rigid body
 
-rhs = [o.farField(geom.X);zeros(3,nv)];
+rhs = [o.farField(geom.X)];
 %rhs = [geom.X(end/2+1:end,:);zeros(N,nv);zeros(3,nv)];
 rhs = -rhs(:);
+rhs = [rhs; zeros(3*nv,1)];
 % right-hand side with an arbitrarily chosen background flow
 % need to negate right-hand side since it moves to the other side of the
 % governing equations
@@ -118,6 +119,7 @@ valTorque = zeros(nv,1);
 eta = zeros(2*N,nv);
 for k = 1:nv
   eta(1:2*N,k) = Xn((k-1)*2*N+1:k*2*N);
+  %disp((k-1)*2*N+1:k*2*N)
 end
 % organize as matrix where columns correspond to unique bodies
 Up = zeros(2,nv);
@@ -191,6 +193,20 @@ if strcmp(type,'shear')
   vInf = [X(end/2+1:end,:);zeros(N,nv)];
 elseif strcmp(type,'extensional')
   vInf = [-X(1:end/2,:);X(end/2+1:end,:)];
+elseif strcmp(type, 'rotlet')
+    %rotlet centered at (0,0)
+    rot = @(x, y, xc, yc) 1./((x-xc).^2+(y-yc).^2).*[(y-yc), -(x-xc)];
+    
+    vInf = zeros(size(X));
+    
+    for i = 1:N
+        
+        for j = 1:nv
+            rotTmp = rot(X(i,j), X(i+N,j), 0, 0) + rot(X(i,j), X(i+N,j), 4, 4);
+            vInf(i,j) = rotTmp(1);
+            vInf(i+N,j) = rotTmp(2);
+        end
+    end
 else
   vInf = [ones(N,nv);zeros(N,nv)];
 end

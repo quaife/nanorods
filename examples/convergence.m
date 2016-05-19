@@ -1,12 +1,14 @@
 rot = @(x, y, xc, yc) 1/((x-xc)^2+(y-yc)^2)*[(y-yc), -(x-xc)];
 
-prams.N = 128; % points per body
+close all
+
+prams.N = 16; % points per body
 prams.nv = 2; % number of bodies
 
-prams.semimajors = [1,1];
-prams.semiminors = [3,3];
+prams.semimajors = [1, 1];
+prams.semiminors = [1, 1];
 
-options.farField = 'shear';
+options.farField = 'rotlet';
 options.saveData = false;
 options.dataFile = [];
 options.append = false;
@@ -14,8 +16,8 @@ options.inear = true;
 
 [options,prams] = initRigid2D(options,prams);
 
-xc = [-1, 0; 0, 4]; % [x-coordinates; y-coordinates]
-tau = [0, pi/2];
+xc = [0 4;0 4]; % [x-coordinates; y-coordinates]
+tau = [pi/4 0];
 tt = tstep(options,prams);
 om = monitor(options,prams);
 
@@ -30,6 +32,6 @@ x = linspace(-10,10,30);
 y = linspace(-10,10,30);
 
 [X, Y] = meshgrid(x,y);
-epsilon = 0.1;
+epsilon = 0.5;
 
-om.plotDLP(geom, density, X,  Y, epsilon);
+U = om.plotDLP(geom, density, X,  Y, epsilon);
