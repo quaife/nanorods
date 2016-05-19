@@ -44,7 +44,7 @@ end % constructor: tstep
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function [eta,Up,wp,iter,iflag] = timeStep(o,geom)
+function [eta,Up,wp,iter,iflag, res] = timeStep(o,geom)
 % [X,iter,iflag] = timeStep(Xstore) takes the current configuration
 % in Xstore (can be a three-dimensional array corresponding to  previous
 % time steps if doing multistep) and returns a new shape X, the number
@@ -70,7 +70,7 @@ rhs = [rhs; zeros(3*nv,1)];
 % need to negate right-hand side since it moves to the other side of the
 % governing equations
 
-maxit = 2*N;
+maxit = 2*N*nv;%should be a lot lower than this
 [Xn,iflag,res,I] = gmres(@(X) o.timeMatVec(X,geom),...
     rhs,[],o.gmresTol,maxit);
 % Use GMRES to find new geometry
@@ -193,6 +193,9 @@ if strcmp(type,'shear')
   vInf = [X(end/2+1:end,:);zeros(N,nv)];
 elseif strcmp(type,'extensional')
   vInf = [-X(1:end/2,:);X(end/2+1:end,:)];
+elseif strcmp(type, 'poiseuille')
+    %poiseuille flow with 0s at -100 and 100
+    vInf = [-(X(end/2+1:end,:) - 15).*(X(end/2+1:end,:) + 15)/(10^2); zeros(N,nv)];
 elseif strcmp(type, 'rotlet')
     %rotlet centered at (0,0)
     rot = @(x, y, xc, yc) 1./((x-xc).^2+(y-yc).^2).*[(y-yc), -(x-xc)];

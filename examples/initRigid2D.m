@@ -13,7 +13,7 @@ defaultPram.N = 64;
 defaultPram.nv = 1;
 defaultPram.T = 1;
 defaultPram.m = 10;
-defaultPram.gmresTol = 1e-8;
+defaultPram.gmresTol = 1e-6;
 for k = 1:length(PramList)
   if ~isfield(prams,PramList{k})
     eval(['prams.' PramList{k} '=defaultPram.' PramList{k} ';'])

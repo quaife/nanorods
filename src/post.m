@@ -73,6 +73,12 @@ for i = 1:stride:itmax
     
     clf;
     
+    xmin = min(min(o.centres_x(i,:))) - max(max(o.semimajors), max(o.semiminors));
+    xmax = max(max(o.centres_x(i,:))) + max(max(o.semimajors), max(o.semiminors));
+    
+%     ymin = min(min(o.centres_y(i,:))) - max(max(o.semimajors), max(o.semiminors));
+%     ymax = max(max(o.centres_y(i,:))) + max(max(o.semimajors), max(o.semiminors));
+    
     geom = capsules(prams, [o.centres_x(i,:); o.centres_y(i,:)], o.orientations(i,:));
     X = geom.getXY();
     oc = curve;
@@ -125,7 +131,7 @@ stats.centre_x_avg = mean(stats.centre_x,2);
 stats.centre_y_avg = mean(stats.centre_y,2);
 stats.orientations_avg = mean(stats.orientations,2);
 stats.vel_trans_x_avg = mean(stats.vel_trans_x,2);
-stats.vel_trans_x_avg = mean(stats.vel_trans_y,2);
+stats.vel_trans_y_avg = mean(stats.vel_trans_y,2);
 stats.vel_ang_avg = mean(stats.vel_ang,2);
 stats.speed_avg = mean(stats.speed, 2);
 

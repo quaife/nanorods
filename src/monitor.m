@@ -9,6 +9,7 @@ usePlot         % plot the bodies
 saveData        % save data to the dat files and log file
 axis            % axis of the plot
 dataFile        % name of the file to write the data
+densityFile
 append
 %logFile         % name of the file to write the log
 N               % number of points on inner boundaries
@@ -35,7 +36,8 @@ o.usePlot = options.usePlot;
 % plot the rigid bodies
 o.saveData = options.saveData;
 %% save messages to a log file
-o.dataFile = options.dataFile;
+o.dataFile = [options.dataFile, '.dat'];
+o.densityFile = [options.dataFile, '_density.dat'];
 o.append = options.append;
 %% name of bin file for geometry
 %% Uses this file name to choose the file name for the tracers
@@ -74,6 +76,7 @@ function clearFiles(o)
 % fid = fopen(o.logFile,'w');
 % fclose(fid);
 fid = fopen(o.dataFile,'w');
+fid = fopen(o.densityFile,'w');
 fclose(fid);
 % delete the previous log and data files
 
@@ -160,6 +163,14 @@ fclose(fid);
 
 end % writeData
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+function writeDensity(o,t, eta)
+    fid = fopen(o.densityFile,'a');
+    fprintf(fid,'%s\n', num2str([t,eta(:)']));
+    fclose(fid);
+end % writeDensity
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function u = evaluateDLP(o, geom, eta, x, y)
 % evaluates the Stokes double layer potential at a point x, y, given a geometry
 % geom and a density function eta
