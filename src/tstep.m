@@ -1,3 +1,6 @@
+%TODO: Just realized that o.D and preconditioner do not changes since
+%the geometry only rotates and translates.  So, they only need to be
+%computed once at the beginning of the code and used at all time steps!
 classdef tstep < handle
 % This class defines the functions required to advance the geometry
 % forward in time.  Routines that we may need to add are different
@@ -17,6 +20,8 @@ inear      % flag for using near-singular integration
 gmresTol   % GMRES tolerance
 nearStruct % near-singular integration structure 
 farField   % background flow
+usePreco   % use a block-diagonal preconditioner
+bdiagPreco % block-diagonal preconditioner
 op         % class for layer potentials
 end % properties
 
@@ -36,15 +41,15 @@ o.ifmm = false; % TODO: will need this to be true later
 o.inear = options.inear; % near-singular integration interpolation scheme
 o.gmresTol = prams.gmresTol;
 o.farField = @(X) o.bgFlow(X,options.farField);
+o.usePreco = options.usePreco;
 o.op = poten(prams.N);
-
 
 end % constructor: tstep
 
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function [eta,Up,wp,iter,iflag, res] = timeStep(o,geom)
+function [eta,Up,wp,iter,iflag,res] = timeStep(o,geom)
 % [X,iter,iflag] = timeStep(Xstore) takes the current configuration
 % in Xstore (can be a three-dimensional array corresponding to  previous
 % time steps if doing multistep) and returns a new shape X, the number
@@ -62,6 +67,16 @@ op = o.op;
 o.D = op.stokesDLmatrix(geom);
 % build double-layer potential matrix for each rigid body
 
+if o.usePreco
+  o.bdiagPreco.L = zeros(2*N,2*N,nv);
+  o.bdiagPreco.U = zeros(2*N,2*N,nv);
+  for k = 1:nv
+    [o.bdiagPreco.L(:,:,k),o.bdiagPreco.U(:,:,k)] = lu(...
+        -1/2*eye(2*N) + o.D(:,:,k));
+  end
+end
+
+
 rhs = [o.farField(geom.X)];
 %rhs = [geom.X(end/2+1:end,:);zeros(N,nv);zeros(3,nv)];
 rhs = -rhs(:);
@@ -71,9 +86,15 @@ rhs = [rhs; zeros(3*nv,1)];
 % governing equations
 
 maxit = 2*N*nv;%should be a lot lower than this
-[Xn,iflag,res,I] = gmres(@(X) o.timeMatVec(X,geom),...
-    rhs,[],o.gmresTol,maxit);
-% Use GMRES to find new geometry
+if ~o.usePreco
+  [Xn,iflag,res,I] = gmres(@(X) o.timeMatVec(X,geom),...
+      rhs,[],o.gmresTol,maxit);
+else
+  [Xn,iflag,res,I] = gmres(@(X) o.timeMatVec(X,geom),...
+      rhs,[],o.gmresTol,maxit,@o.preconditionerBD);
+end
+% Use GMRES to find density function, translation, and rotation
+% velocities
 iter = I(2);
 
 oc = curve;
@@ -182,6 +203,27 @@ end
 Tx = [valPos(:);-valForce(:);-valTorque(:)];
 
 end % timeMatVec
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+function Pz = preconditionerBD(o,z)
+% apply the block-diagonal preconditioner whose LU factorization is
+% precomputed and stored
+
+N = size(o.bdiagPreco.L,1)/2;
+nv = size(o.bdiagPreco.L,3);
+
+Pz = zeros(2*N*nv+3*nv,1);
+for k = 1:nv
+  istart = (k-1)*2*N + 1;
+  iend = k*2*N;
+  Pz(istart:iend) = o.bdiagPreco.U(:,:,k)\...
+      (o.bdiagPreco.L(:,:,k)\z(istart:iend));
+end
+Pz(nv*2*N+1:end) = z(nv*2*N+1:end);
+
+
+end % preconditioner
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function vInf = bgFlow(o,X,type)
