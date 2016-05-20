@@ -11,7 +11,7 @@ options.farField = 'poiseuille';
 options.usePlot = true;
 options.axis = [-20 20 -5 5];
 options.saveData = true;
-options.dataFile = 'velocities_49_particles_staggeredr';
+options.dataFile = 'velocities_49_particles_staggeredr_highv';
 options.append = false;
 options.inear = true;
 
@@ -46,5 +46,5 @@ tau = pi/2*ones(1,prams.nv) + 2*coeffr*(1-2*rand(1,prams.nv));
 %Xfinal = rigid2D(options, prams, xc, tau);
 
 pp = post([options.dataFile,'.dat']);
-pp.animated_gif('particles_staggered_49r.gif', 1, [])
+pp.animated_gif('particles_staggered_49r_highv.gif', 1, [])
 stats = pp.calculate_stats(1:prams.nv);
