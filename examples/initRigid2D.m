@@ -23,13 +23,14 @@ end
 
 
 OptionList = {'order','inear','farField','usePlot','verbose',...
-    'axis'};
+    'axis','usePreco'};
 defaultOption.order = 1;
 defaultOption.inear = true;
 defaultOption.farField = 'shear';
 defaultOption.usePlot = true;
 defaultOption.verbose = true;
 defaultOption.axis = [-10 10 -10 10];
+defaultOption.usePreco = false;
 for k = 1:length(OptionList)
   if ~isfield(options,OptionList{k})
     eval(['options.' OptionList{k} '=defaultOption.' ...
