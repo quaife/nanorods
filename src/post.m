@@ -120,7 +120,7 @@ stats.aspect_ratios = o.semiminors(fibers)./o.semimajors(fibers);
 
 stats.centre_x = o.centres_x(:,fibers);
 stats.centre_y = o.centres_y(:,fibers);
-stats.orientations = wrapTo2Pi(o.orientations(:,fibers));
+stats.orientations = wrapToPi(o.orientations(:,fibers));
 stats.vel_trans_x = o.u_x(:,fibers);
 stats.vel_trans_y = o.u_y(:,fibers);
 stats.vel_ang = o.omega(:,fibers);
@@ -147,10 +147,38 @@ stats.speed_std = std(stats.speed, 0, 2);
 %other quantities
 stats.dist = sqrt((stats.centre_x(end,:)-stats.centre_x(1,:)).^2 -...
                 (stats.centre_y(end,:) - stats.centre_y(1,:)).^2);
-stats.n_rotations = (stats.orientations(end,:) - stats.orientations(1,:))/(2*pi);
+stats.n_rotations = (o.orientations(end,:) - o.orientations(1,:))/(2*pi);
 
+%pdf and tensors
+%apply symmetry around 0
+p = zeros(size(stats.orientations));
+for i = 1:length(stats.time)
+    for j = fibers
+        p(i,j) = stats.orientations(i,j);
+        if (stats.orientations(i,j) < 0)
+            p(i,j) = p(i,j) + pi;
+        end
+    end
+end
 
-    
+stats.pdf_thetas = linspace(-pi,pi,length(fibers)/2);
+stats.pdf_p = hist(p', stats.pdf_thetas)';
+%normalize
+dtheta = stats.pdf_thetas(2) - stats.pdf_thetas(1);
+
+for i = 1:length(stats.time)
+    stats.pdf_p(i,:) = stats.pdf_p(i,:)/(dtheta*sum(stats.pdf_p(i,:)));
+end
+
+%calculate second order moment
+stats.a2 = zeros(2,2,length(stats.time));
+for i = 1:length(stats.time)
+    for j = 1:length(stats.pdf_thetas)
+        ptmp = [cos(stats.pdf_thetas(j)); sin(stats.pdf_thetas(j))];
+        stats.a2(:,:,i) = stats.a2(:,:,i) + dtheta*(ptmp*ptmp')*stats.pdf_p(i,j);
+    end
+end
+
 end %post : stats
 
 end %methods
