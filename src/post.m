@@ -120,7 +120,7 @@ stats.aspect_ratios = o.semiminors(fibers)./o.semimajors(fibers);
 
 stats.centre_x = o.centres_x(:,fibers);
 stats.centre_y = o.centres_y(:,fibers);
-stats.orientations = wrapToPi(o.orientations(:,fibers));
+stats.orientations = wrapTo2Pi(o.orientations(:,fibers));
 stats.vel_trans_x = o.u_x(:,fibers);
 stats.vel_trans_y = o.u_y(:,fibers);
 stats.vel_ang = o.omega(:,fibers);
@@ -149,38 +149,161 @@ stats.dist = sqrt((stats.centre_x(end,:)-stats.centre_x(1,:)).^2 -...
                 (stats.centre_y(end,:) - stats.centre_y(1,:)).^2);
 stats.n_rotations = (o.orientations(end,:) - o.orientations(1,:))/(2*pi);
 
-%pdf and tensors
+%histogram and tensors
 %apply symmetry around 0
-p = zeros(size(stats.orientations));
-for i = 1:length(stats.time)
-    for j = fibers
-        p(i,j) = stats.orientations(i,j);
-        if (stats.orientations(i,j) < 0)
-            p(i,j) = p(i,j) + pi;
-        end
-    end
+
+stats.hist_thetas = linspace(0,2*pi,length(fibers)/2);
+
+stats.hist_p = hist(stats.orientations', stats.hist_thetas)';
+
+for i = 1:floor(length(stats.hist_thetas)/2)
+    ptmp = (stats.hist_p(:,i) + stats.hist_p(:,end-i+1))/2;
+    stats.hist_p(:,i) = ptmp;
+    stats.hist_p(:,end-i+1) = ptmp;
 end
 
-stats.pdf_thetas = linspace(-pi,pi,length(fibers)/2);
-stats.pdf_p = hist(p', stats.pdf_thetas)';
-%normalize
-dtheta = stats.pdf_thetas(2) - stats.pdf_thetas(1);
+%normalize histogram to create "real" pdf
+dtheta = stats.hist_thetas(2) - stats.hist_thetas(1);
 
+stats.pdf_actual = stats.hist_p;
 for i = 1:length(stats.time)
-    stats.pdf_p(i,:) = stats.pdf_p(i,:)/(dtheta*sum(stats.pdf_p(i,:)));
+    stats.pdf_actual(i,:) = stats.hist_p(i,:)/(dtheta*sum(stats.hist_p(i,:)));
 end
 
 %calculate second order moment
 stats.a2 = zeros(2,2,length(stats.time));
 for i = 1:length(stats.time)
-    for j = 1:length(stats.pdf_thetas)
-        ptmp = [cos(stats.pdf_thetas(j)); sin(stats.pdf_thetas(j))];
-        stats.a2(:,:,i) = stats.a2(:,:,i) + dtheta*(ptmp*ptmp')*stats.pdf_p(i,j);
+    for j = 1:length(stats.hist_thetas)
+        ptmp = [cos(stats.hist_thetas(j)); sin(stats.hist_thetas(j))];
+        stats.a2(:,:,i) = stats.a2(:,:,i) + dtheta*(ptmp*ptmp')*stats.pdf_actual(i,j);
+    end
+end
+
+%calculate fourth order moment
+stats.a4 = zeros(2,2,2,2,length(stats.time));
+
+for i = 1:length(stats.time)
+    for j = 1:length(stats.hist_thetas)
+        ptmp = [cos(stats.hist_thetas(j)), sin(stats.hist_thetas(j))];
+       
+        %probably a better way to do this (at least more astetically
+        %pleasing)
+        for iT = 1:2
+            for jT = 1:2
+                for kT = 1:2
+                    for nT = 1:2
+                        stats.a4(iT,jT,kT,nT,i) = stats.a4(iT,jT,kT,nT,i) +dtheta*ptmp(iT)*ptmp(jT)*ptmp(kT)*ptmp(nT);
+                    end
+                end
+            end
+        end
     end
 end
 
 end %post : stats
 
+function prob = recover_probability(o, theta, a2, a4)
+    %uses the second order tensor a2 calculated in the stats routine to
+    %recover the probablity of finding a fiber with orientation angle
+    %theta. See Advani and Tucker page 760
+    
+    p = [cos(theta);sin(theta)];
+    p_outer = p*p';
+    
+    b2 = a2 - 0.5*eye(2);
+    f2 = p_outer - 0.5*eye(2);
+    prob = 1/(2*pi) + (2/pi)*trace(b2*f2');
+    
+    %if fourth order tensor given add on contribution
+    if ~isempty(a4);        
+        
+        C1 = zeros(2,2,2,2);
+        C1(1,1,:,:) = a2;
+        C1(2,2,:,:) = a2;
+        
+        C2 = zeros(2,2,2,2);
+        C2(1,:,1,:) = a2;
+        C2(2,:,2,:) = a2;
+        
+        C3 = zeros(2,2,2,2);
+        C3(1,:,:,1) = a2;
+        C3(2,:,:,2) = a2;
+        
+        C4 = zeros(2,2,2,2);
+        C4(:,1,1,:) = a2;
+        C4(:,2,2,:) = a2;
+        
+        C5 = zeros(2,2,2,2);
+        C5(:,1,:,1) = a2;
+        C5(:,2,:,2) = a2;
+        
+        C6 = zeros(2,2,2,2);
+        C6(:,:,1,1) = a2;
+        C6(:,:,2,2) = a2;
+        
+        D1 = zeros(2,2,2,2);
+        D1(1,1,:,:) = p_outer;
+        D1(2,2,:,:) = p_outer;
+        
+        D2 = zeros(2,2,2,2);
+        D2(1,:,1,:) = p_outer;
+        D2(2,:,2,:) = p_outer;
+        
+        D3 = zeros(2,2,2,2);
+        D3(1,:,:,1) = p_outer;
+        D3(2,:,:,2) = p_outer;
+        
+        D4 = zeros(2,2,2,2);
+        D4(:,1,1,:) = p_outer;
+        D4(:,2,2,:) = p_outer;
+        
+        D5 = zeros(2,2,2,2);
+        D5(:,1,:,1) = p_outer;
+        D5(:,2,:,2) = p_outer;
+        
+        D6 = zeros(2,2,2,2);
+        D6(:,:,1,1) = p_outer;
+        D6(:,:,2,2) = p_outer;
+        
+        I1 = zeros(2,2,2,2);
+        I1(1,1,1,1) = 1;
+        I1(2,2,2,2) = 1;
+        I1(1,1,2,2) = 1;
+        I1(2,2,1,1) = 1;
+        
+        I2 = zeros(2,2,2,2);
+        I2(1,1,1,1) = 1;
+        I2(2,2,2,2) = 1;
+        I2(1,2,1,2) = 1;
+        I2(2,1,1,2) = 1;
+        
+        I3 = zeros(2,2,2,2);
+        I3(1,1,1,1) = 1;
+        I3(2,2,2,2) = 1;
+        I3(1,2,2,1) = 1;
+        I3(2,1,1,2) = 1;
+        
+        b4 = a4 - (C1 + C2 + C3 + C4 + C5 + C6)/6 + (I1 + I2 + I3)/24;
+        
+        p4 = zeros(2,2,2,2);
+        for i = 1:2
+            for j = 1:2
+                for k = 1:2
+                    for n = 1:2
+                        p4(i,j,k,n) = p(i)*p(j)*p(k)*p(n);
+                    end
+                end
+            end
+        end
+        
+        f4 = p4 - (D1 + D2 + D3 + D4 + D5 + D6)/6 +(I1 + I2 + I3)/24;
+        
+        prob = prob + (8/pi)*sum(b4(:).*f4(:));
+    end
+        
+        
+    
+end %post : recover_probability
 end %methods
 
 end %classdef
