@@ -64,9 +64,11 @@ Xm = geom.X;
 o.nearStruct = geom.getZone([],1);
 
 op = o.op;
-o.D = op.stokesDLmatrix(geom);
-% build double-layer potential matrix for each rigid body
 
+% build double-layer potential matrix for each rigid body
+o.D = op.stokesDLmatrix(geom);
+
+% compute preconditioner if needed
 if o.usePreco
   o.bdiagPreco.L = zeros(2*N,2*N,nv);
   o.bdiagPreco.U = zeros(2*N,2*N,nv);

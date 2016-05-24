@@ -24,41 +24,55 @@ function o = capsules(prams, varargin)
 % takes the values of prams and options that it requires.
 % This is the constructor
 
-    
 if length(varargin) == 1 % coordinates provided directly
-  o.X = varargin{1};
-  o.N = size(o.X,1)/2; % points per component
-  o.nv = size(o.X,2);  % number of components
-  o.center = [mean(o.X(1:end/2,:));mean(o.X(end/2+1:end,:))];
-  % centers of each component
+    o.X = varargin{1};
+    o.N = size(o.X,1)/2; % points per component
+    o.nv = size(o.X,2);  % number of components
+    o.center = [mean(o.X(1:end/2,:));mean(o.X(end/2+1:end,:))];
+    % centers of each component
     
-else if length(varargin) == 2 %centres, orientation angles and N provided
-  o.N = prams.N;              % points per component
-  o.nv = prams.nv;               % number of components
-
-        xc = varargin{1};
-        tau = varargin{2};
+else if length(varargin) == 2 %centres and orientation angles
         
-        
-        theta = (0:prams.N-1)'*2*pi/prams.N;
-        X = zeros(2*prams.N,prams.nv);
-        
-        for k = 1:prams.nv
-            x_ellipse = prams.semimajors(k)*cos(theta);
-            y_ellipse = prams.semiminors(k)*sin(theta);
+    xc = varargin{1};
+    tau = varargin{2};
 
-            X(:,k) = [x_ellipse*cos(tau(k)) - y_ellipse*sin(tau(k)) + xc(1,k); x_ellipse*sin(tau(k)) + y_ellipse*cos(tau(k)) + xc(2,k)];
-        end
+    o.N = prams.N;              % points per component
+    o.nv = prams.nv;            % number of components
+    o.center = xc;
 
-        o.X = X;
-        o.center = xc;
+    theta = (0:prams.N-1)'*2*pi/prams.N;
+    o.X = zeros(2*prams.N,prams.nv);
+
+    switch prams.capsule_type
+        case 'rectangle'
+
+            r = (cos(theta).^prams.order + sin(theta).^prams.order).^(-1/prams.order);
+
+            for k = 1:prams.nv
+
+                x_square = prams.lengths(k)*r.*cos(theta);
+                y_square = prams.widths(k)*r.*sin(theta);
+
+                o.X(:,k) = [x_square*cos(tau(k)) - y_square*sin(tau(k)) + xc(1,k);
+                    x_square*sin(tau(k)) + y_square*cos(tau(k)) + xc(2,k)];
+            end
+
+        case 'ellipsoid'
+
+            for k = 1:prams.nv
+                x_ellipse = prams.semimajors(k)*cos(theta);
+                y_ellipse = prams.semiminors(k)*sin(theta);
+
+                o.X(:,k) = [x_ellipse*cos(tau(k)) - y_ellipse*sin(tau(k)) + xc(1,k);
+                    x_ellipse*sin(tau(k)) + y_ellipse*cos(tau(k)) + xc(2,k)];
+            end
+    end
     end
 end
-
 oc = curve;
 [o.sa,o.xt,o.cur] = oc.diffProp(o.X);
 [~,o.length] = oc.geomProp(o.X);
-    
+
 end % capsules: constructor
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

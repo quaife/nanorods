@@ -1,24 +1,24 @@
 close all
 
-prams.N = 32; % points per body
+prams.N = 16; % points per body
 prams.nv = 49; % number of bodies
 prams.T = 10; % time horizon
 prams.m = 100; % number of time steps
 prams.semimajors = 2*ones(1,prams.nv);
 prams.semiminors = 0.5*ones(1,prams.nv);
+prams.capsule_type = 'rectangle';
+prams.lengths = 2*ones(1, prams.nv);
+prams.widths = 0.25*ones(1,prams.nv);
+prams.order = 10;
 
 options.farField = 'poiseuille';
 options.usePlot = true;
 options.axis = [-20 20 -5 5];
 options.saveData = true;
-<<<<<<< HEAD
-options.dataFile = 'velocities_49_particles_staggeredr_highv';
-=======
-%options.dataFile = 'velocities_49_particles_staggeredr';
->>>>>>> 34af72a5f0ee67ad239b66978662cb71636053fe
+options.dataFile = 'rectangular_fibers_poiseuille';
 options.append = false;
 options.inear = true;
-options.usePreco = false;
+options.usePreco = true;
 
 [options,prams] = initRigid2D(options,prams);
 
@@ -48,8 +48,8 @@ tau = pi/2*ones(1,prams.nv) + 2*coeffr*(1-2*rand(1,prams.nv));
 %xc = [0;-1.1];
 %tau = 0*ones(1,prams.nv);
 
-Xfinal = rigid2D(options, prams, xc, tau);
+%Xfinal = rigid2D(options, prams, xc, tau);
 
-pp = post([options.dataFile,'.dat']);
-pp.animated_gif('particles_staggered_49r_highv.gif', 1, [])
-stats = pp.calculate_stats(1:prams.nv);
+pp = post([options.dataFile,'.dat'], 'rectangle');
+pp.animated_gif('rectangular_fibers_poiseuille.gif', 1, [])
+%stats = pp.calculate_stats(1:prams.nv);

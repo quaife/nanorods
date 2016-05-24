@@ -6,6 +6,11 @@ dataFile
 
 semimajors;
 semiminors;
+
+widths;
+lengths;
+order;
+
 centres_x;
 centres_y
 orientations;
@@ -14,32 +19,60 @@ u_x;
 u_y;
 omega;
 nv;
+capsule_type;
 
 end % properties
 
 methods
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function o = post(dataFile)
+function o = post(dataFile, type)
 
+o.capsule_type = type;    
 o.dataFile = dataFile;
 
 %first 5 lines are header lines
-M = dlmread(o.dataFile, '\t', 5, 0);
 
-[~, nc] = size(M);
 
-o.nv = (nc - 1)/6;
-o.semimajors = nonzeros(M(1,1:o.nv));
-o.semiminors = nonzeros(M(2,1:o.nv));
 
-o.times = M(3:end,1);
-o.centres_x = M(3:end,2:o.nv+1);
-o.centres_y = M(3:end,o.nv+2:2*o.nv+1);
-o.orientations = M(3:end,2*o.nv+2:3*o.nv+1);
-o.u_x = M(3:end, 3*o.nv+2:4*o.nv+1);
-o.u_y = M(3:end, 4*o.nv+2:5*o.nv+1);
-o.omega = M(3:end, 5*o.nv+2:end);
+switch o.capsule_type
+    case 'rectangle'
+
+    M = dlmread(o.dataFile, '\t', 6, 0);
+
+    [~, nc] = size(M);
+    o.nv = (nc - 1)/6;
+    
+    o.lengths = nonzeros(M(1,1:o.nv));
+    o.widths = nonzeros(M(2,1:o.nv));
+    o.order = nonzeros(M(3,1:o.nv));
+
+    o.times = M(4:end,1);
+    o.centres_x = M(4:end,2:o.nv+1);
+    o.centres_y = M(4:end,o.nv+2:2*o.nv+1);
+    o.orientations = M(4:end,2*o.nv+2:3*o.nv+1);
+    o.u_x = M(4:end, 3*o.nv+2:4*o.nv+1);
+    o.u_y = M(4:end, 4*o.nv+2:5*o.nv+1);
+    o.omega = M(4:end, 5*o.nv+2:end);   
+    
+    case 'ellipsoid'
+        
+    M = dlmread(o.dataFile, '\t', 5, 0);
+
+    [~, nc] = size(M);
+    o.nv = (nc - 1)/6;
+    
+    o.semimajors = nonzeros(M(1,1:o.nv));
+    o.semiminors = nonzeros(M(2,1:o.nv)); 
+    o.times = M(3:end,1);
+    o.centres_x = M(3:end,2:o.nv+1);
+    o.centres_y = M(3:end,o.nv+2:2*o.nv+1);
+    o.orientations = M(3:end,2*o.nv+2:3*o.nv+1);
+    o.u_x = M(3:end, 3*o.nv+2:4*o.nv+1);
+    o.u_y = M(3:end, 4*o.nv+2:5*o.nv+1);
+    o.omega = M(3:end, 5*o.nv+2:end);   
+end
+
 
 
 end %post : constructor
@@ -49,10 +82,11 @@ end %post : constructor
 function [] = animated_gif(o, gname, stride, itmax)
     
 prams.N = 128;
-prams.semimajors = o.semimajors';
-prams.semiminors = o.semiminors';
-
 prams.nv = o.nv;
+prams.capsule_type = o.capsule_type;
+prams.order = o.order;
+prams.lengths = o.lengths;
+prams.widths = o.widths;
 
 h = figure();
 
@@ -62,22 +96,55 @@ if isempty(itmax)
     itmax = length(o.times);
 end
 
-xmin = min(min(o.centres_x(1:itmax,:))) - max(max(o.semimajors), max(o.semiminors));
-xmax = max(max(o.centres_x(1:itmax,:))) + max(max(o.semimajors), max(o.semiminors));
-
-ymin = min(min(o.centres_y(1:itmax,:))) - max(max(o.semimajors), max(o.semiminors));
-ymax = max(max(o.centres_y(1:itmax,:))) + max(max(o.semimajors), max(o.semiminors));
-
-
+switch (o.capsule_type)
+    case 'rectangle'
+        prams.length = o.lengths;
+        prams.width = o.widths;
+        prams.order = o.order;
+        
+        xmin = min(min(o.centres_x(1:itmax,:))) - max(o.lengths);
+        xmax = max(max(o.centres_x(1:itmax,:))) + max(o.lengths);
+        
+        ymin = min(min(o.centres_y(1:itmax,:))) - max(o.lengths);
+        ymax = max(max(o.centres_y(1:itmax,:))) + max(o.lengths);
+        
+    case 'ellipsoid'
+        prams.semimajors = o.semimajors';
+        prams.semiminors = o.semiminors';
+        xmin = min(min(o.centres_x(1:itmax,:))) - max(max(o.semimajors), max(o.semiminors));
+        xmax = max(max(o.centres_x(1:itmax,:))) + max(max(o.semimajors), max(o.semiminors));
+        
+        ymin = min(min(o.centres_y(1:itmax,:))) - max(max(o.semimajors), max(o.semiminors));
+        ymax = max(max(o.centres_y(1:itmax,:))) + max(max(o.semimajors), max(o.semiminors));
+        
+end
 for i = 1:stride:itmax
     
     clf;
     
-    xmin = min(min(o.centres_x(i,:))) - max(max(o.semimajors), max(o.semiminors));
-    xmax = max(max(o.centres_x(i,:))) + max(max(o.semimajors), max(o.semiminors));
+    switch (o.capsule_type)
+    case 'rectangle'
+        prams.length = o.lengths;
+        prams.width = o.widths;
+        prams.order = o.order;
+        
+        xmin = min(min(o.centres_x(i,:))) - max(o.lengths);
+        xmax = max(max(o.centres_x(i,:))) + max(o.lengths);
+        
+        ymin = min(min(o.centres_y(1:itmax,:))) - max(o.lengths);
+        ymax = max(max(o.centres_y(1:itmax,:))) + max(o.lengths);
+        
+    case 'ellipsoid'
+        prams.semimajors = o.semimajors';
+        prams.semiminors = o.semiminors';
+        xmin = min(min(o.centres_x(1:itmax,:))) - max(max(o.semimajors), max(o.semiminors));
+        xmax = max(max(o.centres_x(1:itmax,:))) + max(max(o.semimajors), max(o.semiminors));
+        
+        ymin = min(min(o.centres_y(1:itmax,:))) - max(max(o.semimajors), max(o.semiminors));
+        ymax = max(max(o.centres_y(1:itmax,:))) + max(max(o.semimajors), max(o.semiminors));
+        
+    end
     
-%     ymin = min(min(o.centres_y(i,:))) - max(max(o.semimajors), max(o.semiminors));
-%     ymax = max(max(o.centres_y(i,:))) + max(max(o.semimajors), max(o.semiminors));
     
     geom = capsules(prams, [o.centres_x(i,:); o.centres_y(i,:)], o.orientations(i,:));
     X = geom.getXY();
@@ -149,10 +216,17 @@ stats.dist = sqrt((stats.centre_x(end,:)-stats.centre_x(1,:)).^2 -...
                 (stats.centre_y(end,:) - stats.centre_y(1,:)).^2);
 stats.n_rotations = (o.orientations(end,:) - o.orientations(1,:))/(2*pi);
 
+%stats.orientations = 2*pi*rand(length(stats.time), 10000);
+% for i = 1:length(stats.time)
+% stats.orientations(i,1:10000) = linspace(0,2*pi,10000);
+% end
+
 %histogram and tensors
 %apply symmetry around 0
 
-stats.hist_thetas = linspace(0,2*pi,length(fibers)/2);
+
+stats.hist_thetas = linspace(0,2*pi,length(fibers));
+%stats.hist_thetas = linspace(0,2*pi,1000);
 
 stats.hist_p = hist(stats.orientations', stats.hist_thetas)';
 
@@ -192,7 +266,7 @@ for i = 1:length(stats.time)
             for jT = 1:2
                 for kT = 1:2
                     for nT = 1:2
-                        stats.a4(iT,jT,kT,nT,i) = stats.a4(iT,jT,kT,nT,i) +dtheta*ptmp(iT)*ptmp(jT)*ptmp(kT)*ptmp(nT);
+                        stats.a4(iT,jT,kT,nT,i) = stats.a4(iT,jT,kT,nT,i) + dtheta*ptmp(iT)*ptmp(jT)*ptmp(kT)*ptmp(nT);
                     end
                 end
             end
