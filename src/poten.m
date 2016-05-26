@@ -44,14 +44,14 @@ o.gamma = [+4.967362978287758e+0; ...
 end % poten: constructor
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function LP = nearSingInt(o,vesicleSou,f,selfMat,...
-    NearStruct,kernel,kernelDirect,vesicleTar,tEqualS,idebug)
-% LP = nearSingInt(vesicle,f,selfMat,NearStruct,kernel,kernelDirect,
-% vesicleTar,tEqualS,idebug) computes a layer potential due to f at all
-% points in vesicleTar.X.  If tEqualS==true, then the vesicleTar ==
-% vesicleSou and the self-vesicle interaction is skipped.  selfMat is
+function LP = nearSingInt(o,geomSou,f,selfMat,...
+    NearStruct,kernel,kernelDirect,geomTar,tEqualS,idebug)
+% LP = nearSingInt(geom,f,selfMat,NearStruct,kernel,kernelDirect,
+% geomTar,tEqualS,idebug) computes a layer potential due to f at all
+% points in geomTar.X.  If tEqualS==true, then the geomTar ==
+% geomSou and the self-geom interaction is skipped.  selfMat is
 % the diagonal of the potential needed to compute the layer potential of
-% each vesicle indepenedent of all others.  kernel and kernelDirect are
+% each geom indepenedent of all others.  kernel and kernelDirect are
 % two (possibly the same) routines that compute the layer potential.
 % kernelDirect always uses the direct method whereas kernel may use an
 % FMM-accelerated method.  NearStruct is a structure containing the
@@ -61,11 +61,11 @@ function LP = nearSingInt(o,vesicleSou,f,selfMat,...
 % argument if desired so that plots of the near-singular integration
 % algorithm are displayed
 
-if (tEqualS && size(vesicleSou.X,2) == 1)
-  LP = zeros(size(vesicleSou.X));
+if (tEqualS && size(geomSou.X,2) == 1)
+  LP = zeros(size(geomSou.X));
   return
 end
-% only a single vesicle, so velocity on all other vesicles will always
+% only a single geom, so velocity on all other geoms will always
 % be zero
 
 if (nargin == 9)
@@ -78,14 +78,14 @@ nearest = NearStruct.nearest;
 icp = NearStruct.icp;
 argnear = NearStruct.argnear;
 
-Xsou = vesicleSou.X; % source positions
+Xsou = geomSou.X; % source positions
 Nsou = size(Xsou,1)/2; % number of source points
-nvSou = size(Xsou,2); % number of source 'vesicles'
-Xtar = vesicleTar.X; % target positions
+nvSou = size(Xsou,2); % number of source 'geoms'
+Xtar = geomTar.X; % target positions
 Ntar = size(Xtar,1)/2; % number of target points
-nvTar = size(Xtar,2); % number of target 'vesicles'
+nvTar = size(Xtar,2); % number of target 'geoms'
 
-h = vesicleSou.length/Nsou; % arclength term
+h = geomSou.length/Nsou; % arclength term
 
 Nup = Nsou*ceil(sqrt(Nsou));
 
@@ -97,8 +97,8 @@ Xup = [interpft(Xsou(1:Nsou,:),Nup);...
 fup = [interpft(f(1:Nsou,:),Nup);...
        interpft(f(Nsou+1:2*Nsou,:),Nup)];
 
-vesicleUp = capsules([],Xup);
-% Build an object with the upsampled vesicle
+geomUp = capsules([],Xup);
+% Build an object with the upsampled geom
 
 interpOrder = size(o.interpMat,1);
 % lagrange interpolation order
@@ -109,18 +109,18 @@ p = ceil((interpOrder+1)/2);
 if tEqualS % sources == targets
   if nvSou > 1
     if (strfind(char(kernel),'fmm'))
-      farField = kernel(vesicleUp,fup);
+      farField = kernel(geomUp,fup);
       farField = farField(1:Nup/Ntar:end,:);
       % evaluate layer potential at all targets except ignore the
       % diagonal term
     else
       for k = 1:nvSou
         K = [(1:k-1) (k+1:nvSou)];
-        [~,farField(:,k)] = kernelDirect(vesicleUp,fup,Xtar(:,k),K);
+        [~,farField(:,k)] = kernelDirect(geomUp,fup,Xtar(:,k),K);
       end
       % This is a huge savings if we are using a direct method rather
       % than the fmm to evaluate the layer potential.  The speedup is
-      % more than N^{1/2}, where N is the resolution of the vesicles
+      % more than N^{1/2}, where N is the resolution of the geoms
       % that we are computing with
     end
   else
@@ -128,8 +128,8 @@ if tEqualS % sources == targets
   end
 
 else % sources ~= targets
-  [~,farField] = kernel(vesicleUp,fup,Xtar,1:nvSou);
-  % evaluate layer potential due to all 'vesicles' at all points in
+  [~,farField] = kernel(geomUp,fup,Xtar,1:nvSou);
+  % evaluate layer potential due to all 'geoms' at all points in
   % Xtar
 end
 % Use upsampled trapezoid rule to compute layer potential
@@ -142,18 +142,18 @@ beta = 1.1;
 for k1 = 1:nvSou
   if tEqualS % sources == targets
     K = [(1:k1-1) (k1+1:nvTar)];
-    % skip diagonal vesicle
+    % skip diagonal geom
   else % sources ~= targets
     K = (1:nvTar);
-    % consider all vesicles
+    % consider all geoms
   end
   for k2 = K
     J = find(zone{k1}(:,k2) == 1);
-    % set of points on vesicle k2 close to vesicle k1
+    % set of points on geom k2 close to geom k1
     if (numel(J) ~= 0)
       indcp = icp{k1}(J,k2);
-      % closest point on vesicle k1 to each point on vesicle k2 
-      % that is close to vesicle k1
+      % closest point on geom k1 to each point on geom k2 
+      % that is close to geom k1
       for j = 1:numel(J)
         pn = mod((indcp(j)-p+1:indcp(j)-p+interpOrder)' - 1,Nsou) + 1;
         % index of points to the left and right of the closest point
@@ -170,13 +170,13 @@ for k1 = 1:nvSou
 %     using local interpolant
       
       if ((numel(J) + numel(fup)) >= 512 && numel(J) > 32)
-        [~,potTar] = kernel(vesicleUp,fup,...
+        [~,potTar] = kernel(geomUp,fup,...
            [Xtar(J,k2);Xtar(J+Ntar,k2)],k1);
       else
-        [~,potTar] = kernelDirect(vesicleUp,fup,...
+        [~,potTar] = kernelDirect(geomUp,fup,...
            [Xtar(J,k2);Xtar(J+Ntar,k2)],k1);
       end
-      % Need to subtract off contribution due to vesicle k1 since its
+      % Need to subtract off contribution due to geom k1 since its
       % layer potential will be evaulted using Lagrange interpolant of
       % nearby points
       nearField(J,k2) =  - potTar(1:numel(J));
@@ -193,16 +193,16 @@ for k1 = 1:nvSou
             beta*h(k1)*nx*(1:interpOrder-1);
         XLag(i+numel(J),:) = nearest{k1}(J(i)+Ntar,k2) + ...
             beta*h(k1)*ny*(1:interpOrder-1);
-        % Lagrange interpolation points coming off of vesicle k1 All
+        % Lagrange interpolation points coming off of geom k1 All
         % points are behind Xtar(J(i),k2) and are sufficiently far from
-        % vesicle k1 so that the Nup-trapezoid rule gives sufficient
+        % geom k1 so that the Nup-trapezoid rule gives sufficient
         % accuracy
       end
 
       if (numel(XLag)/2 > 100)
-        [~,lagrangePts] = kernel(vesicleUp,fup,XLag,k1);
+        [~,lagrangePts] = kernel(geomUp,fup,XLag,k1);
       else
-        [~,lagrangePts] = kernelDirect(vesicleUp,fup,XLag,k1);
+        [~,lagrangePts] = kernelDirect(geomUp,fup,XLag,k1);
       end
       % evaluate velocity at the lagrange interpolation points
       
@@ -212,7 +212,7 @@ for k1 = 1:nvSou
         Py = o.interpMat*[vel(J(i)+Ntar,k2,k1) ...
             lagrangePts(i+numel(J),:)]';
         % Build polynomial interpolant along the one-dimensional
-        % points coming out of the vesicle
+        % points coming out of the geom
         dscaled = full(dist{k1}(J(i),k2)/(beta*h(k1)*(interpOrder-1)));
         % Point where interpolant needs to be evaluated
 
@@ -252,7 +252,7 @@ end % k1
 
 LP = farField + nearField;
 % Add kernel due to far points and near points.  Far points were
-% upsampled if source==vesicle so need to truncate here.  We are 
+% upsampled if source==geom so need to truncate here.  We are 
 % only using Ntar target points.  Note that it is only the sources 
 % that were upsampled
 
@@ -263,30 +263,30 @@ end % nearSingInt
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function D = stokesDLmatrix(o,vesicle)
-% D = stokesDLmatrix(vesicle), generate double-layer potential for 
-% Stokes vesicle is a data structure defined as in the capsules class
+function D = stokesDLmatrix(o,geom)
+% D = stokesDLmatrix(geom), generate double-layer potential for 
+% Stokes geom is a data structure defined as in the capsules class
 % D is (2N,2N,nv) array where N is the number of points per curve and 
 % nv is the number of curves in X 
 
 oc = curve;
-[x,y] = oc.getXY(vesicle.X);
+[x,y] = oc.getXY(geom.X);
 % Vesicle positions
-N = vesicle.N;
-% number of points per vesicles
-D = zeros(2*N,2*N,vesicle.nv);
+N = geom.N;
+% number of points per geoms
+D = zeros(2*N,2*N,geom.nv);
 % initialize space for double-layer potential matrix
 
-for k=1:vesicle.nv  % Loop over curves
+for k=1:geom.nv  % Loop over curves
   xx = x(:,k);
   yy = y(:,k);
   % locations
-  [tx,ty] = oc.getXY(vesicle.xt);
+  [tx,ty] = oc.getXY(geom.xt);
   tx = tx(:,k); ty = ty(:,k);
   % Vesicle tangent
-  sa = vesicle.sa(:,k)';
+  sa = geom.sa(:,k)';
   % Jacobian
-  cur = vesicle.cur(:,k)';
+  cur = geom.cur(:,k)';
   % curvature
 
   xtar = xx(:,ones(N,1));
@@ -346,9 +346,9 @@ end % stokesDLmatrix
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function DLP = exactStokesDLdiag(o,vesicle,D,f)
-% DLP = exactStokesDLdiag(vesicle,f,K) computes the diagonal term of
-% the double-layer potential due to f around all vesicles.  Source and
+function DLP = exactStokesDLdiag(o,geom,D,f)
+% DLP = exactStokesDLdiag(geom,f,K) computes the diagonal term of
+% the double-layer potential due to f around all geoms.  Source and
 % target points are the same.  This uses trapezoid rule with the
 % curvature at the diagonal in order to guarantee spectral accuracy.
 % This routine can either compute the double-layer potential
@@ -356,8 +356,8 @@ function DLP = exactStokesDLdiag(o,vesicle,D,f)
 % the matrix D is passed in and anti-aliasing is not requested, it will
 % simply do the matrix-vector product with the precomputed matrix D.
 
-DLP = zeros(2*vesicle.N,vesicle.nv);
-for k = 1:vesicle.nv
+DLP = zeros(2*geom.N,geom.nv);
+for k = 1:geom.nv
   DLP(:,k) = D(:,:,k) * f(:,k);
 end
 
@@ -478,73 +478,74 @@ end % exactStokesDL
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function [stokesDLP,stokesDLPtar] = ...
-    exactStokesDLfmm(o,vesicle,f,Xtar,K)
-% [stokesDLP,stokeDLPtar] = exactStokesDLfmm(vesicle,f,Xtar,K) uses the
-% FMM to compute the double-layer potential due to all vesicles except
-% itself vesicle is a class of object capsules and f is the density
+    exactStokesDLfmm(o,geom,f,Xtar,K)
+% [stokesDLP,stokeDLPtar] = exactStokesDLfmm(geom,f,Xtar,K) uses the
+% FMM to compute the double-layer potential due to all geoms except
+% itself geom is a class of object capsules and f is the density
 % function NOT scaled by arclength term.  Xtar is a set of points where
-% the double-layer potential due to all vesicles in index set K needs
+% the double-layer potential due to all geoms in index set K needs
 % to be evaulated
-global fmms
-disp('OLD FMM is ON')
-fmms = fmms + 1;
-% count the total number of calls to fmm
 
 oc = curve;
-[x,y] = oc.getXY(vesicle.X); % seperate x and y coordinates
-nx = vesicle.xt(vesicle.N+1:2*vesicle.N,:);
-ny = -vesicle.xt(1:vesicle.N,:);
+[x,y] = oc.getXY(geom.X); % seperate x and y coordinates
+nx = -geom.xt(geom.N+1:2*geom.N,:);
+ny = geom.xt(1:geom.N,:);
 % seperate the x and y coordinates of the normal vector
 
-den = f.*[vesicle.sa;vesicle.sa]*2*pi/vesicle.N;
+den = f.*[geom.sa;geom.sa]*2*pi/geom.N;
 
 if (nargin == 5)
   stokesDLP = [];
 else
-  [f1,f2] = oc.getXY(den);
+  stokesDLP = zeros(2*geom.N,geom.nv);
+  [fx,fy] = oc.getXY(den);
   % need to multiply by arclength term.  Seperate it into
   % x and y coordinate
+  dip1 = 0.25/pi*(fy - 1i*fx).*(nx + 1i*ny);
+  dip2 = -1i*0.5/pi*(fx.*nx + fy.*ny);
 
-  [u,v] = stokesDLPfmm(f1(:),f2(:),x(:),y(:),nx(:),ny(:));
-
-  stokesDLP = zeros(2*vesicle.N,vesicle.nv); % initialize
-  for k = 1:vesicle.nv
-    is = (k-1)*vesicle.N+1;
-    ie = k*vesicle.N;
-    stokesDLP(1:vesicle.N,k) = u(is:ie);
-    stokesDLP(vesicle.N+1:2*vesicle.N,k) = v(is:ie);
+  vel = stokesDLPfmm(dip1(:),dip2(:),x(:),y(:));
+  u = -imag(vel);
+  v = real(vel);
+  for k = 1:geom.nv
+    is = (k-1)*geom.N+1;
+    ie = k*geom.N;
+    stokesDLP(1:geom.N,k) = u(is:ie);
+    stokesDLP(geom.N+1:2*geom.N,k) = v(is:ie);
   end
   % Wrap the output of the FMM into the usual 
   % [[x1;y1] [x2;y2] ...] format
 
-
-  for k = 1:vesicle.nv
-    [u,v] = stokesDLPfmm(f1(:,k),f2(:,k),x(:,k),y(:,k),...
-        nx(:,k),ny(:,k));
+  for k = 1:geom.nv
+    vel = stokesDLPfmm(dip1(:,k),dip2(:,k),x(:,k),y(:,k));
+    u = -imag(vel);
+    v = real(vel);
     stokesDLP(:,k) = stokesDLP(:,k) - [u;v];
   end
-  % Subtract potential due to each vesicle on its own.  Nothing
+  % Subtract potential due to each geom on its own.  Nothing
   % to change here for potential at Xtar
 end
 
 if nargin == 3
   stokesDLPtar = [];
 else
-  [x,y] = oc.getXY(vesicle.X(:,K)); 
-  % seperate x and y coordinates at vesicles indexed by K
-  nx = vesicle.xt(vesicle.N+1:2*vesicle.N,K);
-  ny = -vesicle.xt(1:vesicle.N,K);
   [Ntar,ncol] = size(Xtar);
   Ntar = Ntar/2;
+  stokesDLPtar = zeros(2*Ntar,ncol); % initialize
+  [x,y] = oc.getXY(geom.X(:,K)); 
+  % seperate x and y coordinates at geoms indexed by K
+  nx = -geom.xt(geom.N+1:2*geom.N,K);
+  ny = geom.xt(1:geom.N,K);
   x2 = Xtar(1:Ntar,:);
   x = [x(:);x2(:)];
   y2 = Xtar(Ntar+1:2*Ntar,:);
   y = [y(:);y2(:)];
   % Stack the x and y coordinates of the target points
-  [f1,f2] = oc.getXY(den(:,K));
-  % seperate x and y coordinates at vesicles indexed by K
-  f1 = [f1(:);zeros(Ntar*ncol,1)];
-  f2 = [f2(:);zeros(Ntar*ncol,1)];
+  [fx,fy] = oc.getXY(den(:,K));
+  % seperate x and y coordinates at geoms indexed by K
+
+  fx = [fx(:);zeros(Ntar*ncol,1)];
+  fy = [fy(:);zeros(Ntar*ncol,1)];
   % pad density function with zeros so that Xtar doesn't
   % affect the double-layer potential
   nx = [nx(:);zeros(Ntar*ncol,1)];
@@ -552,11 +553,15 @@ else
   % pad the normal vector with zeros so that Xtar doesn't
   % affect the double-layer potential
 
-  [u,v] = stokesDLPfmm(f1,f2,x,y,nx,ny);
+  dip1 = 0.25/pi*(fy - 1i*fx).*(nx + 1i*ny);
+  dip2 = -1i*0.5/pi*(fx.*nx + fy.*ny);
+
+  vel = stokesDLPfmm(dip1(:),dip2(:),x(:),y(:));
+  u = -imag(vel);
+  v = real(vel);
   
-  stokesDLPtar = zeros(2*Ntar,ncol); % initialize
   for k = 1:ncol
-    is = vesicle.N*numel(K) + (k-1)*Ntar+1;
+    is = geom.N*numel(K) + (k-1)*Ntar+1;
     ie = is + Ntar - 1;
     stokesDLPtar(1:Ntar,k) = u(is:ie);
     stokesDLPtar(Ntar+1:2*Ntar,k) = v(is:ie);
@@ -566,108 +571,6 @@ else
 end
 
 end % exactStokesDLfmm
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function [stokesDLP,stokesDLPtar] = ...
-    exactStokesDLnewfmm(o,vesicle,f,Xtar,K)
-
-global fmms
-fmms = fmms + 1;
-% count the total number of calls to fmm
-
-oc = curve;
-[x,y] = oc.getXY(vesicle.X); % separate x and y coordinates
-nx = vesicle.xt(vesicle.N+1:2*vesicle.N,:);
-ny = -vesicle.xt(1:vesicle.N,:);
-% separate the x and y coordinates of the normal vector
-
-zn = nx + 1i*ny;
-% complex normal vector to the curve
-
-% vector density used in the old fmm
-den = f.*[vesicle.sa;vesicle.sa]*2*pi/vesicle.N;
-denx = den(1:vesicle.N,:);
-deny = den(vesicle.N+1:2*vesicle.N,:);
-
-% complex vector density (deny,-denx)
-mu = deny - 1i*denx;
-dip1 = 1/(4*pi)*mu.*zn;
-dip2 = 1/(4*pi)*(mu.*conj(zn)-conj(mu).*zn);
-
-if (nargin == 5)
-  stokesDLP = [];
-else
-  % Get the complex velocity (v,-u)
-  vel = stokesDLPnewfmm(dip1(:),dip2(:),x(:),y(:));
-  v = real(vel);
-  u = -imag(vel);
-
-  stokesDLP = zeros(2*vesicle.N,vesicle.nv); %initialize
-  for k = 1:vesicle.nv
-    is = (k-1)*vesicle.N+1;
-    ie = k*vesicle.N;
-    stokesDLP(1:vesicle.N,k) = u(is:ie);
-    stokesDLP(vesicle.N+1:2*vesicle.N,k) = v(is:ie);
-  end
-
-  for k = 1:vesicle.nv
-    vel = stokesDLPnewfmm(dip1(:,k),dip2(:,k),x(:,k),y(:,k));
-    v = real(vel); 
-    u = -imag(vel);
-    stokesDLP(:,k) = stokesDLP(:,k) - [u;v];
-  end 
-  % subtract the diagonal term  
-end
-
-if (nargin == 3)
-  stokesDLPtar = [];
-else
-  [x,y] = oc.getXY(vesicle.X(:,K));
-  % separate x and y coordinates of the vesicles indexed by K
-  nx = vesicle.xt(vesicle.N+1:2*vesicle.N,K);
-  ny = -vesicle.xt(1:vesicle.N,K);
-  [Ntar,ncol] = size(Xtar);
-  Ntar = Ntar/2;
-  x2 = Xtar(1:Ntar,:);
-  x = [x(:);x2(:)];
-  y2 = Xtar(Ntar+1:2*Ntar,:);
-  y = [y(:);y2(:)];
-  % Stack the x and y coordinates of the target points
-  nx = [nx(:);zeros(Ntar*ncol,1)];
-  ny = [ny(:);zeros(Ntar*ncol,1)];
-  % pad the normal vector with zeros so that Xtar doesn't
-  % affect the double-layer potential
-
-  zn = nx + 1i*ny;
-  % complex normal vector
-
-  % vector DLP density
-  [denx,deny] = oc.getXY(den(:,K));
-  denx = [denx(:);zeros(Ntar*ncol,1)];
-  deny = [deny(:);zeros(Ntar*ncol,1)];
-
-  % complex vector DLP density
-  mu = deny - 1i*denx;
-  dip1 = 1/(4*pi)*mu.*zn;
-  dip2 = 1/(4*pi)*(mu.*conj(zn)-conj(mu).*zn);
-
-  vel = stokesDLPnewfmm(dip1(:),dip2(:),x(:),y(:));
-  v = real(vel);
-  u = -imag(vel);
-
-  stokesDLPtar = zeros(2*Ntar,ncol); % initialize
-  for k = 1 : ncol
-    is = vesicle.N*numel(K) + (k-1)*Ntar+1;
-    ie = is + Ntar-1;
-    stokesDLPtar(1:Ntar,k) = u(is:ie);
-    stokesDLPtar(Ntar+1:2*Ntar,k) = v(is:ie);
-  end
-  % Wrap the output of the FMM in the usual format
-  % for the target points
-end
-
-end % exactStokesDLnewFMM
-
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % END OF ROUTINES THAT EVALUATE LAYER-POTENTIALS

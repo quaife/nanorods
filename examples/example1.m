@@ -19,6 +19,7 @@ options.dataFile = 'rectangular_fibers_poiseuille';
 options.append = false;
 options.inear = true;
 options.usePreco = true;
+options.ifmm = false;
 
 [options,prams] = initRigid2D(options,prams);
 
@@ -49,8 +50,8 @@ tau = pi/2*ones(1,prams.nv) + 2*coeffr*(1-2*rand(1,prams.nv));
 %xc = [0;-1.1];
 %tau = 0*ones(1,prams.nv);
 
-%Xfinal = rigid2D(options, prams, xc, tau);
+Xfinal = rigid2D(options, prams, xc, tau);
 
-pp = post([options.dataFile,'.dat'], 'rectangle');
-pp.animated_gif('rectangular_fibers_poiseuille.gif', 1, [])
+%pp = post([options.dataFile,'.dat'], 'rectangle');
+%pp.animated_gif('rectangular_fibers_poiseuille.gif', 1, [])
 %stats = pp.calculate_stats(1:prams.nv);

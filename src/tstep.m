@@ -37,7 +37,7 @@ o.order = options.order;  % times stepping order (1 for now)
 o.dt = prams.T/prams.m;   % time step size
 [o.XCoeff,o.rhsCoeff,o.beta] = o.getCoeff(o.order);
 % load variables for IMEX integrator
-o.ifmm = false; % TODO: will need this to be true later
+o.ifmm = options.ifmm;
 o.inear = options.inear; % near-singular integration interpolation scheme
 o.gmresTol = prams.gmresTol;
 o.farField = @(X) o.bgFlow(X,options.farField);
@@ -165,13 +165,21 @@ valPos = valPos + op.exactStokesDLdiag(geom,o.D,eta);
 % self contribution
 
 
-kernel = @op.exactStokesDL;
+%theta = (0:63)'*2*pi/64;
+%for k = 1:49
+%  eta(:,k) = [exp(cos(theta));cos(theta)];
+%end
+%eta = [[exp(cos(theta));cos(theta)] [sin(cos(theta));ones(128,1)]];
+
+if o.ifmm
+  kernel = @op.exactStokesDLfmm;
+else
+  kernel = @op.exactStokesDL;
+end
 kernelDirect = @op.exactStokesDL;
 % kernel function for evaluating the double layer potential.  kernel
 % can be a call to a FMM, but for certain computations, direct
 % summation is faster, so also want kernelDirect
-%theta = (0:127)'*2*pi/128;
-%eta = [[exp(cos(theta));cos(theta)] [sin(cos(theta));ones(128,1)]];
 if o.inear
   DLP = @(X) op.exactStokesDLdiag(geom,o.D,X) - 1/2*X;
   Fdlp = op.nearSingInt(geom,eta,DLP,...

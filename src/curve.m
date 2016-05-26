@@ -49,9 +49,8 @@ function [jacobian,tangent,curvature] = diffProp(o,X)
 % X should be a closed curve defined in plane. The tangent is the 
 % normalized tangent.
 %
-n = size(X,1);
+N = size(X,1)/2;
 nv = size(X,2);
-N = n/2; 
 IK = o.modes(N,nv);
 
 % get the x y components
