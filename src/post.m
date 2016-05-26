@@ -38,7 +38,7 @@ o.dataFile = dataFile;
 switch o.capsule_type
     case 'rectangle'
 
-    M = dlmread(o.dataFile, '\t', 6, 0);
+    M = dlmread(o.dataFile, '', 6, 0);
 
     [~, nc] = size(M);
     o.nv = (nc - 1)/6;
@@ -57,7 +57,7 @@ switch o.capsule_type
     
     case 'ellipsoid'
         
-    M = dlmread(o.dataFile, '\t', 5, 0);
+    M = dlmread(o.dataFile, '', 5, 0);
 
     [~, nc] = size(M);
     o.nv = (nc - 1)/6;
@@ -122,28 +122,28 @@ for i = 1:stride:itmax
     
     clf;
     
-    switch (o.capsule_type)
-    case 'rectangle'
-        prams.length = o.lengths;
-        prams.width = o.widths;
-        prams.order = o.order;
-        
-        xmin = min(min(o.centres_x(i,:))) - max(o.lengths);
-        xmax = max(max(o.centres_x(i,:))) + max(o.lengths);
-        
-        ymin = min(min(o.centres_y(1:itmax,:))) - max(o.lengths);
-        ymax = max(max(o.centres_y(1:itmax,:))) + max(o.lengths);
-        
-    case 'ellipsoid'
-        prams.semimajors = o.semimajors';
-        prams.semiminors = o.semiminors';
-        xmin = min(min(o.centres_x(1:itmax,:))) - max(max(o.semimajors), max(o.semiminors));
-        xmax = max(max(o.centres_x(1:itmax,:))) + max(max(o.semimajors), max(o.semiminors));
-        
-        ymin = min(min(o.centres_y(1:itmax,:))) - max(max(o.semimajors), max(o.semiminors));
-        ymax = max(max(o.centres_y(1:itmax,:))) + max(max(o.semimajors), max(o.semiminors));
-        
-    end
+%     switch (o.capsule_type)
+%     case 'rectangle'
+%         prams.length = o.lengths;
+%         prams.width = o.widths;
+%         prams.order = o.order;
+%         
+%         xmin = min(min(o.centres_x(i,:))) - max(o.lengths);
+%         xmax = max(max(o.centres_x(i,:))) + max(o.lengths);
+%         
+%         ymin = min(min(o.centres_y(1:itmax,:))) - max(o.lengths);
+%         ymax = max(max(o.centres_y(1:itmax,:))) + max(o.lengths);
+%         
+%     case 'ellipsoid'
+%         prams.semimajors = o.semimajors';
+%         prams.semiminors = o.semiminors';
+%         xmin = min(min(o.centres_x(1:itmax,:))) - max(max(o.semimajors), max(o.semiminors));
+%         xmax = max(max(o.centres_x(1:itmax,:))) + max(max(o.semimajors), max(o.semiminors));
+%         
+%         ymin = min(min(o.centres_y(1:itmax,:))) - max(max(o.semimajors), max(o.semiminors));
+%         ymax = max(max(o.centres_y(1:itmax,:))) + max(max(o.semimajors), max(o.semiminors));
+%         
+%     end
     
     
     geom = capsules(prams, [o.centres_x(i,:); o.centres_y(i,:)], o.orientations(i,:));

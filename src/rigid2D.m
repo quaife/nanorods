@@ -7,7 +7,7 @@ om.writeData(0, xc, tau, zeros(1,prams.nv), zeros(1,prams.nv), zeros(1,prams.nv)
 
 time = 0;
 
-while time < prams.T - tt.dt
+while time < prams.T
     
     tic;
     

@@ -1,15 +1,15 @@
 close all
 
-prams.N = 16; % points per body
+prams.N = 64; % points per body
 prams.nv = 49; % number of bodies
 prams.T = 10; % time horizon
 prams.m = 100; % number of time steps
-prams.semimajors = 2*ones(1,prams.nv);
-prams.semiminors = 0.5*ones(1,prams.nv);
+% prams.semimajors = 2*ones(1,prams.nv);
+% prams.semiminors = 0.5*ones(1,prams.nv);
 prams.capsule_type = 'rectangle';
 prams.lengths = 2*ones(1, prams.nv);
-prams.widths = 0.25*ones(1,prams.nv);
-prams.order = 10;
+prams.widths = 0.5*ones(1,prams.nv);
+prams.order = 4;
 
 options.farField = 'poiseuille';
 options.usePlot = true;
@@ -32,14 +32,15 @@ options.usePreco = true;
 % tau = pi/2*ones(1,prams.nv);
 
 %% staggerd grid
-x = linspace(0, 3*(sqrt(prams.nv)-1), 7);
-y = linspace(0, 2.5*(sqrt(prams.nv)-1), 4);
+x = linspace(0, 4*(sqrt(prams.nv)-1), 7);
+y = linspace(0, 3*(sqrt(prams.nv)-1), 4);
 
 
 [X1, Y1] = meshgrid(x,y);
 [X2, Y2] = meshgrid(x + 1.5, y(2:end) - 2.5);
+%[X2, Y2] = meshgrid(x + 30, y(2:end) - 50);
 
-coeffr = 0.1;
+coeffr = 0;
 xc = [[X1(:)', X2(:)'] + coeffr*(1 - 2*rand(1,prams.nv)); [Y1(:)'-7.5, Y2(:)'-7.5] + coeffr*(1 - 2*rand(1,prams.nv))];
 tau = pi/2*ones(1,prams.nv) + 2*coeffr*(1-2*rand(1,prams.nv));
 

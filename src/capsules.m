@@ -69,6 +69,7 @@ else if length(varargin) == 2 %centres and orientation angles
     end
     end
 end
+
 oc = curve;
 [o.sa,o.xt,o.cur] = oc.diffProp(o.X);
 [~,o.length] = oc.geomProp(o.X);

@@ -61,7 +61,9 @@ nv = geom.nv;
 Xm = geom.X;
 % this'll be a linear comination of Xstore if doing multistep
 
-o.nearStruct = geom.getZone([],1);
+if o.inear
+    o.nearStruct = geom.getZone([],1);
+end
 
 op = o.op;
 
@@ -86,6 +88,8 @@ rhs = [rhs; zeros(3*nv,1)];
 % right-hand side with an arbitrarily chosen background flow
 % need to negate right-hand side since it moves to the other side of the
 % governing equations
+
+%plot(o.preconditionerBD(o.timeMatVec(rhs,geom)) -rhs);
 
 maxit = 2*N*nv;%should be a lot lower than this
 if ~o.usePreco
