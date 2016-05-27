@@ -4,8 +4,6 @@ classdef post
 properties
 dataFile       
 
-semimajors;
-semiminors;
 
 widths;
 lengths;
@@ -19,7 +17,6 @@ u_x;
 u_y;
 omega;
 nv;
-capsule_type;
 
 end % properties
 
@@ -27,54 +24,28 @@ methods
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function o = post(dataFile, type)
-
-o.capsule_type = type;    
+ 
 o.dataFile = dataFile;
 
-%first 5 lines are header lines
+%first 6 lines are header lines
 
+M = dlmread(o.dataFile, '', 6, 0);
 
+[~, nc] = size(M);
+o.nv = (nc - 1)/6;
 
-switch o.capsule_type
-    case 'rectangle'
+o.lengths = nonzeros(M(1,1:o.nv));
+o.widths = nonzeros(M(2,1:o.nv));
+o.order = nonzeros(M(3,1:o.nv));
 
-    M = dlmread(o.dataFile, '', 6, 0);
-
-    [~, nc] = size(M);
-    o.nv = (nc - 1)/6;
-    
-    o.lengths = nonzeros(M(1,1:o.nv));
-    o.widths = nonzeros(M(2,1:o.nv));
-    o.order = nonzeros(M(3,1:o.nv));
-
-    o.times = M(4:end,1);
-    o.centres_x = M(4:end,2:o.nv+1);
-    o.centres_y = M(4:end,o.nv+2:2*o.nv+1);
-    o.orientations = M(4:end,2*o.nv+2:3*o.nv+1);
-    o.u_x = M(4:end, 3*o.nv+2:4*o.nv+1);
-    o.u_y = M(4:end, 4*o.nv+2:5*o.nv+1);
-    o.omega = M(4:end, 5*o.nv+2:end);   
-    
-    case 'ellipsoid'
-        
-    M = dlmread(o.dataFile, '', 5, 0);
-
-    [~, nc] = size(M);
-    o.nv = (nc - 1)/6;
-    
-    o.semimajors = nonzeros(M(1,1:o.nv));
-    o.semiminors = nonzeros(M(2,1:o.nv)); 
-    o.times = M(3:end,1);
-    o.centres_x = M(3:end,2:o.nv+1);
-    o.centres_y = M(3:end,o.nv+2:2*o.nv+1);
-    o.orientations = M(3:end,2*o.nv+2:3*o.nv+1);
-    o.u_x = M(3:end, 3*o.nv+2:4*o.nv+1);
-    o.u_y = M(3:end, 4*o.nv+2:5*o.nv+1);
-    o.omega = M(3:end, 5*o.nv+2:end);   
-end
-
-
-
+o.times = M(4:end,1);
+o.centres_x = M(4:end,2:o.nv+1);
+o.centres_y = M(4:end,o.nv+2:2*o.nv+1);
+o.orientations = M(4:end,2*o.nv+2:3*o.nv+1);
+o.u_x = M(4:end, 3*o.nv+2:4*o.nv+1);
+o.u_y = M(4:end, 4*o.nv+2:5*o.nv+1);
+o.omega = M(4:end, 5*o.nv+2:end);   
+   
 end %post : constructor
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -83,7 +54,6 @@ function [] = animated_gif(o, gname, stride, itmax)
     
 prams.N = 128;
 prams.nv = o.nv;
-prams.capsule_type = o.capsule_type;
 prams.order = o.order;
 prams.lengths = o.lengths;
 prams.widths = o.widths;
@@ -96,54 +66,28 @@ if isempty(itmax)
     itmax = length(o.times);
 end
 
-switch (o.capsule_type)
-    case 'rectangle'
-        prams.length = o.lengths;
-        prams.width = o.widths;
-        prams.order = o.order;
+prams.length = o.lengths;
+prams.width = o.widths;
+prams.order = o.order;
+
+xmin = min(min(o.centres_x(1:itmax,:))) - max(o.lengths);
+xmax = max(max(o.centres_x(1:itmax,:))) + max(o.lengths);
+
+ymin = min(min(o.centres_y(1:itmax,:))) - max(o.lengths);
+ymax = max(max(o.centres_y(1:itmax,:))) + max(o.lengths);
         
-        xmin = min(min(o.centres_x(1:itmax,:))) - max(o.lengths);
-        xmax = max(max(o.centres_x(1:itmax,:))) + max(o.lengths);
-        
-        ymin = min(min(o.centres_y(1:itmax,:))) - max(o.lengths);
-        ymax = max(max(o.centres_y(1:itmax,:))) + max(o.lengths);
-        
-    case 'ellipsoid'
-        prams.semimajors = o.semimajors';
-        prams.semiminors = o.semiminors';
-        xmin = min(min(o.centres_x(1:itmax,:))) - max(max(o.semimajors), max(o.semiminors));
-        xmax = max(max(o.centres_x(1:itmax,:))) + max(max(o.semimajors), max(o.semiminors));
-        
-        ymin = min(min(o.centres_y(1:itmax,:))) - max(max(o.semimajors), max(o.semiminors));
-        ymax = max(max(o.centres_y(1:itmax,:))) + max(max(o.semimajors), max(o.semiminors));
-        
-end
 for i = 1:stride:itmax
     
     clf;
     
-%     switch (o.capsule_type)
-%     case 'rectangle'
-%         prams.length = o.lengths;
-%         prams.width = o.widths;
-%         prams.order = o.order;
 %         
-%         xmin = min(min(o.centres_x(i,:))) - max(o.lengths);
-%         xmax = max(max(o.centres_x(i,:))) + max(o.lengths);
+        xmin = min(min(o.centres_x(i,:))) - max(o.lengths);
+        xmax = max(max(o.centres_x(i,:))) + max(o.lengths);
 %         
 %         ymin = min(min(o.centres_y(1:itmax,:))) - max(o.lengths);
 %         ymax = max(max(o.centres_y(1:itmax,:))) + max(o.lengths);
 %         
-%     case 'ellipsoid'
-%         prams.semimajors = o.semimajors';
-%         prams.semiminors = o.semiminors';
-%         xmin = min(min(o.centres_x(1:itmax,:))) - max(max(o.semimajors), max(o.semiminors));
-%         xmax = max(max(o.centres_x(1:itmax,:))) + max(max(o.semimajors), max(o.semiminors));
-%         
-%         ymin = min(min(o.centres_y(1:itmax,:))) - max(max(o.semimajors), max(o.semiminors));
-%         ymax = max(max(o.centres_y(1:itmax,:))) + max(max(o.semimajors), max(o.semiminors));
-%         
-%     end
+%   
     
     
     geom = capsules(prams, [o.centres_x(i,:); o.centres_y(i,:)], o.orientations(i,:));
@@ -181,9 +125,9 @@ function stats = calculate_stats(o, fibers)
 stats.time = o.times;
 
 
-stats.semimajors = o.semimajors(fibers);
-stats.semiminors = o.semiminors(fibers);
-stats.aspect_ratios = o.semiminors(fibers)./o.semimajors(fibers);
+stats.lengths = o.lengths(fibers);
+stats.widths = o.widths(fibers);
+stats.aspect_ratios = o.lengths(fibers)./o.widths(fibers);
 
 stats.centre_x = o.centres_x(:,fibers);
 stats.centre_y = o.centres_y(:,fibers);

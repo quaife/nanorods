@@ -41,32 +41,19 @@ else if length(varargin) == 2 %centres and orientation angles
     o.center = xc;
 
     theta = (0:prams.N-1)'*2*pi/prams.N;
-    o.X = zeros(2*prams.N,prams.nv);
+    o.X = zeros(2*prams.N,prams.nv);  
 
-    switch prams.capsule_type
-        case 'rectangle'
+    r = (cos(theta).^prams.order + sin(theta).^prams.order).^(-1/prams.order);
 
-            r = (cos(theta).^prams.order + sin(theta).^prams.order).^(-1/prams.order);
+    for k = 1:prams.nv
 
-            for k = 1:prams.nv
+        x_square = prams.lengths(k)/2*r.*cos(theta);
+        y_square = prams.widths(k)/2*r.*sin(theta);
 
-                x_square = prams.lengths(k)*r.*cos(theta);
-                y_square = prams.widths(k)*r.*sin(theta);
-
-                o.X(:,k) = [x_square*cos(tau(k)) - y_square*sin(tau(k)) + xc(1,k);
-                    x_square*sin(tau(k)) + y_square*cos(tau(k)) + xc(2,k)];
-            end
-
-        case 'ellipsoid'
-
-            for k = 1:prams.nv
-                x_ellipse = prams.semimajors(k)*cos(theta);
-                y_ellipse = prams.semiminors(k)*sin(theta);
-
-                o.X(:,k) = [x_ellipse*cos(tau(k)) - y_ellipse*sin(tau(k)) + xc(1,k);
-                    x_ellipse*sin(tau(k)) + y_ellipse*cos(tau(k)) + xc(2,k)];
-            end
+        o.X(:,k) = [x_square*cos(tau(k)) - y_square*sin(tau(k)) + xc(1,k);
+            x_square*sin(tau(k)) + y_square*cos(tau(k)) + xc(2,k)];
     end
+    
     end
 end
 
