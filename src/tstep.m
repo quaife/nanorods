@@ -72,14 +72,41 @@ o.D = op.stokesDLmatrix(geom);
 
 % compute preconditioner if needed
 if o.usePreco
-  o.bdiagPreco.L = zeros(2*N,2*N,nv);
-  o.bdiagPreco.U = zeros(2*N,2*N,nv);
+  o.bdiagPreco.L = zeros(2*N+3,2*N+3,nv);
+  o.bdiagPreco.U = zeros(2*N+3,2*N+3,nv);
   for k = 1:nv
-    [o.bdiagPreco.L(:,:,k),o.bdiagPreco.U(:,:,k)] = lu(...
-        -1/2*eye(2*N) + o.D(:,:,k));
+    [o.bdiagPreco.L(:,:,k),o.bdiagPreco.U(:,:,k)] = lu([...
+      -1/2*eye(2*N)+o.D(:,:,k) ...
+        [-ones(N,1);zeros(N,1)] ...
+        [zeros(N,1);-ones(N,1)] ...
+        [geom.X(end/2+1:end,k)-geom.center(2,k);...
+          -geom.X(1:end/2,k)+geom.center(1,k)];
+        [-geom.sa(:,k)'*2*pi/N zeros(1,N) 0 0 0];
+        [zeros(1,N) -geom.sa(:,k)'*2*pi/N 0 0 0];
+        [(-geom.X(end/2+1:end,k)'+geom.center(2,k)).*...
+            geom.sa(:,k)'*2*pi/N ...
+         (geom.X(1:end/2,k)'-geom.center(1,k)).*...
+            geom.sa(:,k)'*2*pi/N 0 0 0]]);
+    % whole diagonal block which doesn't have a null space
   end
 end
 
+%Z1 = zeros(nv*(2*N+3));
+%Z2 = zeros(nv*(2*N+3));
+%for k = 1:nv*(2*N+3);
+%  e = zeros(nv*(2*N+3),1); e(k) = 1;
+%  Z1(:,k) = o.timeMatVec(e,geom);
+%  Z2(:,k) = o.preconditionerBD(e);
+%end
+
+%figure(1);
+%spy(Z1)
+%figure(2);
+%spy(inv(Z2))
+%figure(3);
+%Z2Z1 = Z2*Z1;
+%surf(Z2Z1 - eye(2*N*nv+3*nv))
+%pause
 
 rhs = [o.farField(geom.X)];
 %rhs = [geom.X(end/2+1:end,:);zeros(N,nv);zeros(3,nv)];
@@ -89,7 +116,17 @@ rhs = [rhs; zeros(3*nv,1)];
 % need to negate right-hand side since it moves to the other side of the
 % governing equations
 
-%plot(o.preconditionerBD(o.timeMatVec(rhs,geom)) -rhs);
+%%z = o.timeMatVec(rhs,geom);
+%z = o.preconditionerBD(rhs);
+%for k = 1:2*nv
+%  is = (k-1)*N+1;
+%  ie = is + N - 1;
+%%  semilogy(abs(fftshift(fft(z(is:ie))))/N)
+%  plot(z(is:ie))
+%  pause
+%end
+%%plot(o.preconditionerBD(o.timeMatVec(rhs,geom)) -rhs);
+%%pause
 
 maxit = 2*N*nv;%should be a lot lower than this
 if ~o.usePreco
@@ -223,17 +260,25 @@ function Pz = preconditionerBD(o,z)
 % apply the block-diagonal preconditioner whose LU factorization is
 % precomputed and stored
 
-N = size(o.bdiagPreco.L,1)/2;
+N = (size(o.bdiagPreco.L,1)-3)/2;
 nv = size(o.bdiagPreco.L,3);
 
 Pz = zeros(2*N*nv+3*nv,1);
 for k = 1:nv
-  istart = (k-1)*2*N + 1;
-  iend = k*2*N;
-  Pz(istart:iend) = o.bdiagPreco.U(:,:,k)\...
-      (o.bdiagPreco.L(:,:,k)\z(istart:iend));
+  istart1 = (k-1)*2*N + 1;
+  iend1 = istart1 + 2*N - 1;
+  istart2 = 2*N*nv + (k-1)*2 + 1;
+  iend2 = istart2 + 1;
+  istart3 = 2*N*nv + nv*2 + (k-1) + 1;
+  iend3 = istart3;
+  zblock = o.bdiagPreco.U(:,:,k)\...
+      (o.bdiagPreco.L(:,:,k)\...
+      [z(istart1:iend1);z(istart2:iend2);z(istart3:iend3)]);
+
+  Pz(istart1:iend1) = zblock(1:2*N);
+  Pz(istart2:iend2) = zblock(2*N+1:2*N+2);
+  Pz(istart3:iend3) = zblock(2*N+3:2*N+3);
 end
-Pz(nv*2*N+1:end) = z(nv*2*N+1:end);
 
 
 end % preconditioner
