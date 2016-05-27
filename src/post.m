@@ -81,8 +81,8 @@ for i = 1:stride:itmax
     clf;
     
 %         
-%         xmin = min(min(o.centres_x(i,:))) - max(o.lengths);
-%         xmax = max(max(o.centres_x(i,:))) + max(o.lengths);
+        xmin = min(min(o.centres_x(i,:))) - max(o.lengths);
+        xmax = max(max(o.centres_x(i,:))) + max(o.lengths);
 %         
 %         ymin = min(min(o.centres_y(1:itmax,:))) - max(o.lengths);
 %         ymax = max(max(o.centres_y(1:itmax,:))) + max(o.lengths);
