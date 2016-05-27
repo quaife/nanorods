@@ -4,11 +4,8 @@ prams.N = 64; % points per body
 prams.nv = 49; % number of bodies
 prams.T = 10; % time horizon
 prams.m = 100; % number of time steps
-% prams.semimajors = 2*ones(1,prams.nv);
-% prams.semiminors = 0.5*ones(1,prams.nv);
-prams.capsule_type = 'rectangle';
-prams.lengths = 2*ones(1, prams.nv);
-prams.widths = 0.5*ones(1,prams.nv);
+prams.lengths = 4*ones(1, prams.nv);
+prams.widths = 1*ones(1,prams.nv);
 prams.order = 4;
 
 options.farField = 'poiseuille';
@@ -19,7 +16,7 @@ options.dataFile = 'rectangular_fibers_poiseuille';
 options.append = false;
 options.inear = true;
 options.usePreco = true;
-options.ifmm = false;
+options.ifmm = true;
 
 [options,prams] = initRigid2D(options,prams);
 
@@ -50,8 +47,8 @@ tau = pi/2*ones(1,prams.nv) + 2*coeffr*(1-2*rand(1,prams.nv));
 %xc = [0;-1.1];
 %tau = 0*ones(1,prams.nv);
 
-Xfinal = rigid2D(options, prams, xc, tau);
+%Xfinal = rigid2D(options, prams, xc, tau);
 
-%pp = post([options.dataFile,'.dat'], 'rectangle');
-%pp.animated_gif('rectangular_fibers_poiseuille.gif', 1, [])
+pp = post([options.dataFile,'.dat']);
+pp.animated_gif('rectangular_fibers_poiseuille.gif', 1, [])
 %stats = pp.calculate_stats(1:prams.nv);

@@ -57,38 +57,22 @@ o.capsule_type = prams.capsule_type;
 if (o.saveData && ~o.append)
     o.clearFiles();
     
-    o.writeMessage('Data file for nanorod simulation');
-    
-    switch o.capsule_type
-        case 'rectangle'
-            
-            o.writeMessage('Line 6 contains length of each rectangular rod')
-            o.writeMessage('Line 7 contains width of each rectangular rod');
-            o.writeMessage('Line 8 contains the order that determines the curvature of the rods');
-            o.writeMessage('Lines 9 onward contain the time, x centre coordinate, y centre coordinate and the orientation for each rod at time t');
-            
-            o.writeMessage('BEGIN DATA');
-            
-            fid = fopen(o.dataFile,'a');
-            fprintf(fid,'%s\n', num2str(prams.lengths));
-            fprintf(fid,'%s\n', num2str(prams.widths));
-            fprintf(fid,'%s\n', num2str(prams.order));
-            
-            fclose(fid);    
-        case 'ellipsoid'
-            
-            o.writeMessage('Line 6 contains semi-major axes for each elliptical rod')
-            o.writeMessage('Line 7 contains semi-minor axes for each elliptical rod');
-            o.writeMessage('Lines 8 onward contain the time, x centre coordinate, y centre coordinate and the orientation for each rod at time t');
-            
-            o.writeMessage('BEGIN DATA');
-            
-            fid = fopen(o.dataFile,'a');
-            fprintf(fid,'%s\n', num2str(prams.semimajors));
-            fprintf(fid,'%s\n', num2str(prams.semiminors));
-            fclose(fid);    
-    end
-    
+    o.writeMessage('Data file for nanorod simulation');    
+
+    o.writeMessage('Line 6 contains length of each rectangular rod')
+    o.writeMessage('Line 7 contains width of each rectangular rod');
+    o.writeMessage('Line 8 contains the order that determines the curvature of the rods');
+    o.writeMessage('Lines 9 onward contain the time, x centre coordinate, y centre coordinate and the orientation for each rod at time t');
+
+    o.writeMessage('BEGIN DATA');
+
+    fid = fopen(o.dataFile,'a');
+    fprintf(fid,'%s\n', num2str(prams.lengths));
+    fprintf(fid,'%s\n', num2str(prams.widths));
+    fprintf(fid,'%s\n', num2str(prams.order));
+
+
+    fclose(fid);   
 end
 
 end % constructor: monitor
