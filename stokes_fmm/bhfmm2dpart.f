@@ -822,15 +822,15 @@ c
 c
 c       ... set the potential and gradient to zero
 c
-C$OMP PARALLEL DO DEFAULT(SHARED) PRIVATE(i)
+!$OMP PARALLEL DO DEFAULT(SHARED) PRIVATE(i)
         do i=1,nsource
            if( ifvel .eq. 1) vel(i)=0
            if( ifgrada .eq. 1) grada(i)=0
            if( ifgradaa .eq. 1) gradaa(i)=0
         enddo
-C$OMP END PARALLEL DO
+!$OMP END PARALLEL DO
 c       
-C$OMP PARALLEL DO DEFAULT(SHARED) PRIVATE(i)
+!$OMP PARALLEL DO DEFAULT(SHARED) PRIVATE(i)
         do i=1,ntarget
            if( ifveltarg .eq. 1) veltarg(i)=0
            if( ifgradatarg .eq. 1) then
@@ -840,7 +840,7 @@ C$OMP PARALLEL DO DEFAULT(SHARED) PRIVATE(i)
               gradaatarg(i)=0
            endif
         enddo
-C$OMP END PARALLEL DO
+!$OMP END PARALLEL DO
 c
         do i=1,10
            timeinfo(i)=0
@@ -855,10 +855,10 @@ c
 c
 c       ... set all multipole and local expansions to zero
 c
-C$OMP PARALLEL DO DEFAULT(SHARED) 
-C$OMP$PRIVATE(ibox,box,center0,corners0,level,ier)
-cccC$OMP$SCHEDULE(DYNAMIC)
-cccC$OMP$NUM_THREADS(4) 
+!$OMP PARALLEL DO DEFAULT(SHARED) 
+!$OMP$PRIVATE(ibox,box,center0,corners0,level,ier)
+ccc!$OMP$SCHEDULE(DYNAMIC)
+ccc!$OMP$NUM_THREADS(4) 
         do ibox = 1,nboxes
            call d2tgetb(ier,ibox,box,center0,corners0,wlists)
            level=box(1)
@@ -875,7 +875,7 @@ cccC$OMP$NUM_THREADS(4)
              call bh2dzero(rmlexp(iaddr(10,ibox)),nterms(level))
            endif
         enddo
-C$OMP END PARALLEL DO
+!$OMP END PARALLEL DO
 c
 c
         if(ifprint .ge. 1) then
@@ -887,12 +887,12 @@ c
 c       ... step 1, locate all charges, assign them to boxes, and
 c       form multipole expansions
 c
-C$OMP PARALLEL DO DEFAULT(SHARED)
-C$OMP$PRIVATE(ibox,box,center0,corners0,level,npts,nkids,radius)
-C$OMP$PRIVATE(mptemp1,lused,ier,i,j,vtemp,gatemp,gaatemp,cd)
-C$OMP$PRIVATE(mptemp2,mptemp3,mptemp4,mptemp5) 
-C$OMP$SCHEDULE(DYNAMIC)
-cccC$OMP$NUM_THREADS(1) 
+!$OMP PARALLEL DO DEFAULT(SHARED)
+!$OMP$PRIVATE(ibox,box,center0,corners0,level,npts,nkids,radius)
+!$OMP$PRIVATE(mptemp1,lused,ier,i,j,vtemp,gatemp,gaatemp,cd)
+!$OMP$PRIVATE(mptemp2,mptemp3,mptemp4,mptemp5) 
+!$OMP$SCHEDULE(DYNAMIC)
+ccc!$OMP$NUM_THREADS(1) 
         do 1200 ibox=1,nboxes
 c
            call d2tgetb(ier,ibox,box,center0,corners0,wlists)
@@ -941,7 +941,7 @@ c
 
              endif
  1200     continue
-C$OMP END PARALLEL DO
+!$OMP END PARALLEL DO
 c
 c          t2=second()
 c          t2=omp_get_wtime() 
@@ -955,12 +955,12 @@ c          t1=omp_get_wtime()
 c       ... step 2, adaptive part, form local expansions, 
 c           or evaluate the potentials and gradients directly
 c 
-C$OMP PARALLEL DO DEFAULT(SHARED)
-C$OMP$PRIVATE(ibox,box,center0,corners0,level0,itype,list,nlist)
-C$OMP$PRIVATE(jbox,box1,center1,corners1,level1,ifdirect3,radius)
-C$OMP$PRIVATE(lused,ier,i,j,vtemp,gatemp,gaatemp,cd,ilist,npts) 
-C$OMP$SCHEDULE(DYNAMIC)
-cccC$OMP$NUM_THREADS(1) 
+!$OMP PARALLEL DO DEFAULT(SHARED)
+!$OMP$PRIVATE(ibox,box,center0,corners0,level0,itype,list,nlist)
+!$OMP$PRIVATE(jbox,box1,center1,corners1,level1,ifdirect3,radius)
+!$OMP$PRIVATE(lused,ier,i,j,vtemp,gatemp,gaatemp,cd,ilist,npts) 
+!$OMP$SCHEDULE(DYNAMIC)
+ccc!$OMP$NUM_THREADS(1) 
           do 3251 ibox=1,nboxes
              call d2tgetb(ier,ibox,box,center0,corners0,wlists)
 c
@@ -1009,7 +1009,7 @@ c
                  endif
  3250         continue
  3251     continue
-C$OMP END PARALLEL DO
+!$OMP END PARALLEL DO
 c          t2=second()
 c          t2=omp_get_wtime() 
 c          timeinfo(2)=t2-t1
@@ -1033,12 +1033,12 @@ c          t1=omp_get_wtime()
 c       ... step 6, adaptive part, evaluate multipole expansions, 
 c           or evaluate the potentials and gradients directly
 c
-C$OMP PARALLEL DO DEFAULT(SHARED)
-C$OMP$PRIVATE(ibox,box,center0,corners0,itype,list,nlist)
-C$OMP$PRIVATE(jbox,box1,center1,corners1,level1,ifdirect4,radius)
-C$OMP$PRIVATE(lused,ier,i,j,vtemp,gatemp,gaatemp,cd,ilist,level) 
-C$OMP$SCHEDULE(DYNAMIC)
-cccC$OMP$NUM_THREADS(1) 
+!$OMP PARALLEL DO DEFAULT(SHARED)
+!$OMP$PRIVATE(ibox,box,center0,corners0,itype,list,nlist)
+!$OMP$PRIVATE(jbox,box1,center1,corners1,level1,ifdirect4,radius)
+!$OMP$PRIVATE(lused,ier,i,j,vtemp,gatemp,gaatemp,cd,ilist,level) 
+!$OMP$SCHEDULE(DYNAMIC)
+ccc!$OMP$NUM_THREADS(1) 
           do 3252 ibox=1,nboxes
              call d2tgetb(ier,ibox,box,center0,corners0,wlists)
              itype=3
@@ -1088,7 +1088,7 @@ c
                 endif
              enddo
  3252     continue
-C$OMP END PARALLEL DO
+!$OMP END PARALLEL DO
 c          t2=second() 
 c          t2=omp_get_wtime() 
 c          timeinfo(6)=t2-t1
@@ -1099,10 +1099,10 @@ c          t1=omp_get_wtime()
 c
 c       ... step 7, evaluate local expansions
 c       and all gradients directly
-C$OMP PARALLEL DO DEFAULT(SHARED)
-C$OMP$PRIVATE(ibox,box,center0,corners0,level,npts,nkids,ier)
-C$OMP$SCHEDULE(DYNAMIC)
-cccC$OMP$NUM_THREADS(1) 
+!$OMP PARALLEL DO DEFAULT(SHARED)
+!$OMP$PRIVATE(ibox,box,center0,corners0,level,npts,nkids,ier)
+!$OMP$SCHEDULE(DYNAMIC)
+ccc!$OMP$NUM_THREADS(1) 
           do 6201 ibox=1,nboxes
              call d2tgetb(ier,ibox,box,center0,corners0,wlists)
              call d2tnkids(box,nkids)
@@ -1145,7 +1145,7 @@ c       ... evaluate local expansions
                 endif
              endif
  6201     continue
-C$OMP END PARALLEL DO
+!$OMP END PARALLEL DO
 c          t2=second()
 c          t2=omp_get_wtime() 
 c          timeinfo(7)=t2-t1
@@ -1159,12 +1159,12 @@ c             t1=omp_get_wtime()
 c
 c       ... step 8, evaluate direct interactions 
 c
-C$OMP PARALLEL DO DEFAULT(SHARED)
-C$OMP$PRIVATE(ibox,box,center0,corners0,nkids,list,nlist,npts)
-C$OMP$PRIVATE(jbox,box1,center1,corners1)
-C$OMP$PRIVATE(ier,ilist,itype) 
-C$OMP$SCHEDULE(DYNAMIC)
-cccC$OMP$NUM_THREADS(1)
+!$OMP PARALLEL DO DEFAULT(SHARED)
+!$OMP$PRIVATE(ibox,box,center0,corners0,nkids,list,nlist,npts)
+!$OMP$PRIVATE(jbox,box1,center1,corners1)
+!$OMP$PRIVATE(ier,ilist,itype) 
+!$OMP$SCHEDULE(DYNAMIC)
+ccc!$OMP$NUM_THREADS(1)
              do 6202 ibox=1,nboxes
                 call d2tgetb(ier,ibox,box,center0,corners0,wlists)
                 call d2tnkids(box,nkids)
@@ -1214,7 +1214,7 @@ c
  6203              continue
                 endif
  6202        continue
-C$OMP END PARALLEL DO
+!$OMP END PARALLEL DO
 c
 c          t2=second()
 c          t2=omp_get_wtime() 
@@ -1446,10 +1446,10 @@ c
         enddo
 c
         if( ifvel.eq.1 .or. ifgrada.eq.1 .or. ifgradaa.eq.1) then
-C$OMP PARALLEL DO DEFAULT(SHARED)
-C$OMP$PRIVATE(i,j,vtemp,gatemp,gaatemp) 
-cccC$OMP$SCHEDULE(DYNAMIC)
-cccC$OMP$NUM_THREADS(4) 
+!$OMP PARALLEL DO DEFAULT(SHARED)
+!$OMP$PRIVATE(i,j,vtemp,gatemp,gaatemp) 
+ccc!$OMP$SCHEDULE(DYNAMIC)
+ccc!$OMP$NUM_THREADS(4) 
         do 6160 j=1,nsource
         do 6150 i=1,nsource
             if (i .eq. j) goto 6150
@@ -1465,15 +1465,15 @@ cccC$OMP$NUM_THREADS(4)
             endif
  6150   continue
  6160   continue
-C$OMP END PARALLEL DO
+!$OMP END PARALLEL DO
         endif
 c
         if( ifveltarg .eq. 1 .or. ifgradatarg .eq. 1 
      $      .or. ifgradaatarg .eq. 1) then
-C$OMP PARALLEL DO DEFAULT(SHARED)
-C$OMP$PRIVATE(i,j,vtemp,gatemp,gaatemp) 
-cccC$OMP$SCHEDULE(DYNAMIC)
-cccC$OMP$NUM_THREADS(4) 
+!$OMP PARALLEL DO DEFAULT(SHARED)
+!$OMP$PRIVATE(i,j,vtemp,gatemp,gaatemp) 
+ccc!$OMP$SCHEDULE(DYNAMIC)
+ccc!$OMP$NUM_THREADS(4) 
         do j=1,ntarget
         do i=1,nsource
             call bh2ddireval(source(1,i),1,ifcharge,charge(i),
@@ -1488,7 +1488,7 @@ cccC$OMP$NUM_THREADS(4)
             endif
         enddo
         enddo
-C$OMP END PARALLEL DO
+!$OMP END PARALLEL DO
         endif
 c
         return

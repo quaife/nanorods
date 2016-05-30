@@ -1,6 +1,6 @@
 
-MEX=/Applications/MATLAB_R2015a.app/bin/mex
-#MEX=/usr/local/matlab/bin/mex
+#MEX=/Applications/MATLAB_R2015a.app/bin/mex
+MEX=/usr/local/matlab/bin/mex
 # location of mex compiler on Bryan's laptop
 FORTRAN = gfortran
 # Fortran compiler

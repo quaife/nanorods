@@ -17,7 +17,6 @@ N               % number of points on inner boundaries
 %Nouter          % number of points on outer boundary
 %Ntracers        % number of tracers
 nv              % number of inner boundaries
-capsule_type;
 
 end % properties
 
@@ -51,7 +50,6 @@ o.N = prams.N;
 % number of points per inner boundary
 o.nv = prams.nv;
 % number of inner boundaries
-o.capsule_type = prams.capsule_type;
 
 %% start new data file if needed
 if (o.saveData && ~o.append)

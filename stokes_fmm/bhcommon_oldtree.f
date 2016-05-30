@@ -320,7 +320,7 @@ c--------------------------------------------------------------
         complex *16 dip2(*),dip2sort(*)
 
 
-C$OMP PARALLEL DO DEFAULT(SHARED) PRIVATE(i)
+!$OMP PARALLEL DO DEFAULT(SHARED) PRIVATE(i)
         do i = 1,nsource
            sourcesort(1,i) = source(1,isource(i))
            sourcesort(2,i) = source(2,isource(i))
@@ -332,7 +332,7 @@ C$OMP PARALLEL DO DEFAULT(SHARED) PRIVATE(i)
               dip2sort(i) = dip2(isource(i))
            endif
         enddo
-C$OMP END PARALLEL DO
+!$OMP END PARALLEL DO
         return
         end
 c

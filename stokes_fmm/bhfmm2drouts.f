@@ -215,13 +215,13 @@ c        t1=omp_get_wtime()
 c       ... step 3, merge all multipole expansions
 c       
         do 2300 ilev=nlev,3,-1
-C$OMP PARALLEL DO DEFAULT(SHARED)
-C$OMP$PRIVATE(ibox,box,center0,corners0,level0,level,npts,nkids,radius)
-C$OMP$PRIVATE(jbox,box1,center1,corners1,level1)
-C$OMP$PRIVATE(mptemp1,lused,ier,i,j,vtemp,gatemp,cd)
-C$OMP$PRIVATE(mptemp2,mptemp3,mptemp4,mptemp5,gaatemp)
-cccC$OMP$SCHEDULE(DYNAMIC)
-cccC$OMP$NUM_THREADS(4) 
+!$OMP PARALLEL DO DEFAULT(SHARED)
+!$OMP$PRIVATE(ibox,box,center0,corners0,level0,level,npts,nkids,radius)
+!$OMP$PRIVATE(jbox,box1,center1,corners1,level1)
+!$OMP$PRIVATE(mptemp1,lused,ier,i,j,vtemp,gatemp,cd)
+!$OMP$PRIVATE(mptemp2,mptemp3,mptemp4,mptemp5,gaatemp)
+ccc!$OMP$SCHEDULE(DYNAMIC)
+ccc!$OMP$NUM_THREADS(4) 
            do 2200 ibox=laddr(1,ilev),laddr(1,ilev)+laddr(2,ilev)-1
               call d2tgetb(ier,ibox,box,center0,corners0,wlists)
               call d2tnkids(box,nkids)
@@ -302,7 +302,7 @@ c
                  endif
               endif
  2200      continue
-C$OMP END PARALLEL DO
+!$OMP END PARALLEL DO
  2300   continue
 c
 c------------------------------------------------------------
@@ -337,14 +337,14 @@ c       ... step 4, convert multipole expansions into the local ones
 c
         call l2dterms_list2(epsfmm, itable, ier)
         do 4300 ilev=3,nlev+1
-C$OMP PARALLEL DO DEFAULT(SHARED)
-C$OMP$PRIVATE(ibox,box,center0,corners0,level0,list,nlists,nlist,itype)
-C$OMP$PRIVATE(jbox,box1,center1,corners1,level1,ifdirect2,radius)
-C$OMP$PRIVATE(mptemp1,lused,ier,i,j,vtemp,gatemp,gaatemp,cd,ilist)
-C$OMP$PRIVATE(mptemp2,mptemp3,mptemp4,mptemp5)
-C$OMP$PRIVATE(if_use_trunc,nterms_trunc,ii,jj) 
-C$OMP$SCHEDULE(DYNAMIC)
-cccC$OMP$NUM_THREADS(1)
+!$OMP PARALLEL DO DEFAULT(SHARED)
+!$OMP$PRIVATE(ibox,box,center0,corners0,level0,list,nlists,nlist,itype)
+!$OMP$PRIVATE(jbox,box1,center1,corners1,level1,ifdirect2,radius)
+!$OMP$PRIVATE(mptemp1,lused,ier,i,j,vtemp,gatemp,gaatemp,cd,ilist)
+!$OMP$PRIVATE(mptemp2,mptemp3,mptemp4,mptemp5)
+!$OMP$PRIVATE(if_use_trunc,nterms_trunc,ii,jj) 
+!$OMP$SCHEDULE(DYNAMIC)
+ccc!$OMP$NUM_THREADS(1)
            do 4200 ibox=laddr(1,ilev),laddr(1,ilev)+laddr(2,ilev)-1
               call d2tgetb(ier,ibox,box,center0,corners0,wlists)
               if (ifprint .ge. 2) then
@@ -474,7 +474,7 @@ c
  4150            continue
               endif
  4200      continue
-C$OMP END PARALLEL DO
+!$OMP END PARALLEL DO
  4300   continue
 c
 c        t2=second()
@@ -488,13 +488,13 @@ c        t1=omp_get_wtime()
 c       ... step 5, split all local expansions
         
         do 5300 ilev=3,nlev
-C$OMP PARALLEL DO DEFAULT(SHARED)
-C$OMP$PRIVATE(ibox,box,center0,corners0,level0,level,npts,nkids,radius)
-C$OMP$PRIVATE(jbox,box1,center1,corners1,level1)
-C$OMP$PRIVATE(mptemp1,lused,ier,i,j,vtemp,gatemp,cd)
-C$OMP$PRIVATE(mptemp2,mptemp3,mptemp4,mptemp5,gaatemp) 
-cccC$OMP$SCHEDULE(DYNAMIC)
-cccC$OMP$NUM_THREADS(4) 
+!$OMP PARALLEL DO DEFAULT(SHARED)
+!$OMP$PRIVATE(ibox,box,center0,corners0,level0,level,npts,nkids,radius)
+!$OMP$PRIVATE(jbox,box1,center1,corners1,level1)
+!$OMP$PRIVATE(mptemp1,lused,ier,i,j,vtemp,gatemp,cd)
+!$OMP$PRIVATE(mptemp2,mptemp3,mptemp4,mptemp5,gaatemp) 
+ccc!$OMP$SCHEDULE(DYNAMIC)
+ccc!$OMP$NUM_THREADS(4) 
            do 5200 ibox=laddr(1,ilev),laddr(1,ilev)+laddr(2,ilev)-1
               call d2tgetb(ier,ibox,box,center0,corners0,wlists)
               call d2tnkids(box,nkids)
@@ -574,7 +574,7 @@ c
                  endif
               endif
  5200      continue
-C$OMP END PARALLEL DO
+!$OMP END PARALLEL DO
  5300   continue
 c        t2=second()
 c        t2=omp_get_wtime() 

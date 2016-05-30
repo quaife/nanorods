@@ -142,10 +142,10 @@ c
         t1=second()
 C$      t1=omp_get_wtime() 
 c
-C$OMP PARALLEL DO DEFAULT(SHARED)
-C$OMP$PRIVATE(i,j,vtemp,gatemp,gaatemp) 
-cccC$OMP$SCHEDULE(DYNAMIC)
-cccC$OMP$NUM_THREADS(4) 
+!$OMP PARALLEL DO DEFAULT(SHARED)
+!$OMP$PRIVATE(i,j,vtemp,gatemp,gaatemp) 
+ccc!$OMP$SCHEDULE(DYNAMIC)
+ccc!$OMP$NUM_THREADS(4) 
         do 7160 j=1,m
            do 7150 i=1,nsource       
               if( i .eq. j ) goto 7150
@@ -161,7 +161,7 @@ cccC$OMP$NUM_THREADS(4)
               endif
  7150      continue
  7160   continue
-C$OMP END PARALLEL DO
+!$OMP END PARALLEL DO
         t2=second()
 C$      t2=omp_get_wtime() 
         ifprint = 1
@@ -225,10 +225,10 @@ c
         enddo
         t1=second()
 C$      t1=omp_get_wtime() 
-C$OMP PARALLEL DO DEFAULT(SHARED)
-C$OMP$PRIVATE(i,j,vtemp,gatemp,gaatemp) 
-cccC$OMP$SCHEDULE(DYNAMIC)
-cccC$OMP$NUM_THREADS(4) 
+!$OMP PARALLEL DO DEFAULT(SHARED)
+!$OMP$PRIVATE(i,j,vtemp,gatemp,gaatemp) 
+ccc!$OMP$SCHEDULE(DYNAMIC)
+ccc!$OMP$NUM_THREADS(4) 
         do 8160 j=1,m
            do 8150 i=1,nsource
               call bh2ddireval(source(1,i),1,ifcharge,charge(i),
@@ -243,7 +243,7 @@ cccC$OMP$NUM_THREADS(4)
               endif
  8150      continue
  8160   continue
-C$OMP END PARALLEL DO
+!$OMP END PARALLEL DO
         t2=second()
 C$      t2=omp_get_wtime() 
 c

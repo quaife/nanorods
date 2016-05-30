@@ -1,7 +1,7 @@
 %close all
 
-prams.N = 16; % points per body
-prams.nv = 200; % number of bodies
+prams.N = 64; % points per body
+prams.nv = 20; % number of bodies
 prams.T = 10/100; % time horizon
 prams.m = 100/100; % number of time steps
 prams.lengths = 4.5*ones(1, prams.nv);
@@ -25,7 +25,7 @@ rown = 5;
 coln = prams.nv/(2*rown);
 
 x = linspace(0, 3*max(prams.widths)*rown, rown);
-y = linspace(0, max(prams.lengths)*coln, coln);
+y = linspace(0, 0.75*max(prams.lengths)*coln, coln);
 
 
 [X1, Y1] = meshgrid(x,y);
@@ -38,6 +38,6 @@ tau = pi/2*ones(1,prams.nv) + 2*coeffr*(1-2*rand(1,prams.nv));
 
 Xfinal = rigid2D(options, prams, xc, tau);
 
-pp = post([options.dataFile,'.dat']);
-pp.animated_gif('rectangular_fibers_poiseuille.gif', 1, [])
+%pp = post([options.dataFile,'.dat']);
+%pp.animated_gif('rectangular_fibers_poiseuille.gif', 1, [])
 %stats = pp.calculate_stats(1:prams.nv);
