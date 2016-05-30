@@ -1,11 +1,12 @@
-MEX=/Applications/MATLAB_R2015A.app/bin/mex
+MEX=/usr/local/matlab/bin/mex
 # location of mex compiler on Bryan's laptop
 FORTRAN = gfortran
-# Fortranc ompiler
-FFLAGS = -c -fpic -O3
+# Fortran compiler
+FFLAGS = -c -fpic -O3  -fopenmp
 #MEXLIBDIR = /share/apps/intel/Compiler/12.1/composer_xe_2011_sp1.7.256/compiler/lib/intel64/
 #for ronaldo
 #MEXLIB = -lifcore -lirc -lsvml -limf -lgfortran -liomp5
+MEXLIB = -lgomp
 
 OBJS=\
 bhcommon_oldtree.o\
