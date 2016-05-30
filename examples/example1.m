@@ -1,9 +1,9 @@
 %close all
 
-prams.N = 64; % points per body
+prams.N = 16; % points per body
 prams.nv = 200; % number of bodies
-prams.T = 10; % time horizon
-prams.m = 100; % number of time steps
+prams.T = 10/100; % time horizon
+prams.m = 100/100; % number of time steps
 prams.lengths = 4.5*ones(1, prams.nv);
 prams.widths = 1*ones(1,prams.nv);
 prams.order = 4;
