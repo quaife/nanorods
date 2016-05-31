@@ -230,6 +230,7 @@ if (relate == 1 || relate == 3)
     % index of closest discretization point
     argnearSS{k} = spalloc(N1,nv1,0);
     % argument in [0,1] of local interpolant
+    nearFibersSS{k} = {};
   end
   % New way of representing near-singular integration structure so that
   % we can use sparse matricies.
@@ -314,6 +315,8 @@ if (relate == 1 || relate == 3)
               ysou(ipt,k2),k,icpSS{k}(ipt,k2));
           nearestSS{k}(ipt,k2) = nearestx;
           nearestSS{k}(ipt+N1,k2) = nearesty;
+          
+          nearFibersSS{k}= [nearFibersSS{k},k2];
           % Find closest point along a local interpolant using
           % Newton's method.
 
@@ -329,6 +332,8 @@ if (relate == 1 || relate == 3)
 
     end % k2
 
+    nftmp = nearFibersSS{k};
+    nearFibersSS{k} = unique([nftmp{:}]);
   end % k
 
   NearSelf.dist = distSS;
@@ -336,6 +341,7 @@ if (relate == 1 || relate == 3)
   NearSelf.nearest = nearestSS;
   NearSelf.icp = icpSS;
   NearSelf.argnear = argnearSS;
+  NearSelf.nearFibers = nearFibersSS;
   % Store everything in the structure NearSelf.  This way it is 
   % much cleaner to pass everything around
 

@@ -1,7 +1,7 @@
 %close all
 
-prams.N = 64; % points per body
-prams.nv = 20; % number of bodies
+prams.N = 32; % points per body
+prams.nv = 500; % number of bodies
 prams.T = 10/100; % time horizon
 prams.m = 100/100; % number of time steps
 prams.lengths = 4.5*ones(1, prams.nv);
@@ -25,7 +25,7 @@ rown = 5;
 coln = prams.nv/(2*rown);
 
 x = linspace(0, 3*max(prams.widths)*rown, rown);
-y = linspace(0, 0.75*max(prams.lengths)*coln, coln);
+y = linspace(0, 1*max(prams.lengths)*coln, coln);
 
 
 [X1, Y1] = meshgrid(x,y);

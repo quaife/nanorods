@@ -77,6 +77,7 @@ zone = NearStruct.zone;
 nearest = NearStruct.nearest;
 icp = NearStruct.icp;
 argnear = NearStruct.argnear;
+nearFibers = NearStruct.nearFibers;
 
 Xsou = geomSou.X; % source positions
 Nsou = size(Xsou,1)/2; % number of source points
@@ -139,10 +140,13 @@ nearField = zeros(2*Ntar,nvTar);
 beta = 1.1;
 % small buffer to make sure Lagrange interpolation points are not in the
 % near zone
+vel = zeros(2*Ntar, nvSou, nvSou); %allocate array for vel
+
 for k1 = 1:nvSou
   if tEqualS % sources == targets
-    K = [(1:k1-1) (k1+1:nvTar)];
+    % K = [(1:k1-1) (k1+1:nvTar)];
     % skip diagonal geom
+    K = nearFibers{k1};
   else % sources ~= targets
     K = (1:nvTar);
     % consider all geoms
