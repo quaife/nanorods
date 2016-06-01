@@ -17,6 +17,12 @@ x = X(1:N,:);
 y = X(N+1:end,:);
 end % getXY
 
+function [x,y]=getXYperp(o,X)
+% [x,y] = getXY(X) get the [x,y] component of curves X
+N = size(X,1)/2;
+x = -X(N+1:end,:);
+y = X(1:N,:);
+end % getXYperp
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function V = setXY(o,x,y)

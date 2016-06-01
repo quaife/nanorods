@@ -387,7 +387,8 @@ function [stokesDLP,stokesDLPtar] = ...
 % collection of geom K1 and the double-layer potential due to components
 % of the geometry in K1 will be evaluated at Xtar.  Everything but Xtar
 % is in the 2*N x nv format Xtar is in the 2*Ntar x ncol format
-normal = [-geom.xt(geom.N+1:2*geom.N,:);geom.xt(1:geom.N,:)]; 
+
+%normal = [-geom.xt(geom.N+1:2*geom.N,:);geom.xt(1:geom.N,:)]; %this line take 60 seconds! 
 % Normal vector
 
 if nargin == 5
@@ -416,7 +417,8 @@ denx = denx(:); deny = deny(:);
 denx = denx(:,ones(Ntar,1))';
 deny = deny(:,ones(Ntar,1))';
 
-[normalx,normaly] = oc.getXY(normal(:,K1));
+%[normalx,normaly] = oc.getXY(normal(:,K1));
+[normalx,normaly] = oc.getXYperp(geom.xt(:,K1));
 normalx = normalx(:); normaly = normaly(:);
 normalx = normalx(:,ones(Ntar,1))';
 normaly = normaly(:,ones(Ntar,1))';
