@@ -388,7 +388,7 @@ function [stokesDLP,stokesDLPtar] = ...
 % of the geometry in K1 will be evaluated at Xtar.  Everything but Xtar
 % is in the 2*N x nv format Xtar is in the 2*Ntar x ncol format
 
-%normal = [-geom.xt(geom.N+1:2*geom.N,:);geom.xt(1:geom.N,:)]; %this line take 60 seconds! 
+% normal = [-geom.xt(geom.N+1:2*geom.N,1:end);geom.xt(1:geom.N,1:end)]; %this line take 60 seconds! 
 % Normal vector
 
 if nargin == 5

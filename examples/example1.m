@@ -1,18 +1,16 @@
 %close all
 
-prams.N = 32; % points per body
-prams.nv = 500; % number of bodies
-prams.T = 10/100; % time horizon
-prams.m = 100/100; % number of time steps
+prams.N = 48; % points per body
+prams.nv = 121; % number of bodies
+prams.T = 10; % time horizon
+prams.m = 1000; % number of time steps
 prams.lengths = 4.5*ones(1, prams.nv);
 prams.widths = 1*ones(1,prams.nv);
 prams.order = 4;
 
-options.farField = 'poiseuille';
-options.usePlot = true;
-options.axis = [-20 20 -5 5];
+options.farField = 'extensional';
 options.saveData = true;
-options.dataFile = 'rectangular_fibers_poiseuille';
+options.dataFile = 'rectangular_fibers_extensional_r1em3';
 options.append = false;
 options.inear = true;
 options.usePreco = true;
@@ -21,23 +19,39 @@ options.ifmm = true;
 [options,prams] = initRigid2D(options,prams);
 
 %% staggerd grid
-rown = 5;
-coln = prams.nv/(2*rown);
+% rown = 5;
+% coln = prams.nv/(2*rown);
+% 
+% x = linspace(0, 3*max(prams.widths)*rown, rown);
+% y = linspace(0, 1*max(prams.lengths)*coln, coln);
+% 
+% [X1, Y1] = meshgrid(x,y);
+% [X2, Y2] = meshgrid(x - 2*max(prams.widths), y + max(prams.lengths)/2);
+% 
+% coeffr = 0;
+% % xc = [[X1(:)', X2(:)'] + coeffr*(1 - 2*rand(1,prams.nv)); ...
+% %     [Y1(:)' - coln/2*max(prams.lengths), Y2(:)'- coln/2*max(prams.lengths)] + coeffr*(1 - 2*rand(1,prams.nv))];
+% xc = [[X1(:)', X2(:)'] + coeffr*(1 - 2*rand(1,prams.nv)); ...
+%      [Y1(:)', Y2(:)'] + coeffr*(1 - 2*rand(1,prams.nv))];
+% tau = pi/2*ones(1,prams.nv) + 2*coeffr*(1-2*rand(1,prams.nv));
 
-x = linspace(0, 3*max(prams.widths)*rown, rown);
-y = linspace(0, 1*max(prams.lengths)*coln, coln);
+%% non staggered grid, alternating orientations
 
+rown = 11;
+coln = prams.nv/rown;
 
-[X1, Y1] = meshgrid(x,y);
-[X2, Y2] = meshgrid(x - 2*max(prams.widths), y - max(prams.lengths)/2);
+x = linspace(-rown/2*max(prams.lengths), rown/2*max(prams.lengths), rown);
+y = linspace(-coln/2*max(prams.lengths), coln/2*max(prams.lengths), coln);
 
-coeffr = 0;
-xc = [[X1(:)', X2(:)'] + coeffr*(1 - 2*rand(1,prams.nv)); ...
-    [Y1(:)' - coln/2*max(prams.lengths), Y2(:)'- coln/2*max(prams.lengths)] + coeffr*(1 - 2*rand(1,prams.nv))];
-tau = pi/2*ones(1,prams.nv) + 2*coeffr*(1-2*rand(1,prams.nv));
+coeffr = 1e-2;
+[X, Y] = meshgrid(x,y);
+xc = [X(:)' + coeffr*rand(1,prams.nv); Y(:)'+ coeffr*rand(1,prams.nv)];
 
-Xfinal = rigid2D(options, prams, xc, tau);
+tau = zeros(1,prams.nv);
+tau(1:2:end) = pi/2;
+    
+%Xfinal = rigid2D(options, prams, xc, tau);
 
-%pp = post([options.dataFile,'.dat']);
-%pp.animated_gif('rectangular_fibers_poiseuille.gif', 1, [])
+pp = post([options.dataFile,'.dat']);
+pp.animated_gif('rectangular_fibers_poiseuille.gif', 1, [])
 %stats = pp.calculate_stats(1:prams.nv);

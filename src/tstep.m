@@ -293,7 +293,7 @@ nv = size(X,2);
 if strcmp(type,'shear')
   vInf = [X(end/2+1:end,:);zeros(N,nv)];
 elseif strcmp(type,'extensional')
-  vInf = [-X(1:end/2,:);X(end/2+1:end,:)];
+  vInf = [X(1:end/2,:);-X(end/2+1:end,:)];
 elseif strcmp(type, 'poiseuille')
     %poiseuille flow with 0s at -100 and 100
     vInf = [-(X(end/2+1:end,:) - 15).*(X(end/2+1:end,:) + 15)/(10^2); zeros(N,nv)];
