@@ -1,7 +1,7 @@
 %close all
 
 prams.N = 48; % points per body
-prams.nv = 121; % number of bodies
+prams.nv = 25; % number of bodies
 prams.T = 10; % time horizon
 prams.m = 1000; % number of time steps
 prams.lengths = 4.5*ones(1, prams.nv);
@@ -10,11 +10,12 @@ prams.order = 4;
 
 options.farField = 'extensional';
 options.saveData = true;
-options.dataFile = 'rectangular_fibers_extensional_r1em3';
+options.fileBase = ['extensional_',datestr(now, 'yyyymmddHHMM')];
 options.append = false;
 options.inear = true;
 options.usePreco = true;
 options.ifmm = true;
+options.verbose = true;
 
 [options,prams] = initRigid2D(options,prams);
 
@@ -37,21 +38,21 @@ options.ifmm = true;
 
 %% non staggered grid, alternating orientations
 
-rown = 11;
+rown = 5;
 coln = prams.nv/rown;
 
 x = linspace(-rown/2*max(prams.lengths), rown/2*max(prams.lengths), rown);
 y = linspace(-coln/2*max(prams.lengths), coln/2*max(prams.lengths), coln);
 
-coeffr = 1e-2;
+coeffr = 1e-1;
 [X, Y] = meshgrid(x,y);
-xc = [X(:)' + coeffr*rand(1,prams.nv); Y(:)'+ coeffr*rand(1,prams.nv)];
+xc = [X(:)' + coeffr*rand(1,prams.nv); Y(:)'+ (1 -2*coeffr*rand(1,prams.nv))];
 
 tau = zeros(1,prams.nv);
 tau(1:2:end) = pi/2;
     
-%Xfinal = rigid2D(options, prams, xc, tau);
+Xfinal = rigid2D(options, prams, xc, tau);
 
-pp = post([options.dataFile,'.dat']);
-pp.animated_gif('rectangular_fibers_poiseuille.gif', 1, [])
+pp = post([om.OUTPUTPATH_DATA,  options.dataFile, '.dat']);
+pp.animated_gif('extenstional_large_timestep.gif', 1, [])
 %stats = pp.calculate_stats(1:prams.nv);

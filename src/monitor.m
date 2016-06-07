@@ -1,101 +1,87 @@
 classdef monitor
-% Used for doing input/output of data.
-% Can do plotting, write to files, compute error in area
-% and length, and write to console
+% Used for doing input/output of data, monitoring runs during execution
 
 properties
 verbose         % write data to console
-usePlot         % plot the bodies
+profile         % profile code (TO DO)
 saveData        % save data to the dat files and log file
-axis            % axis of the plot
-dataFile        % name of the file to write the data
-densityFile
-append
+dataFile        % name of data file containing fibre centres and orientations
+densityFile     % name of data file containing density function
+logFile         % name of log file
+append          % append new data to files
 
-%logFile         % name of the file to write the log
-N               % number of points on inner boundaries
-%Nouter          % number of points on outer boundary
-%Ntracers        % number of tracers
-nv              % number of inner boundaries
+OUTPUTPATH_DATA % folder in which to save data
+OUTPUTPATH_LOG  % folder in which to save logs
 
 end % properties
 
 methods
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function o = monitor(options,prams)
-% monitor(X,Xwalls,options,prams) saves options and parameters
-% needed by the class and also computes the initial error in
-% area and length so that the errors in area and length
-% can be monitored throughout the simulation.
+function o = monitor(options, prams)
+% monitor(options,prams) saves options and parameters
+% needed by the class.
 % This is the constructor
 
+o.OUTPUTPATH_DATA = '../output/data/';
+o.OUTPUTPATH_LOG = '../output/logs/';
 
 o.verbose = options.verbose;
 % write data to console
-o.usePlot = options.usePlot;
-% plot the rigid bodies
+
 o.saveData = options.saveData;
-%% save messages to a log file
-o.dataFile = [options.dataFile, '.dat'];
-o.densityFile = [options.dataFile, '_density.dat'];
+o.dataFile = [o.OUTPUTPATH_DATA, options.fileBase, '.dat'];
+o.densityFile = [o.OUTPUTPATH_DATA, options.fileBase, '_density.dat'];
+o.logFile = [o.OUTPUTPATH_LOG, options.fileBase, '.log'];
+
 o.append = options.append;
-%% name of bin file for geometry
-%% Uses this file name to choose the file name for the tracers
-%o.logFile = options.logFile;
-%% name of log file
-o.axis = options.axis;
-% axis for the plotting
-o.N = prams.N;
-% number of points per inner boundary
-o.nv = prams.nv;
-% number of inner boundaries
+
 
 %% start new data file if needed
 if (o.saveData && ~o.append)
     o.clearFiles();
+    fid = fopen(o.dataFile,'w');
     
-    o.writeMessage('Data file for nanorod simulation');    
+    fprintf(fid, '%s', ['Data file for nanorod simulation ', datestr(now)]);    
 
-    o.writeMessage('Line 6 contains length of each rectangular rod')
-    o.writeMessage('Line 7 contains width of each rectangular rod');
-    o.writeMessage('Line 8 contains the order that determines the curvature of the rods');
-    o.writeMessage('Lines 9 onward contain the time, x centre coordinate, y centre coordinate and the orientation for each rod at time t');
+    fprintf(fid, '%s', 'Line 6 contains length of each rectangular rod');
+    fprintf(fid, '%s', 'Line 7 contains width of each rectangular rod');
+    fprintf(fid, '%s', 'Line 8 contains the order that determines the curvature of the rods');
+    fprintf(fid, '%s', 'Lines 9 onward contain the time, x centre coordinate, y centre coordinate and the orientation for each rod at time t');
 
-    o.writeMessage('BEGIN DATA');
-
-    fid = fopen(o.dataFile,'a');
+    fprintf(fid, '%s', 'BEGIN DATA');
     fprintf(fid,'%s\n', num2str(prams.lengths));
     fprintf(fid,'%s\n', num2str(prams.widths));
     fprintf(fid,'%s\n', num2str(prams.order));
 
-
     fclose(fid);   
+    
+    o.welcomeMessage();
 end
 
 end % constructor: monitor
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function clearFiles(o)
-% clearFiles() clears the log and bin file so that there is nothing from
-% previous runs
+% clearFiles() clears the previous log and data files so that there is 
+% nothing from previous runs
 
-% fid = fopen(o.logFile,'w');
-% fclose(fid);
-fid = fopen(o.dataFile,'w');
-fid = fopen(o.densityFile,'w');
-fclose(fid);
-% delete the previous log and data files
+fid1 = fopen(o.dataFile,'w');
+fid2 = fopen(o.densityFile,'w');
+fid3 = fopen(o.logFile,'w');
+fclose(fid1);
+fclose(fid2);
+fclose(fid3);
 
 end % clearFiles
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function welcomeMessage(o,options,prams)
+function welcomeMessage(o)
 % welcomeMessage(options,prams) writes specs from the simulation to the
 % log file and console
 
 o.writeStars
-message = ['stuff '];
+message = ['RIGID FIBRE SIMULAION ', datestr(now)];
 o.writeMessage(message);
 
 end % welcomeMessage
@@ -122,7 +108,7 @@ end
 % line
 
 if o.saveData
-  fid = fopen(o.dataFile,'a');
+  fid = fopen(o.logFile, 'a');
   fprintf(fid,format,message);
   fclose(fid);
 end
@@ -135,32 +121,9 @@ end
 
 end % writeMessage
 
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function outputInfo(o,X)
-
-if o.usePlot
-  o.plotData(X); 
-  pause(1e-2);
-end
-
-end % outputInfo
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function plotData(o,X);
-
-oc = curve;
-[x,y] = oc.getXY(X);
-figure(1);clf;
-fill([x;x(1,:)],[y;y(1,:)],'k');
-axis equal;
-axis(o.axis);
-
-end % plotData
-
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function writeData(o, t, c, tau, Ux, Uy, omega)
-% writeData(t, cp, tau) writes centre point and orientation of each fiber
+% writeData(t, cp, tau) writes centre point and orientation of each fibre
 % to a csv file. This file can be read in to Matlab later for
 % postprocessing.
 
@@ -172,119 +135,15 @@ end % writeData
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function writeDensity(o,t, eta)
+% writeData(t, eta) write the density function eta at time t to
+% o.densityFile. This can be read in later to plot the velocity field.
+
     fid = fopen(o.densityFile,'a');
     fprintf(fid,'%s\n', num2str([t,eta(:)']));
     fclose(fid);
 end % writeDensity
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function u = evaluateDLP(o, geom, eta, x, y)
-% evaluates the Stokes double layer potential at a point x, y, given a geometry
-% geom and a density function eta
-% TO DO, x, y can be a list of points, this could be faster especially using
-% the FMM
-
-geomTar = capsules([],[[x;0;y;0]]);
-
-pot = poten(geom.N);
-[~,NearStruct] = geom.getZone(geomTar,2);
-
-D = pot.stokesDLmatrix(geom);
-DLP = @(X) pot.exactStokesDLdiag(geom,D,X) - 1/2*X;
-u = pot.nearSingInt(geom,eta, DLP,...
-    NearStruct, @pot.exactStokesDL, @pot.exactStokesDL, geomTar,false,false);
-
-
-end % evaluateDLP
-
-function U = plotDLP(o, geom, eta, X,  Y, epsilon)
-% plots the Stokes double layer potential over a meshgrid X, Y. The DLP will
-% only be evaluated if it is at least epsilon away from all fibers. 
-
-[nx, ny] = size(X);
-
-U = zeros(nx,ny,2);
-
-figure(1);
-figure(2);
-figure(3);
-
-for i = 1:nx
-    for j = 1:ny
-        
-        nearFiber = false;
-        
-        %check if point is far enough away from each fiber
-        for k = 1:geom.nv
-            Xcap = geom.X(1:geom.N, k);
-            Ycap = geom.X(geom.N + 1:end, k);
-            
-            if (i == 1 && j == 1) 
-                figure(1);
-                hold on;
-                fill(Xcap, Ycap, 'k');
-                
-                figure(2);
-                hold on;
-                fill(Xcap, Ycap, 'k');
-                
-                figure(3);
-                hold on;
-                fill(Xcap, Ycap, 'k');
-            end
-            
-            %add and subtract epsilon from each coordinate, there has to be
-            %a better way to do this
-            XcapRight = Xcap + epsilon;
-            XcapLeft = Xcap - epsilon;
-            YcapTop = Ycap + epsilon;
-            YcapBottom = Ycap - epsilon;
-            
-            if (inpolygon(X(i,j), Y(i,j), XcapRight, Ycap) || inpolygon(X(i,j), Y(i,j), XcapLeft, Ycap) ...
-                    || inpolygon(X(i,j), Y(i,j), Xcap, YcapTop) || inpolygon(X(i,j), Y(i,j), Xcap, YcapBottom)...
-                    || inpolygon(X(i,j), Y(i,j), XcapRight, YcapTop) || inpolygon(X(i,j), Y(i,j), XcapRight, YcapBottom) ...
-                    || inpolygon(X(i,j), Y(i,j), XcapLeft, YcapTop) || inpolygon(X(i,j), Y(i,j), XcapLeft, YcapBottom))
-                nearFiber = true;
-            end
-            
-     
-           
-        end
-        
-        if ~nearFiber
-            Utmp =  o.evaluateDLP(geom, eta, X(i,j), Y(i,j));
-            U(i,j,:) = [Utmp(1);Utmp(3)];
-        else
-            U(i,j,:) = nan;
-        end        
-    end
-end
-
-figure(1)
-hold on
-quiver(X, Y, U(:,:,1), U(:,:,2), 2);
-
-axis equal
-
-figure(2)
-hold on
-contourf(X, Y, U(:,:,1));
-colorbar
-
-axis equal
-
-figure(3)
-hold on
-contourf(X, Y, U(:,:,2));
-colorbar
-
-
-axis equal
-
-end % plotDLP
-
 end % methods
 
 
 end % classdef
-

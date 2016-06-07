@@ -322,6 +322,113 @@ function prob = recover_probability(o, theta, a2, a4)
         
     
 end %post : recover_probability
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+function u = evaluateDLP(o, geom, eta, x, y)
+% evaluates the Stokes double layer potential at a point x, y, given a geometry
+% geom and a density function eta
+% TO DO, x, y can be a list of points, this could be faster especially using
+% the FMM
+
+geomTar = capsules([],[[x;0;y;0]]);
+
+pot = poten(geom.N);
+[~,NearStruct] = geom.getZone(geomTar,2);
+
+D = pot.stokesDLmatrix(geom);
+DLP = @(X) pot.exactStokesDLdiag(geom,D,X) - 1/2*X;
+u = pot.nearSingInt(geom,eta, DLP,...
+    NearStruct, @pot.exactStokesDL, @pot.exactStokesDL, geomTar,false,false);
+
+
+end % evaluateDLP
+
+function U = plotDLP(o, geom, eta, X,  Y, epsilon)
+% plots the Stokes double layer potential over a meshgrid X, Y. The DLP will
+% only be evaluated if it is at least epsilon away from all fibers. 
+
+[nx, ny] = size(X);
+
+U = zeros(nx,ny,2);
+
+figure(1);
+figure(2);
+figure(3);
+
+for i = 1:nx
+    for j = 1:ny
+        
+        nearFiber = false;
+        
+        %check if point is far enough away from each fiber
+        for k = 1:geom.nv
+            Xcap = geom.X(1:geom.N, k);
+            Ycap = geom.X(geom.N + 1:end, k);
+            
+            if (i == 1 && j == 1) 
+                figure(1);
+                hold on;
+                fill(Xcap, Ycap, 'k');
+                
+                figure(2);
+                hold on;
+                fill(Xcap, Ycap, 'k');
+                
+                figure(3);
+                hold on;
+                fill(Xcap, Ycap, 'k');
+            end
+            
+            %add and subtract epsilon from each coordinate, there has to be
+            %a better way to do this
+            XcapRight = Xcap + epsilon;
+            XcapLeft = Xcap - epsilon;
+            YcapTop = Ycap + epsilon;
+            YcapBottom = Ycap - epsilon;
+            
+            if (inpolygon(X(i,j), Y(i,j), XcapRight, Ycap) || inpolygon(X(i,j), Y(i,j), XcapLeft, Ycap) ...
+                    || inpolygon(X(i,j), Y(i,j), Xcap, YcapTop) || inpolygon(X(i,j), Y(i,j), Xcap, YcapBottom)...
+                    || inpolygon(X(i,j), Y(i,j), XcapRight, YcapTop) || inpolygon(X(i,j), Y(i,j), XcapRight, YcapBottom) ...
+                    || inpolygon(X(i,j), Y(i,j), XcapLeft, YcapTop) || inpolygon(X(i,j), Y(i,j), XcapLeft, YcapBottom))
+                nearFiber = true;
+            end
+            
+     
+           
+        end
+        
+        if ~nearFiber
+            Utmp =  o.evaluateDLP(geom, eta, X(i,j), Y(i,j));
+            U(i,j,:) = [Utmp(1);Utmp(3)];
+        else
+            U(i,j,:) = nan;
+        end        
+    end
+end
+
+figure(1)
+hold on
+quiver(X, Y, U(:,:,1), U(:,:,2), 2);
+
+axis equal
+
+figure(2)
+hold on
+contourf(X, Y, U(:,:,1));
+colorbar
+
+axis equal
+
+figure(3)
+hold on
+contourf(X, Y, U(:,:,2));
+colorbar
+
+
+axis equal
+
+end % plotDLP
+
 end %methods
 
 end %classdef
