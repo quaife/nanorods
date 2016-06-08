@@ -8,10 +8,12 @@ saveData        % save data to the dat files and log file
 dataFile        % name of data file containing fibre centres and orientations
 densityFile     % name of data file containing density function
 logFile         % name of log file
+profileFile     % name of profile folder
 append          % append new data to files
 
 OUTPUTPATH_DATA % folder in which to save data
 OUTPUTPATH_LOG  % folder in which to save logs
+OUTPUTPATH_PROFILE  % folder in which to save logs
 
 end % properties
 
@@ -25,6 +27,7 @@ function o = monitor(options, prams)
 
 o.OUTPUTPATH_DATA = '../output/data/';
 o.OUTPUTPATH_LOG = '../output/logs/';
+o.OUTPUTPATH_PROFILE = '../output/profile/';
 
 o.verbose = options.verbose;
 % write data to console
@@ -33,23 +36,27 @@ o.saveData = options.saveData;
 o.dataFile = [o.OUTPUTPATH_DATA, options.fileBase, '.dat'];
 o.densityFile = [o.OUTPUTPATH_DATA, options.fileBase, '_density.dat'];
 o.logFile = [o.OUTPUTPATH_LOG, options.fileBase, '.log'];
+o.profileFile = [o.OUTPUTPATH_PROFILE, options.fileBase];
 
 o.append = options.append;
-
+o.profile = options.profile;
 
 %% start new data file if needed
 if (o.saveData && ~o.append)
     o.clearFiles();
     fid = fopen(o.dataFile,'w');
     
-    fprintf(fid, '%s', ['Data file for nanorod simulation ', datestr(now)]);    
+    fprintf(fid, '%s\n', ['Data file for nanorod simulation ', datestr(now)]);    
 
-    fprintf(fid, '%s', 'Line 6 contains length of each rectangular rod');
-    fprintf(fid, '%s', 'Line 7 contains width of each rectangular rod');
-    fprintf(fid, '%s', 'Line 8 contains the order that determines the curvature of the rods');
-    fprintf(fid, '%s', 'Lines 9 onward contain the time, x centre coordinate, y centre coordinate and the orientation for each rod at time t');
+    fprintf(fid, '%s\n', 'Line 6 contains length of each rectangular rod');
+    fprintf(fid, '%s\n', 'Line 7 contains width of each rectangular rod');
+    fprintf(fid, '%s\n', ['Line 8 contains the order that determines the ',...
+                        'curvature of the rods']);
+    fprintf(fid, '%s\n', ['Lines 9 onward contain the time, x centre ',...
+                        'coordinate, y centre coordinate and the ', ...
+                        'orientation for each rod at time t']);
 
-    fprintf(fid, '%s', 'BEGIN DATA');
+    fprintf(fid,'%s\n', 'BEGIN DATA');
     fprintf(fid,'%s\n', num2str(prams.lengths));
     fprintf(fid,'%s\n', num2str(prams.widths));
     fprintf(fid,'%s\n', num2str(prams.order));

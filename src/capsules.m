@@ -454,6 +454,7 @@ if (relate == 2 || relate == 3)
   NearOther.nearest = nearestST;
   NearOther.icp = icpST;
   NearOther.argnear = argnearST;
+  NearOther.nearFibers = [];
   % store near-singluar integration requirements in structure NearOther
 
 end % relate == 2 || relate == 3

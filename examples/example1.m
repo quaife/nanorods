@@ -1,21 +1,22 @@
-%close all
+close all
 
 prams.N = 48; % points per body
 prams.nv = 25; % number of bodies
-prams.T = 10; % time horizon
-prams.m = 1000; % number of time steps
+prams.T = 2; % time horizon
+prams.m = 40; % number of time steps
 prams.lengths = 4.5*ones(1, prams.nv);
 prams.widths = 1*ones(1,prams.nv);
 prams.order = 4;
 
 options.farField = 'extensional';
 options.saveData = true;
-options.fileBase = ['extensional_',datestr(now, 'yyyymmddHHMM')];
+options.fileBase = 'extensional_small_dt';
 options.append = false;
 options.inear = true;
 options.usePreco = true;
 options.ifmm = true;
 options.verbose = true;
+options.profile = false;
 
 [options,prams] = initRigid2D(options,prams);
 
@@ -51,8 +52,9 @@ xc = [X(:)' + coeffr*rand(1,prams.nv); Y(:)'+ (1 -2*coeffr*rand(1,prams.nv))];
 tau = zeros(1,prams.nv);
 tau(1:2:end) = pi/2;
     
-Xfinal = rigid2D(options, prams, xc, tau);
+[Xfinal, om] = rigid2D(options, prams, xc, tau);
 
-pp = post([om.OUTPUTPATH_DATA,  options.dataFile, '.dat']);
-pp.animated_gif('extenstional_large_timestep.gif', 1, [])
+pp = post(om.dataFile, om.densityFile);
+pp.animated_gif('extenstional_fibres_small_dt.gif', 2, [], 'fibres')
+pp.animated_gif('extenstional_fluid_small_dt.gif', 2, [], 'fluid')
 %stats = pp.calculate_stats(1:prams.nv);

@@ -3,7 +3,7 @@ classdef post
 
 properties
 dataFile       
-
+densityFile
 
 widths;
 lengths;
@@ -13,22 +13,28 @@ centres_x;
 centres_y
 orientations;
 times;
+eta;
+
 u_x;
 u_y;
 omega;
 nv;
+N;
+
+EPS;
+OUTPUTPATH_GIFS;
 
 end % properties
 
 methods
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function o = post(dataFile, type)
+function o = post(dataFile, densityFile)
  
 o.dataFile = dataFile;
+o.densityFile = densityFile;
 
-%first 6 lines are header lines
-
+% read data file; first 6 lines are header lines
 M = dlmread(o.dataFile, '', 6, 0);
 
 [~, nc] = size(M);
@@ -44,31 +50,140 @@ o.centres_y = M(4:end,o.nv+2:2*o.nv+1);
 o.orientations = M(4:end,2*o.nv+2:3*o.nv+1);
 o.u_x = M(4:end, 3*o.nv+2:4*o.nv+1);
 o.u_y = M(4:end, 4*o.nv+2:5*o.nv+1);
-o.omega = M(4:end, 5*o.nv+2:end);   
-   
+o.omega = M(4:end, 5*o.nv+2:end); 
+
+% read density file
+
+M = dlmread(o.densityFile, '', 0, 0);
+eta_tmp = M(:,2:end);
+
+o.eta = zeros(size(eta_tmp,2)/o.nv, o.nv, length(o.times));
+o.N = size(eta_tmp,2)/(2*o.nv);
+
+for i = 2:length(o.times)
+   o.eta(:,:,i) = reshape(eta_tmp(i - 1,:),size(eta_tmp,2)/o.nv, o.nv);  
+end
+
+o.EPS = 0.1;
+o.OUTPUTPATH_GIFS = '../output/gifs/';
+
 end %post : constructor
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-function [] = animated_gif(o, gname, stride, itmax)
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+function [] = plot_fibres(o, iT, xmin, xmax, ymin, ymax)
     
-prams.N = 128;
+    prams.N = 128;
+    prams.nv = o.nv;
+    prams.lengths = o.lengths;
+    prams.widths = o.widths;
+    prams.order = o.order;
+    
+    geom = capsules(prams, [o.centres_x(iT,:); o.centres_y(iT,:)], ...
+                            o.orientations(iT,:));
+    X = geom.getXY();
+    oc = curve;
+    [x,y] = oc.getXY(X);
+    fill([x;x(1,:)],[y;y(1,:)],'k');
+    
+    xlim([xmin, xmax]);
+    ylim([ymin, ymax]);
+    axis equal
+    
+    title(sprintf('t = %6.3f', o.times(iT)));
+    
+    hold off;
+    
+end % post : plot_fibres
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+function [] = plot_fluid(o, iT, xmin, xmax, ymin, ymax, epsilon)
+% plots the Stokes double layer potential over a meshgrid X, Y. The DLP will
+% only be evaluated if it is at least epsilon away from all fibers.
+%
+% TO DO : add different types od background flow, right now only
+% extensional
+
+M = 30;
+[X, Y] = meshgrid(linspace(xmin, xmax, M), linspace(ymin, ymax, M));
+
+[nx, ny] = size(X);
+U = zeros(nx,ny,2);
+
+prams.N = o.N;
 prams.nv = o.nv;
-prams.order = o.order;
 prams.lengths = o.lengths;
 prams.widths = o.widths;
+prams.order = o.order;
 
+geom = capsules(prams, [o.centres_x(iT,:); o.centres_y(iT,:)], ...
+    o.orientations(iT,:));
+
+for i = 1:nx
+    for j = 1:ny
+        
+        nearFiber = false;
+        
+        %check if point is far enough away from each fiber
+        for k = 1:geom.nv
+            Xcap = geom.X(1:geom.N, k);
+            Ycap = geom.X(geom.N + 1:end, k);
+            
+            if (i == 1 && j == 1) 
+                hold on;
+                fill(Xcap, Ycap, 'k');
+            end
+            
+            %add and subtract epsilon from each coordinate, there has to be
+            %a better way to do this
+            XcapRight = Xcap + epsilon;
+            XcapLeft = Xcap - epsilon;
+            YcapTop = Ycap + epsilon;
+            YcapBottom = Ycap - epsilon;
+            
+            if (inpolygon(X(i,j), Y(i,j), XcapRight, Ycap) ...
+                    || inpolygon(X(i,j), Y(i,j), XcapLeft, Ycap) ...
+                    || inpolygon(X(i,j), Y(i,j), Xcap, YcapTop)...
+                    || inpolygon(X(i,j), Y(i,j), Xcap, YcapBottom)...
+                    || inpolygon(X(i,j), Y(i,j), XcapRight, YcapTop)...
+                    || inpolygon(X(i,j), Y(i,j), XcapRight, YcapBottom) ...
+                    || inpolygon(X(i,j), Y(i,j), XcapLeft, YcapTop) ...
+                    || inpolygon(X(i,j), Y(i,j), XcapLeft, YcapBottom))
+                nearFiber = true;
+            end
+            
+     
+           
+        end
+        
+        if ~nearFiber
+            Utmp =  o.evaluateDLP(geom, o.eta(:,:,iT), X(i,j), Y(i,j));
+            U(i,j,:) = [Utmp(1) + X(i,j); Utmp(3) - Y(i,j)];
+        else
+            U(i,j,:) = nan;
+        end        
+    end
+end
+
+quiver(X, Y, U(:,:,1), U(:,:,2), 2);
+
+xlim([xmin, xmax]);
+ylim([ymin, ymax]);
+axis equal
+
+title(sprintf('t = %6.3f', o.times(iT)));
+
+hold off;
+
+end % post : plot_fluid
+    
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+function [] = animated_gif(o, gname, stride, itmax, type)
+    
 h = figure();
-
-%% find axes limits
 
 if isempty(itmax)
     itmax = length(o.times);
 end
-
-prams.length = o.lengths;
-prams.width = o.widths;
-prams.order = o.order;
 
 xmin = min(min(o.centres_x(1:itmax,:))) - max(o.lengths);
 xmax = max(max(o.centres_x(1:itmax,:))) + max(o.lengths);
@@ -79,7 +194,7 @@ ymax = max(max(o.centres_y(1:itmax,:))) + max(o.lengths);
 for i = 1:stride:itmax
     
     clf;
-
+% 
 %     xmin = min(min(o.centres_x(i,:))) - max(o.lengths);
 %     xmax = max(max(o.centres_x(i,:))) + max(o.lengths);        
 %     ymin = min(min(o.centres_y(i,:))) - max(o.lengths);
@@ -90,35 +205,35 @@ for i = 1:stride:itmax
     ymin = -10;
     ymax = 10;
 
-    geom = capsules(prams, [o.centres_x(i,:); o.centres_y(i,:)], o.orientations(i,:));
-    X = geom.getXY();
-    oc = curve;
-    [x,y] = oc.getXY(X);
-    fill([x;x(1,:)],[y;y(1,:)],'k');
-    
-    xlim([xmin, xmax]);
-    ylim([ymin, ymax]);
-    axis equal
-    
-    title(sprintf('t = %6.3f', o.times(i)));
+    switch type
+        case 'fibres'           
+            o.plot_fibres(i, xmin, xmax, ymin, ymax);
+            
+        case 'fluid'
+           o.plot_fluid(i, xmin, xmax, ymin, ymax, o.EPS); 
+        
+    end
     drawnow
     
     frame = getframe(h);
     im = frame2im(frame);
     
-    [imind,cm] = rgb2ind(im,256);
+    [imind, cm] = rgb2ind(im,256);
     if i == 1;
         
-        imwrite(imind,cm,gname,'gif', 'Loopcount',inf, 'DelayTime', 0);
+        imwrite(imind, cm, [o.OUTPUTPATH_GIFS,  gname], 'gif', ...
+                'Loopcount',inf, 'DelayTime', 0);
         
     else
         
-        imwrite(imind,cm,gname,'gif','WriteMode','append', 'DelayTime',0);
+        imwrite(imind, cm, [o.OUTPUTPATH_GIFS,  gname], 'gif',...
+                'WriteMode','append', 'DelayTime',0);
     end
 end
 
-end %post : aimated_gif
+end % post : aimated_gif
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function stats = calculate_stats(o, fibers)
 %provide statistics for fibers
 
@@ -318,116 +433,28 @@ function prob = recover_probability(o, theta, a2, a4)
         
         prob = prob + (8/pi)*sum(b4(:).*f4(:));
     end
-        
-        
-    
+          
 end %post : recover_probability
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function u = evaluateDLP(o, geom, eta, x, y)
-% evaluates the Stokes double layer potential at a point x, y, given a geometry
-% geom and a density function eta
-% TO DO, x, y can be a list of points, this could be faster especially using
-% the FMM
+% evaluates the Stokes double layer potential at a point x, y, given a 
+% geometry geom and a density function eta
+% TO DO : x, y can be a list of points
 
-geomTar = capsules([],[[x;0;y;0]]);
+
+geomTar = capsules([],[x;0;y;0]);
 
 pot = poten(geom.N);
 [~,NearStruct] = geom.getZone(geomTar,2);
 
 D = pot.stokesDLmatrix(geom);
 DLP = @(X) pot.exactStokesDLdiag(geom,D,X) - 1/2*X;
-u = pot.nearSingInt(geom,eta, DLP,...
+u = pot.nearSingInt(geom, eta, DLP,...
     NearStruct, @pot.exactStokesDL, @pot.exactStokesDL, geomTar,false,false);
 
+end % post : evaluateDLP
 
-end % evaluateDLP
-
-function U = plotDLP(o, geom, eta, X,  Y, epsilon)
-% plots the Stokes double layer potential over a meshgrid X, Y. The DLP will
-% only be evaluated if it is at least epsilon away from all fibers. 
-
-[nx, ny] = size(X);
-
-U = zeros(nx,ny,2);
-
-figure(1);
-figure(2);
-figure(3);
-
-for i = 1:nx
-    for j = 1:ny
-        
-        nearFiber = false;
-        
-        %check if point is far enough away from each fiber
-        for k = 1:geom.nv
-            Xcap = geom.X(1:geom.N, k);
-            Ycap = geom.X(geom.N + 1:end, k);
-            
-            if (i == 1 && j == 1) 
-                figure(1);
-                hold on;
-                fill(Xcap, Ycap, 'k');
-                
-                figure(2);
-                hold on;
-                fill(Xcap, Ycap, 'k');
-                
-                figure(3);
-                hold on;
-                fill(Xcap, Ycap, 'k');
-            end
-            
-            %add and subtract epsilon from each coordinate, there has to be
-            %a better way to do this
-            XcapRight = Xcap + epsilon;
-            XcapLeft = Xcap - epsilon;
-            YcapTop = Ycap + epsilon;
-            YcapBottom = Ycap - epsilon;
-            
-            if (inpolygon(X(i,j), Y(i,j), XcapRight, Ycap) || inpolygon(X(i,j), Y(i,j), XcapLeft, Ycap) ...
-                    || inpolygon(X(i,j), Y(i,j), Xcap, YcapTop) || inpolygon(X(i,j), Y(i,j), Xcap, YcapBottom)...
-                    || inpolygon(X(i,j), Y(i,j), XcapRight, YcapTop) || inpolygon(X(i,j), Y(i,j), XcapRight, YcapBottom) ...
-                    || inpolygon(X(i,j), Y(i,j), XcapLeft, YcapTop) || inpolygon(X(i,j), Y(i,j), XcapLeft, YcapBottom))
-                nearFiber = true;
-            end
-            
-     
-           
-        end
-        
-        if ~nearFiber
-            Utmp =  o.evaluateDLP(geom, eta, X(i,j), Y(i,j));
-            U(i,j,:) = [Utmp(1);Utmp(3)];
-        else
-            U(i,j,:) = nan;
-        end        
-    end
-end
-
-figure(1)
-hold on
-quiver(X, Y, U(:,:,1), U(:,:,2), 2);
-
-axis equal
-
-figure(2)
-hold on
-contourf(X, Y, U(:,:,1));
-colorbar
-
-axis equal
-
-figure(3)
-hold on
-contourf(X, Y, U(:,:,2));
-colorbar
-
-
-axis equal
-
-end % plotDLP
 
 end %methods
 
