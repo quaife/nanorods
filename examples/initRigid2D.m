@@ -24,7 +24,7 @@ end
 
 OptionList = {'order','inear','farField','usePlot','verbose',...
     'axis','usePreco','ifmm'};
-defaultOption.order = 1;
+defaultOption.tstep_order = 1;
 defaultOption.inear = true;
 defaultOption.farField = 'shear';
 defaultOption.verbose = true;

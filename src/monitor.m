@@ -19,10 +19,9 @@ end % properties
 
 methods
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function o = monitor(options, prams)
-% monitor(options,prams) saves options and parameters
-% needed by the class.
+% monitor(options,prams) saves options and parameters needed by the class.
 % This is the constructor
 
 o.OUTPUTPATH_DATA = '../output/data/';
@@ -68,7 +67,7 @@ end
 
 end % constructor: monitor
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function clearFiles(o)
 % clearFiles() clears the previous log and data files so that there is 
 % nothing from previous runs
@@ -82,28 +81,29 @@ fclose(fid3);
 
 end % clearFiles
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function welcomeMessage(o)
 % welcomeMessage(options,prams) writes specs from the simulation to the
 % log file and console
 
-o.writeStars
+o.writeStars;
 message = ['RIGID FIBRE SIMULAION ', datestr(now)];
 o.writeMessage(message);
+o.writeStars;
 
 end % welcomeMessage
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function writeStars(o)
 % writeStars writes a message of stars to the console
 % and the log file depending on verbose and saveData
 
-messageStars = '*********************************************';
+messageStars = '*********************************************************';
 o.writeMessage(messageStars,'%s\n')
 
 end % writeStars
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function writeMessage(o,message,format)
 % function writeMessage(message,format) appends message 
 % to o.fileName with format
@@ -128,7 +128,7 @@ end
 
 end % writeMessage
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function writeData(o, t, c, tau, Ux, Uy, omega)
 % writeData(t, cp, tau) writes centre point and orientation of each fibre
 % to a csv file. This file can be read in to Matlab later for
@@ -140,7 +140,7 @@ fclose(fid);
 
 end % writeData
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function writeDensity(o,t, eta)
 % writeData(t, eta) write the density function eta at time t to
 % o.densityFile. This can be read in later to plot the velocity field.

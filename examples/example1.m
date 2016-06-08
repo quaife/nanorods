@@ -2,23 +2,26 @@ close all
 
 prams.N = 48; % points per body
 prams.nv = 25; % number of bodies
-prams.T = 2; % time horizon
-prams.m = 40; % number of time steps
+prams.T = 4; % time horizon
+prams.m = 80; % number of time steps
 prams.lengths = 4.5*ones(1, prams.nv);
 prams.widths = 1*ones(1,prams.nv);
 prams.order = 4;
 
 options.farField = 'extensional';
 options.saveData = true;
-options.fileBase = 'extensional_small_dt';
+options.fileBase = 'extensional_2nd_order_dt_0500';
 options.append = false;
 options.inear = true;
 options.usePreco = true;
 options.ifmm = true;
 options.verbose = true;
 options.profile = false;
+options.tstep_order = 1;
 
 [options,prams] = initRigid2D(options,prams);
+
+rng(123456); % set random seed
 
 %% staggerd grid
 % rown = 5;
@@ -52,9 +55,10 @@ xc = [X(:)' + coeffr*rand(1,prams.nv); Y(:)'+ (1 -2*coeffr*rand(1,prams.nv))];
 tau = zeros(1,prams.nv);
 tau(1:2:end) = pi/2;
     
-[Xfinal, om] = rigid2D(options, prams, xc, tau);
+Xfinal = rigid2D(options, prams, xc, tau);
 
-pp = post(om.dataFile, om.densityFile);
-pp.animated_gif('extenstional_fibres_small_dt.gif', 2, [], 'fibres')
-pp.animated_gif('extenstional_fluid_small_dt.gif', 2, [], 'fluid')
+pp = post(['../output/data/',options.fileBase, '.dat'], ...
+    ['../output/data/',options.fileBase,'_density.dat']);
+pp.animated_gif('extenstional_t4_first.gif', 1, [], 'fibres')
+%pp.animated_gif('extenstional_fluid_second_order.gif', 1, [], 'fluid')
 %stats = pp.calculate_stats(1:prams.nv);

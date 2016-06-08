@@ -28,7 +28,7 @@ end % properties
 
 methods
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function o = post(dataFile, densityFile)
  
 o.dataFile = dataFile;
@@ -82,16 +82,14 @@ function [] = plot_fibres(o, iT, xmin, xmax, ymin, ymax)
                             o.orientations(iT,:));
     X = geom.getXY();
     oc = curve;
-    [x,y] = oc.getXY(X);
+    [x, y] = oc.getXY(X);
     fill([x;x(1,:)],[y;y(1,:)],'k');
     
     xlim([xmin, xmax]);
     ylim([ymin, ymax]);
     axis equal
     
-    title(sprintf('t = %6.3f', o.times(iT)));
-    
-    hold off;
+    title(sprintf('t = %6.3f', o.times(iT)));    
     
 end % post : plot_fibres
 
@@ -118,6 +116,10 @@ prams.order = o.order;
 geom = capsules(prams, [o.centres_x(iT,:); o.centres_y(iT,:)], ...
     o.orientations(iT,:));
 
+o.plot_fibres(iT, xmin, xmax, ymin, ymax);
+
+hold on;
+
 for i = 1:nx
     for j = 1:ny
         
@@ -127,11 +129,6 @@ for i = 1:nx
         for k = 1:geom.nv
             Xcap = geom.X(1:geom.N, k);
             Ycap = geom.X(geom.N + 1:end, k);
-            
-            if (i == 1 && j == 1) 
-                hold on;
-                fill(Xcap, Ycap, 'k');
-            end
             
             %add and subtract epsilon from each coordinate, there has to be
             %a better way to do this
@@ -149,10 +146,7 @@ for i = 1:nx
                     || inpolygon(X(i,j), Y(i,j), XcapLeft, YcapTop) ...
                     || inpolygon(X(i,j), Y(i,j), XcapLeft, YcapBottom))
                 nearFiber = true;
-            end
-            
-     
-           
+            end           
         end
         
         if ~nearFiber
@@ -171,8 +165,6 @@ ylim([ymin, ymax]);
 axis equal
 
 title(sprintf('t = %6.3f', o.times(iT)));
-
-hold off;
 
 end % post : plot_fluid
     
@@ -211,10 +203,9 @@ for i = 1:stride:itmax
             
         case 'fluid'
            o.plot_fluid(i, xmin, xmax, ymin, ymax, o.EPS); 
-        
     end
-    drawnow
     
+    drawnow;
     frame = getframe(h);
     im = frame2im(frame);
     
@@ -325,7 +316,8 @@ for i = 1:length(stats.time)
             for jT = 1:2
                 for kT = 1:2
                     for nT = 1:2
-                        stats.a4(iT,jT,kT,nT,i) = stats.a4(iT,jT,kT,nT,i) + dtheta*ptmp(iT)*ptmp(jT)*ptmp(kT)*ptmp(nT);
+                        stats.a4(iT,jT,kT,nT,i) = stats.a4(iT,jT,kT,nT,i) + ...
+                            dtheta*ptmp(iT)*ptmp(jT)*ptmp(kT)*ptmp(nT);
                     end
                 end
             end
@@ -436,7 +428,7 @@ function prob = recover_probability(o, theta, a2, a4)
           
 end %post : recover_probability
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function u = evaluateDLP(o, geom, eta, x, y)
 % evaluates the Stokes double layer potential at a point x, y, given a 
 % geometry geom and a density function eta
@@ -454,7 +446,6 @@ u = pot.nearSingInt(geom, eta, DLP,...
     NearStruct, @pot.exactStokesDL, @pot.exactStokesDL, geomTar,false,false);
 
 end % post : evaluateDLP
-
 
 end %methods
 
