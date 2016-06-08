@@ -8,12 +8,13 @@ if isempty(strfind(P, subPath))
   addpath(subPath)
 end
 
-PramList = {'N','nv','T','m','gmresTol'};
+PramList = {'N','nv','order', 'T', 'm','gmresTol'};
 defaultPram.N = 64;
 defaultPram.nv = 1;
 defaultPram.T = 1;
 defaultPram.m = 10;
 defaultPram.gmresTol = 1e-6;
+defaultPram.order = 4;
 for k = 1:length(PramList)
   if ~isfield(prams,PramList{k})
     eval(['prams.' PramList{k} '=defaultPram.' PramList{k} ';'])
@@ -22,14 +23,17 @@ for k = 1:length(PramList)
 end
 
 
-OptionList = {'order','inear','farField','usePlot','verbose',...
-    'axis','usePreco','ifmm'};
+OptionList = {'tstep_order','inear','farField','verbose','usePreco','ifmm', ...
+        'append', 'profile'};
 defaultOption.tstep_order = 1;
 defaultOption.inear = true;
 defaultOption.farField = 'shear';
 defaultOption.verbose = true;
 defaultOption.usePreco = false;
 defaultOption.fmm = false;
+defaultOption.append = false;
+defaultOption.profile = false;
+
 for k = 1:length(OptionList)
   if ~isfield(options,OptionList{k})
     eval(['options.' OptionList{k} '=defaultOption.' ...

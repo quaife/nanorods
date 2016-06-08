@@ -36,7 +36,7 @@ function o = tstep(options,prams, om)
 % o.tstep(options,prams): constructor.  Initialize class.  Take all
 % elements of options and prams needed by the time stepper
 
-o.order = options.order;  % times stepping order (1 for now)
+o.order = options.tstep_order;  % times stepping order (1 for now)
 o.dt = prams.T/prams.m;   % time step size
 
 o.ifmm = options.ifmm;   % fast multipole method
