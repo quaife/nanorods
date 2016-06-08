@@ -94,7 +94,8 @@ function welcomeMessage(o)
 % log file and console
 
 o.writeStars;
-message = ['RIGID FIBRE SIMULAION ', datestr(now)];
+message = ['RIGID FIBRE SIMULAION ', datestr(now), 'OMP_NUM_THREADS = ', ...
+        num2str(getenv('OMP_NUM_THREADS'))];
 o.writeMessage(message);
 o.writeStars;
 
