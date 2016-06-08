@@ -18,8 +18,13 @@ eta;
 u_x;
 u_y;
 omega;
+
 nv;
 N;
+tstep_order;
+fmm;
+near_singular;
+preconditioner;
 
 EPS;
 OUTPUTPATH_GIFS;
@@ -34,8 +39,9 @@ function o = post(dataFile, densityFile)
 o.dataFile = dataFile;
 o.densityFile = densityFile;
 
-% read data file; first 6 lines are header lines
-M = dlmread(o.dataFile, '', 6, 0);
+N_LINES_HEAD = 7;
+% read data file; first 7 lines are header lines
+M = dlmread(o.dataFile, '', N_LINES_HEAD, 0);
 
 [~, nc] = size(M);
 o.nv = (nc - 1)/6;
@@ -44,13 +50,19 @@ o.lengths = nonzeros(M(1,1:o.nv));
 o.widths = nonzeros(M(2,1:o.nv));
 o.order = nonzeros(M(3,1:o.nv));
 
-o.times = M(4:end,1);
-o.centres_x = M(4:end,2:o.nv+1);
-o.centres_y = M(4:end,o.nv+2:2*o.nv+1);
-o.orientations = M(4:end,2*o.nv+2:3*o.nv+1);
-o.u_x = M(4:end, 3*o.nv+2:4*o.nv+1);
-o.u_y = M(4:end, 4*o.nv+2:5*o.nv+1);
-o.omega = M(4:end, 5*o.nv+2:end); 
+dtmp = nonzeros(M(4,1:4));
+o.tstep_order = dtmp(1);
+o.preconditioner = dtmp(2);
+o.fmm = dtmp(3);
+o.near_singular = dtmp(4);
+
+o.times = M(5:end,1);
+o.centres_x = M(5:end,2:o.nv+1);
+o.centres_y = M(5:end,o.nv+2:2*o.nv+1);
+o.orientations = M(5:end,2*o.nv+2:3*o.nv+1);
+o.u_x = M(5:end, 3*o.nv+2:4*o.nv+1);
+o.u_y = M(5:end, 4*o.nv+2:5*o.nv+1);
+o.omega = M(5:end, 5*o.nv+2:end); 
 
 % read density file
 
@@ -72,7 +84,10 @@ end %post : constructor
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function [] = plot_fibres(o, iT, xmin, xmax, ymin, ymax)
     
-    prams.N = 128;
+    ax1 = axes('Position', [0 0 1 1], 'Visible', 'off');
+    ax2 = axes('Position', [0.1 0.3 0.8 0.6]);
+    
+    prams.N = o.N;
     prams.nv = o.nv;
     prams.lengths = o.lengths;
     prams.widths = o.widths;
@@ -83,14 +98,24 @@ function [] = plot_fibres(o, iT, xmin, xmax, ymin, ymax)
     X = geom.getXY();
     oc = curve;
     [x, y] = oc.getXY(X);
+    
+    axes(ax2)
     fill([x;x(1,:)],[y;y(1,:)],'k');
     
     xlim([xmin, xmax]);
     ylim([ymin, ymax]);
     axis equal
     
-    title(sprintf('t = %6.3f', o.times(iT)));    
+    title(sprintf('t = %6.3f', o.times(iT))); 
+    axes(ax1)
+    text(0.3, 0.15, {['N       : ' num2str(o.N)], ['nv      : ' num2str(o.nv)], ...
+        ['order : ', num2str(o.order(1))]});
     
+    text(0.5, 0.15, {['timestep order : ' num2str(o.tstep_order)], ...
+                    ['FMM      : ' num2str(o.fmm)], ...
+                    ['preconditioner : ', num2str(o.preconditioner)], ...
+                    ['near singular : ', num2str(o.near_singular)]});
+                
 end % post : plot_fibres
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

@@ -40,6 +40,7 @@ o.profileFile = [o.OUTPUTPATH_PROFILE, options.fileBase];
 o.append = options.append;
 o.profile = options.profile;
 
+o.welcomeMessage();
 %% start new data file if needed
 if (o.saveData && ~o.append)
     o.clearFiles();
@@ -47,11 +48,14 @@ if (o.saveData && ~o.append)
     
     fprintf(fid, '%s\n', ['Data file for nanorod simulation ', datestr(now)]);    
 
-    fprintf(fid, '%s\n', 'Line 6 contains length of each rectangular rod');
-    fprintf(fid, '%s\n', 'Line 7 contains width of each rectangular rod');
-    fprintf(fid, '%s\n', ['Line 8 contains the order that determines the ',...
+    fprintf(fid, '%s\n', 'Line 8 contains length of each rectangular rod');
+    fprintf(fid, '%s\n', 'Line 9 contains width of each rectangular rod');
+    fprintf(fid, '%s\n', ['Line 10 contains the order that determines the ',...
                         'curvature of the rods']);
-    fprintf(fid, '%s\n', ['Lines 9 onward contain the time, x centre ',...
+    fprintf(fid, '%s\n', ['Line 11 contains: time step order, '...
+                        'preconditioner status, FMM status, near singular '...
+                        'integration status']);
+    fprintf(fid, '%s\n', ['Lines 12 onward contain the time, x centre ',...
                         'coordinate, y centre coordinate and the ', ...
                         'orientation for each rod at time t']);
 
@@ -59,7 +63,10 @@ if (o.saveData && ~o.append)
     fprintf(fid,'%s\n', num2str(prams.lengths));
     fprintf(fid,'%s\n', num2str(prams.widths));
     fprintf(fid,'%s\n', num2str(prams.order));
-
+    fprintf(fid,'%s\n', [num2str(options.tstep_order), ' ', ...
+                        num2str(double(options.usePreco)), ' ',...
+                        num2str(double(options.ifmm)), ' ',...
+                        num2str(double(options.inear))]);
     fclose(fid);   
     
     o.welcomeMessage();

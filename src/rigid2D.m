@@ -27,8 +27,8 @@ while time < prams.T
     
     % update centres and angles
     if (options.tstep_order == 2)
-        xc_m2 =  xc;
-        tau_m2 = tau;
+        Up_m1 =  Up;
+        wp_m1 = wp;
     end
     
     if (iT == 1 || options.tstep_order == 1) % use forward Euler
@@ -36,17 +36,17 @@ while time < prams.T
         xc = xc + tt.dt*Up;   
         tau = tau + tt.dt*wp;         
         
-    else if (options.tstep_order == 2) % use a second oder explicit BDF
-            xc = (4/3)*xc - (1/3)*xc_m2 + (2/3)*tt.dt*Up;
-            tau = (4/3)*tau - (1/3)*tau_m2 + (2/3)*tt.dt*wp;
+    else if (options.tstep_order == 2) % use Adams Bashforth
+            xc = xc + (3/2)*tt.dt*Up - (1/2)*tt.dt*Up_m1;
+            tau = tau + (3/2)*tt.dt*wp - (1/2)*tt.dt*wp_m1;
         end
     end
     
     X = geom.getXY();
 
     om.writeMessage(....
-        ['Finished t=', num2str(time), ' in ' num2str(iter) ...
-         ' iterations after ', num2str(toc), ' seconds (residual ', ...
+        ['Finished t=', num2str(time, '%3.3e'), ' in ' num2str(iter) ...
+         ' iterations after ', num2str(toc, '%2i'), ' seconds (residual ', ...
          num2str(res), ')']);
     
     if flag ~= 0
