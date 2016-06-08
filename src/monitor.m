@@ -53,8 +53,7 @@ if (o.saveData && ~o.append)
     fprintf(fid, '%s\n', ['Line 10 contains the order that determines the ',...
                         'curvature of the rods']);
     fprintf(fid, '%s\n', ['Line 11 contains: time step order, '...
-                        'preconditioner status, FMM status, near singular '...
-                        'integration status']);
+                         'FMM status, near singular integration status']);
     fprintf(fid, '%s\n', ['Lines 12 onward contain the time, x centre ',...
                         'coordinate, y centre coordinate and the ', ...
                         'orientation for each rod at time t']);
@@ -64,12 +63,9 @@ if (o.saveData && ~o.append)
     fprintf(fid,'%s\n', num2str(prams.widths));
     fprintf(fid,'%s\n', num2str(prams.order));
     fprintf(fid,'%s\n', [num2str(options.tstep_order), ' ', ...
-                        num2str(double(options.usePreco)), ' ',...
                         num2str(double(options.ifmm)), ' ',...
                         num2str(double(options.inear))]);
     fclose(fid);   
-    
-    o.welcomeMessage();
 end
 
 end % constructor: monitor
@@ -94,13 +90,25 @@ function welcomeMessage(o)
 % log file and console
 
 o.writeStars;
-message = ['RIGID FIBRE SIMULAION ', datestr(now), 'OMP_NUM_THREADS = ', ...
+message = ['RIGID FIBRE SIMULAION ', datestr(now), ' OMP_NUM_THREADS = ', ...
         num2str(getenv('OMP_NUM_THREADS'))];
 o.writeMessage(message);
 o.writeStars;
 
 end % welcomeMessage
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+function restartMessage(o)
+% welcomeMessage(options,prams) writes specs from the simulation to the
+% log file and console
+
+o.writeStars;
+message = ['RESTARTING RIGID FIBRE SIMULAION ', datestr(now), ' OMP_NUM_THREADS = ', ...
+        num2str(getenv('OMP_NUM_THREADS'))];
+o.writeMessage(message);
+o.writeStars;
+
+end % restartMessage
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function writeStars(o)
 % writeStars writes a message of stars to the console

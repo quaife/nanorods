@@ -9,11 +9,32 @@ if (om.profile)
     profile on;
 end
 
-om.writeData(0, xc, tau, zeros(1,prams.nv), zeros(1,prams.nv), zeros(1,prams.nv));
+% read in existing file if necessary
+if options.append
+    
+    pp = post(['../output/data/',options.fileBase, '.dat'], ...
+    ['../output/data/',options.fileBase,'_density.dat']);
 
-time = 0;
-iT = 0;
+    time = pp.times(end);
+    iT = length(pp.times);
+    
+    xc = [pp.centres_x(end,:); pp.centres_y(end,:)];
+    tau = pp.orientations(end,:);
+    
+    if (options.tstep_order == 2)
+        Up_m1 = [pp.u_x(end,:); pp.u_y(end,:)];
+        wp_m1 = pp.omega(end,:);
+    end
+    
+    om.restartMessage();
+    
+else
+    om.writeData(0, xc, tau, zeros(1,prams.nv), zeros(1,prams.nv), zeros(1,prams.nv));
+    time = 0;
+    iT = 0;
+end
 
+% begin time loop
 while time < prams.T
     
     tic;
@@ -26,19 +47,22 @@ while time < prams.T
     [density,Up,wp,iter,flag, res] = tt.timeStep(geom);
     
     % update centres and angles
-    if (options.tstep_order == 2)
-        Up_m1 =  Up;
-        wp_m1 = wp;
-    end
-    
     if (iT == 1 || options.tstep_order == 1) % use forward Euler
         
-        xc = xc + tt.dt*Up;   
-        tau = tau + tt.dt*wp;         
+        xc = xc + tt.dt*Up;
+        tau = tau + tt.dt*wp;
+        
+        if (options.tstep_order == 2)
+            Up_m1 =  Up;
+            wp_m1 = wp;
+        end
         
     else if (options.tstep_order == 2) % use Adams Bashforth
             xc = xc + (3/2)*tt.dt*Up - (1/2)*tt.dt*Up_m1;
             tau = tau + (3/2)*tt.dt*wp - (1/2)*tt.dt*wp_m1;
+            
+            Up_m1 =  Up;
+            wp_m1 = wp;            
         end
     end
     

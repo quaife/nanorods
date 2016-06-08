@@ -24,7 +24,6 @@ N;
 tstep_order;
 fmm;
 near_singular;
-preconditioner;
 
 EPS;
 OUTPUTPATH_GIFS;
@@ -50,11 +49,10 @@ o.lengths = nonzeros(M(1,1:o.nv));
 o.widths = nonzeros(M(2,1:o.nv));
 o.order = nonzeros(M(3,1:o.nv));
 
-dtmp = nonzeros(M(4,1:4));
+dtmp = nonzeros(M(4,1:3));
 o.tstep_order = dtmp(1);
-o.preconditioner = dtmp(2);
-o.fmm = dtmp(3);
-o.near_singular = dtmp(4);
+o.fmm = dtmp(2);
+o.near_singular = dtmp(3);
 
 o.times = M(5:end,1);
 o.centres_x = M(5:end,2:o.nv+1);
@@ -113,7 +111,6 @@ function [] = plot_fibres(o, iT, xmin, xmax, ymin, ymax)
     
     text(0.5, 0.15, {['timestep order : ' num2str(o.tstep_order)], ...
                     ['FMM      : ' num2str(o.fmm)], ...
-                    ['preconditioner : ', num2str(o.preconditioner)], ...
                     ['near singular : ', num2str(o.near_singular)]});
                 
 end % post : plot_fibres
