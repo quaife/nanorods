@@ -90,3 +90,4 @@ if (om.profile)
    profsave(profile('info'), om.profileFile);
 end
 
+end %rigid2D

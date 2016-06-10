@@ -86,6 +86,13 @@ Xtar = geomTar.X; % target positions
 Ntar = size(Xtar,1)/2; % number of target points
 nvTar = size(Xtar,2); % number of target 'geoms'
 
+% theta = (0:Nsou-1)'*2*pi/Nsou;
+% 
+% for k = 1:nvSou
+% %    f(1:Nsou,k) = exp(cos(theta));
+% %    f(Nsou+1:2*Nsou,k) = exp(sin(theta));
+%     f = ones(size(f));
+% end
 h = geomSou.length/Nsou; % arclength term
 
 Nup = Nsou*ceil(sqrt(Nsou));
@@ -183,8 +190,8 @@ for k1 = 1:nvSou
       % Need to subtract off contribution due to geom k1 since its
       % layer potential will be evaulted using Lagrange interpolant of
       % nearby points
-      nearField(J,k2) =  - potTar(1:numel(J));
-      nearField(J+Ntar,k2) =  - potTar(numel(J)+1:end);
+      nearField(J,k2) =  nearField(J,k2) - potTar(1:numel(J));
+      nearField(J+Ntar,k2) =  nearField(J+Ntar,k2) - potTar(numel(J)+1:end);
       
       XLag = zeros(2*numel(J),interpOrder - 1);
       % initialize space for initial tracer locations
@@ -221,12 +228,12 @@ for k1 = 1:nvSou
         % Point where interpolant needs to be evaluated
 
         v = filter(1,[1 -dscaled],Px);
-        nearField(J(i),k2) = nearField(J(i),k2) + ...
-            v(end);
+        nearField(J(i),k2) = nearField(J(i),k2) +  v(end);
+        
         v = filter(1,[1 -dscaled],Py);
-        nearField(J(i)+Ntar,k2) = nearField(J(i)+Ntar,k2) + ...
-            v(end);
+        nearField(J(i)+Ntar,k2) = nearField(J(i)+Ntar,k2) + v(end);
 
+        
         if idebug
           figure(2); clf; hold on;
           plot(Xsou(1:Nsou,:),Xsou(Nsou+1:end,:),'r.','markersize',10)
@@ -241,7 +248,16 @@ for k1 = 1:nvSou
               real([vel(J(i),k2,k1) lagrangePts(i,:)]),'g-o')
           plot((0:interpOrder-1)*beta*h(k1),...
               real([vel(J(i)+Ntar,k2,k1) lagrangePts(i+numel(J),:)]),'r--o')
+          
+          figure(3)
+          clf
+          hold on
+          plot(f(1:Nsou,k1));
+          plot(f(Nsou+1:2*Nsou,k1));
+          
+          drawnow;
           pause
+          
         end
         % DEBUG: PASS IN idebug=true INTO THIS ROUTINE AND THEN YOU CAN SEE
         % THE INTERPOLATION POINTS AND CHECK THE SMOOTHNESS OF THE INTERPOLANT
