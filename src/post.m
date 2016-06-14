@@ -63,7 +63,6 @@ o.u_y = M(5:end, 4*o.nv+2:5*o.nv+1);
 o.omega = M(5:end, 5*o.nv+2:end); 
 
 % read density file
-
 M = dlmread(o.densityFile, '', 0, 0);
 eta_tmp = M(:,2:end);
 
@@ -80,7 +79,7 @@ o.OUTPUTPATH_GIFS = '../output/gifs/';
 end %post : constructor
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function [] = plot_fibres(o, iT, xmin, xmax, ymin, ymax)
+function [] = plot_fibres_with_stats(o, iT, xmin, xmax, ymin, ymax)
     
     ax1 = axes('Position', [0 0 1 1], 'Visible', 'off');
     ax2 = axes('Position', [0.1 0.3 0.8 0.6]);
@@ -111,8 +110,34 @@ function [] = plot_fibres(o, iT, xmin, xmax, ymin, ymax)
     
     text(0.5, 0.15, {['timestep order : ' num2str(o.tstep_order)], ...
                     ['FMM      : ' num2str(o.fmm)], ...
-                    ['near singular : ', num2str(o.near_singular)]});
+                    ['near singular : ', num2str(o.near_singular)]});       
                 
+end % post : plot_fibres_with_stats
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+function [] = plot_fibres(o, iT, xmin, xmax, ymin, ymax)
+    
+    
+    prams.N = o.N;
+    prams.nv = o.nv;
+    prams.lengths = o.lengths;
+    prams.widths = o.widths;
+    prams.order = o.order;
+    
+    geom = capsules(prams, [o.centres_x(iT,:); o.centres_y(iT,:)], ...
+                            o.orientations(iT,:));
+    X = geom.getXY();
+    oc = curve;
+    [x, y] = oc.getXY(X);
+    
+    fill([x;x(1,:)],[y;y(1,:)],'k');
+    
+    xlim([xmin, xmax]);
+    ylim([ymin, ymax]);
+    axis equal
+    
+    title(sprintf('t = %6.3f', o.times(iT)));
+    
 end % post : plot_fibres
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -123,7 +148,32 @@ function [] = plot_fluid(o, iT, xmin, xmax, ymin, ymax, epsilon)
 % TO DO : add different types od background flow, right now only
 % extensional
 
+theta = (0:o.N-1)'*2*pi/o.N;
+
+% for k = 1:o.nv
+%    f(1:o.N,k) = 0*sin(theta);
+%    f(o.N+1:2*o.N,k) = cos(theta);
+% end
+
+% f(1:o.N,1) = exp(sin(theta));
+% f(o.N+1:2*o.N,1) = cos(theta);
+% 
+% % f(1:o.N,1) = ones(size(theta));
+% % f(o.N+1:2*o.N,1) = ones(size(theta));
+% 
+% f(1:o.N,2) = exp(sin(theta));
+% f(o.N+1:2*o.N,2) = exp(cos(theta));
+
+
+% o.eta = f(:,:);
+
 M = 30;
+% X = linspace(xmin, xmax, M);
+% Y = ymax*ones(size(X));
+% 
+% X = X(1:end-1);
+% Y = Y(1:end-1);
+
 [X, Y] = meshgrid(linspace(xmin, xmax, M), linspace(ymin, ymax, M));
 
 [nx, ny] = size(X);
@@ -138,55 +188,91 @@ prams.order = o.order;
 geom = capsules(prams, [o.centres_x(iT,:); o.centres_y(iT,:)], ...
     o.orientations(iT,:));
 
+% for i = 1:nx
+%     for j = 1:ny
+%         
+%         nearFiber = false;
+%         
+%         %check if point is far enough away from each fiber
+%         for k = 1:geom.nv
+%             Xcap = geom.X(1:geom.N, k);
+%             Ycap = geom.X(geom.N + 1:end, k);
+%             
+%             %add and subtract epsilon from each coordinate, there has to be
+%             %a better way to do this
+%             XcapRight = Xcap + epsilon;
+%             XcapLeft = Xcap - epsilon;
+%             YcapTop = Ycap + epsilon;
+%             YcapBottom = Ycap - epsilon;
+%             
+%             if (inpolygon(X(i,j), Y(i,j), XcapRight, Ycap) ...
+%                     || inpolygon(X(i,j), Y(i,j), XcapLeft, Ycap) ...
+%                     || inpolygon(X(i,j), Y(i,j), Xcap, YcapTop)...
+%                     || inpolygon(X(i,j), Y(i,j), Xcap, YcapBottom)...
+%                     || inpolygon(X(i,j), Y(i,j), XcapRight, YcapTop)...
+%                     || inpolygon(X(i,j), Y(i,j), XcapRight, YcapBottom) ...
+%                     || inpolygon(X(i,j), Y(i,j), XcapLeft, YcapTop) ...
+%                     || inpolygon(X(i,j), Y(i,j), XcapLeft, YcapBottom))
+%                 nearFiber = true;
+%             end           
+%         end
+%         
+%         if ~nearFiber
+%            % Utmp =  o.evaluateDLP(geom, o.eta(:,:,iT), X(i,j), Y(i,j));
+%             Utmp =  o.evaluateDLP(geom, o.eta(:,:), X(i,j), Y(i,j));
+%             %U(i,j,:) = [Utmp(1) + X(i,j); Utmp(3) - Y(i,j)];
+%             U(i,j,:) = [Utmp(1); Utmp(3)]; 
+%         else
+%             U(i,j,:) = nan;
+%         end        
+%     end
+% end
+
+Utmp =  o.evaluateDLP(geom, o.eta(:,:,iT), X(:), Y(:));
+
+U = reshape(Utmp(1:end/2), M, M);
+V = reshape(Utmp(end/2+1:end), M, M);
+U = U + X;
+V = V - Y;
+
+% U = Utmp(1:end/2);
+% V = Utmp(end/2+1:end);
+
+quiver(X, Y, U, V, 4);
+
+%surf(X,Y,U);
+% plot(X, U, '-o','linewidth', 2);
+
+%view(2)
+
+%shading interp
+hold on 
+
+o.plot_fibres(iT, xmin, xmax, ymin, ymax);
+% 
+% xlim([xmin, xmax]);
+% ylim([ymin, ymax]);
+%axis equal
+
+title(sprintf('U at t = %6.3f', o.times(iT)));
+
+figure(2);
+hold on
+surf(X,Y,V);
+
+% plot(X, V, '-o','linewidth', 2);
+view(2)
+
+shading interp
+hold on 
+
 o.plot_fibres(iT, xmin, xmax, ymin, ymax);
 
-hold on;
+% xlim([xmin, xmax]);
+% ylim([ymin, ymax]);
+%axis equal
 
-for i = 1:nx
-    for j = 1:ny
-        
-        nearFiber = false;
-        
-        %check if point is far enough away from each fiber
-        for k = 1:geom.nv
-            Xcap = geom.X(1:geom.N, k);
-            Ycap = geom.X(geom.N + 1:end, k);
-            
-            %add and subtract epsilon from each coordinate, there has to be
-            %a better way to do this
-            XcapRight = Xcap + epsilon;
-            XcapLeft = Xcap - epsilon;
-            YcapTop = Ycap + epsilon;
-            YcapBottom = Ycap - epsilon;
-            
-            if (inpolygon(X(i,j), Y(i,j), XcapRight, Ycap) ...
-                    || inpolygon(X(i,j), Y(i,j), XcapLeft, Ycap) ...
-                    || inpolygon(X(i,j), Y(i,j), Xcap, YcapTop)...
-                    || inpolygon(X(i,j), Y(i,j), Xcap, YcapBottom)...
-                    || inpolygon(X(i,j), Y(i,j), XcapRight, YcapTop)...
-                    || inpolygon(X(i,j), Y(i,j), XcapRight, YcapBottom) ...
-                    || inpolygon(X(i,j), Y(i,j), XcapLeft, YcapTop) ...
-                    || inpolygon(X(i,j), Y(i,j), XcapLeft, YcapBottom))
-                nearFiber = true;
-            end           
-        end
-        
-        if ~nearFiber
-            Utmp =  o.evaluateDLP(geom, o.eta(:,:,iT), X(i,j), Y(i,j));
-            U(i,j,:) = [Utmp(1) + X(i,j); Utmp(3) - Y(i,j)];
-        else
-            U(i,j,:) = nan;
-        end        
-    end
-end
-
-quiver(X, Y, U(:,:,1), U(:,:,2), 2);
-
-xlim([xmin, xmax]);
-ylim([ymin, ymax]);
-axis equal
-
-title(sprintf('t = %6.3f', o.times(iT)));
+title(sprintf('V at t = %6.3f', o.times(iT)));
 
 end % post : plot_fluid
     
@@ -208,20 +294,26 @@ ymax = max(max(o.centres_y(1:itmax,:))) + max(o.lengths);
 for i = 1:stride:itmax
     
     clf;
-% 
+
 %     xmin = min(min(o.centres_x(i,:))) - max(o.lengths);
 %     xmax = max(max(o.centres_x(i,:))) + max(o.lengths);        
 %     ymin = min(min(o.centres_y(i,:))) - max(o.lengths);
 %     ymax = max(max(o.centres_y(i,:))) + max(o.lengths);
      
-    xmin = -10;
-    xmax = 10;        
-    ymin = -10;
-    ymax = 10;
+    xmin = -20;
+    xmax = 20;        
+    ymin = -20;
+    ymax = 20;
 
+           
+%     ymin = o.centres_y(i,2)+0.5 - 1e-4;
+%     ymax = o.centres_y(i,1)-0.5 + 1e-4;
+%     xmin = ymin;
+%     xmax = ymax;
+    
     switch type
         case 'fibres'           
-            o.plot_fibres(i, xmin, xmax, ymin, ymax);
+            o.plot_fibres_with_stats(i, xmin, xmax, ymin, ymax);
             
         case 'fluid'
            o.plot_fluid(i, xmin, xmax, ymin, ymax, o.EPS); 
@@ -457,7 +549,7 @@ function u = evaluateDLP(o, geom, eta, x, y)
 % TO DO : x, y can be a list of points
 
 
-geomTar = capsules([],[x;0;y;0]);
+geomTar = capsules([],[x;y]);
 
 pot = poten(geom.N);
 [~,NearStruct] = geom.getZone(geomTar,2);

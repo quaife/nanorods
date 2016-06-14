@@ -58,25 +58,18 @@ else if length(varargin) == 2 %centres and orientation angles
 end
 
 oc = curve;
+for i = 1:2
+    for k = 1:o.nv
+        o.X(:,k) = oc.redistributeArcLength(o.X(:,k)); 
+    end
+end
+
 [o.sa,o.xt,o.cur] = oc.diffProp(o.X);
 [~,o.length] = oc.geomProp(o.X);
 
 end % capsules: constructor
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function u = bgFlow(o,X);
-% u = bgFlow(X) computes the velocity field at the points X
-
-oc = curve;
-N = size(X,1)/2;
-nv = size(X,2);
-
-u = zeros(2*N,nv);
-
-end % bgFlow
-
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function [NearSelf,NearOther] = getZone(bd1,bd2,relate)
 % [NearSelf,NearOther] = getZone(bd1,bd2,relate) constructs
 % each boundary, index of the closest point, nearest point on a local
