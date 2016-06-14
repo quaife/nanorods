@@ -66,6 +66,14 @@ while time < prams.T
         end
     end
     
+    op = poten(prams.N);
+    [near,~] = geom.getZone(geom,1);
+    icollision = geom.collision(near,options.ifmm, options.inear, op);
+    
+    if (icollision)
+        om.writeMessage('COLLISION DETECTED');
+    end
+    
     X = geom.getXY();
 
     om.writeMessage(....
