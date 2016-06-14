@@ -546,7 +546,7 @@ end
 
 Fdlp = Fdlp(1:geom.N,:);
 % take only first component of the DLP
-plot(Fdlp);
+% plot(Fdlp);
 
 buffer = 1e-4;
 
