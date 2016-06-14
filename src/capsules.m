@@ -521,6 +521,45 @@ dist = sqrt((nearestx - xTar)^2 + (nearesty - ytar)^2);
 end % closestPnt
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+function icollision = collision(geom,near,fmm,inear,op)
+
+oc = curve;
+[x,y] = oc.getXY(geom.X);
+
+f = [ones(geom.N,geom.nv);zeros(geom.N,geom.nv)];
+% density function.  Solving a scalar-valued layer-potential, so set the
+% second component of density function to 0
+
+kernel = @op.exactLaplaceDL;
+
+if inear
+  DLP = @(X) zeros(2*size(X,1),size(X,2));
+  % know that the limiting value of the DLP of the density function is
+  % always zero, so don't have to build the DLP matrix for
+  % self-interactions
+
+  Fdlp = op.nearSingInt(geom,f,DLP,...
+      near,kernel,kernel,geom,true,false);
+else
+  Fdlp = kernel(vesicle,f);
+end
+
+Fdlp = Fdlp(1:geom.N,:);
+% take only first component of the DLP
+plot(Fdlp);
+
+buffer = 1e-4;
+
+icollision = any(abs(Fdlp(:)) > buffer);
+
+
+end
+% collision
+
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function X = getXY(o)
     X = o.X;
 end % getXY

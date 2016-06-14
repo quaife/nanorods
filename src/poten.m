@@ -595,6 +595,118 @@ end
 end % exactStokesDLfmm
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+function [laplaceDLP,laplaceDLPtar] = ...
+    exactLaplaceDL(o,vesicle,f,Xtar,K1)
+% pot = exactLaplaceDL(vesicle,f,Xtar,K1) computes the double-layer
+% laplace potential due to f around all vesicles except itself.  Also
+% can pass a set of target points Xtar and a collection of vesicles K1
+% and the double-layer potential due to vesicles in K1 will be
+% evaluated at Xtar.  Everything but Xtar is in the 2*N x nv format
+% Xtar is in the 2*Ntar x ncol format
+
+oc = curve;
+
+nx = vesicle.xt(vesicle.N+1:2*vesicle.N,:);
+ny = -vesicle.xt(1:vesicle.N,:);
+
+if nargin == 5
+  Ntar = size(Xtar,1)/2;
+  ncol = size(Xtar,2);
+  laplaceDLPtar = zeros(2*Ntar,ncol);
+else
+  K1 = [];
+  laplaceDLPtar = [];
+  ncol = 0;
+  Ntar = 0;
+  % if nargin ~= 5, user does not need the layer potential at arbitrary
+  % points
+end
+
+den = f.*[vesicle.sa;vesicle.sa]*2*pi/vesicle.N;
+% multiply by arclength term
+
+[xsou,ysou] = oc.getXY(vesicle.X(:,K1));
+xsou = xsou(:); ysou = ysou(:);
+xsou = xsou(:,ones(Ntar,1))';
+ysou = ysou(:,ones(Ntar,1))';
+
+[denx,deny] = oc.getXY(den(:,K1));
+denx = denx(:); deny = deny(:);
+denx = denx(:,ones(Ntar,1))';
+deny = deny(:,ones(Ntar,1))';
+
+nxK1 = nx(:,K1); nyK1 = ny(:,K1);
+nxK1 = nxK1(:); nyK1 = nyK1(:);
+nxK1 = nxK1(:,ones(Ntar,1))';
+nyK1 = nyK1(:,ones(Ntar,1))';
+
+for k2 = 1:ncol % loop over columns of target points
+  [xtar,ytar] = oc.getXY(Xtar(:,k2));
+  xtar = xtar(:,ones(vesicle.N*numel(K1),1));
+  ytar = ytar(:,ones(vesicle.N*numel(K1),1));
+  
+  diffx = xsou-xtar; diffy = ysou-ytar;
+  dis2 = diffx.^2 + diffy.^2;
+  
+  coeff = (diffx.*nxK1 + diffy.*nyK1)./dis2;
+  
+  val = coeff.*denx;
+  laplaceDLPtar(1:Ntar,k2) = sum(val,2);
+  
+  val = coeff.*deny;
+  laplaceDLPtar(Ntar+1:2*Ntar,k2) = sum(val,2);
+end % end k2
+% Evaluate double-layer potential at arbitrary target points
+laplaceDLPtar = 1/(2*pi)*laplaceDLPtar;
+% 1/2/pi is the coefficient in front of the double-layer potential
+
+laplaceDLP = zeros(vesicle.N,vesicle.nv); % Initialize to zero
+% if we only have one vesicle, vesicles of course can not collide
+% Don't need to run this loop in this case
+if (nargin == 3 && vesicle.nv > 1)
+  for k1 = 1:vesicle.nv % vesicle of targets
+    K = [(1:k1-1) (k1+1:vesicle.nv)];
+    % Loop over all vesicles except k1
+
+    [xsou,ysou] = oc.getXY(vesicle.X(:,K));
+    xsou = xsou(:); ysou = ysou(:);
+    xsou = xsou(:,ones(vesicle.N,1))';
+    ysou = ysou(:,ones(vesicle.N,1))';
+    
+    [denxK,~] = oc.getXY(den(:,K));
+    denxK = denxK(:); 
+    denxK = denxK(:,ones(vesicle.N,1))';
+    
+    nxK = nx(:,K); nyK = ny(:,K);
+    nxK = nxK(:); nyK = nyK(:);
+    nxK = nxK(:,ones(vesicle.N,1))';
+    nyK = nyK(:,ones(vesicle.N,1))';
+    
+    [xtar,ytar] = oc.getXY(vesicle.X(:,k1));
+    xtar = xtar(:); ytar = ytar(:);
+    xtar = xtar(:,ones(vesicle.N*numel(K),1));
+    ytar = ytar(:,ones(vesicle.N*numel(K),1));
+    
+    diffx = xsou-xtar; diffy = ysou-ytar;
+    dis2 = diffx.^2 + diffy.^2;
+    
+    coeff = (diffx.*nxK + diffy.*nyK)./dis2;
+    
+    val = coeff.*denxK;
+    laplaceDLP(1:vesicle.N,k1) = sum(val,2);
+  end % k1
+  % Evaluate double-layer potential at vesicles but oneself
+  laplaceDLP = 1/(2*pi)*laplaceDLP;
+  % 1/2/pi is the coefficient in front of the double-layer potential
+end % nargin == 3
+
+laplaceDLP = [laplaceDLP;laplaceDLP];
+
+end % exactLaplaceDL
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % END OF ROUTINES THAT EVALUATE LAYER-POTENTIALS
 % WHEN SOURCES ~= TARGETS
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
