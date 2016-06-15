@@ -660,7 +660,7 @@ end % end k2
 laplaceDLPtar = 1/(2*pi)*laplaceDLPtar;
 % 1/2/pi is the coefficient in front of the double-layer potential
 
-laplaceDLP = zeros(vesicle.N,vesicle.nv); % Initialize to zero
+laplaceDLP = zeros(2*vesicle.N,vesicle.nv); % Initialize to zero
 % if we only have one vesicle, vesicles of course can not collide
 % Don't need to run this loop in this case
 if (nargin == 3 && vesicle.nv > 1)
@@ -673,9 +673,11 @@ if (nargin == 3 && vesicle.nv > 1)
     xsou = xsou(:,ones(vesicle.N,1))';
     ysou = ysou(:,ones(vesicle.N,1))';
     
-    [denxK,~] = oc.getXY(den(:,K));
+    [denxK,denyK] = oc.getXY(den(:,K));
     denxK = denxK(:); 
     denxK = denxK(:,ones(vesicle.N,1))';
+    denyK = denyK(:); 
+    denyK = denyK(:,ones(vesicle.N,1))';
     
     nxK = nx(:,K); nyK = ny(:,K);
     nxK = nxK(:); nyK = nyK(:);
@@ -691,18 +693,104 @@ if (nargin == 3 && vesicle.nv > 1)
     dis2 = diffx.^2 + diffy.^2;
     
     coeff = (diffx.*nxK + diffy.*nyK)./dis2;
-    
+
     val = coeff.*denxK;
     laplaceDLP(1:vesicle.N,k1) = sum(val,2);
+    % Laplace DLP with x-coordinate of density function
+    val = coeff.*denyK;
+    laplaceDLP(vesicle.N+1:end,k1) = sum(val,2);
+    % Laplace DLP with y-coordinate of density function
   end % k1
   % Evaluate double-layer potential at vesicles but oneself
   laplaceDLP = 1/(2*pi)*laplaceDLP;
   % 1/2/pi is the coefficient in front of the double-layer potential
 end % nargin == 3
 
-laplaceDLP = [laplaceDLP;laplaceDLP];
-
 end % exactLaplaceDL
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+function [laplaceDLP,laplaceDLPtar] = ...
+    exactLaplaceDLfmm(o,vesicle,f,Xtar,K)
+% [laplaceDLP,laplaceDLPtar] = exactLaplaceDLfmm(vesicle,f,Xtar,K) uses
+% the FMM to compute the double-layer potential due to all vesicles
+% except itself vesicle is a class of object capsules and f is the
+% density function NOT scaled by arclength term.  Xtar is a set of
+% points where the double-layer potential due to all vesicles in index
+% set K needs to be evaulated
+
+oc = curve;
+
+den = f.*[vesicle.sa;vesicle.sa]*2*pi/vesicle.N;
+
+if (nargin == 5)
+  laplaceDLP = [];
+else
+  [x,y] = oc.getXY(vesicle.X); % seperate x and y coordinates
+  [tx,ty] = oc.getXY(vesicle.xt); % tangent vector
+  nx = ty; ny = -tx; % normal vector
+  [f1,f2] = oc.getXY(den);
+  % need to multiply by arclength term.  Seperate it into
+  % x and y coordinate
+
+  potx = laplaceDLPfmm(f1(:),x(:),y(:),nx(:),ny(:));
+  poty = laplaceDLPfmm(f2(:),x(:),y(:),nx(:),ny(:));
+  laplaceDLP = zeros(2*vesicle.N,vesicle.nv); % initialize
+  for k = 1:vesicle.nv
+    is = (k-1)*vesicle.N+1;
+    ie = k*vesicle.N;
+    laplaceDLP(1:vesicle.N,k) = potx(is:ie);
+    laplaceDLP(vesicle.N+1:2*vesicle.N,k) = poty(is:ie);
+  end
+  % Wrap the output of the FMM into the usual 
+  % [[x1;y1] [x2;y2] ...] format
+
+  for k = 1:vesicle.nv
+    potx = laplaceDLPfmm(f1(:,k),x(:,k),y(:,k),nx(:,k),ny(:,k));
+    poty = laplaceDLPfmm(f2(:,k),x(:,k),y(:,k),nx(:,k),ny(:,k));
+    laplaceDLP(:,k) = laplaceDLP(:,k) - [potx;poty];
+  end
+  % Subtract potential due to each vesicle on its own.  Nothing
+  % to change here for potential at Xtar
+end
+
+if nargin == 3
+  laplaceDLPtar = [];
+else
+  [x,y] = oc.getXY(vesicle.X(:,K)); % seperate x and y coordinates
+  [tx,ty] = oc.getXY(vesicle.xt(:,K)); % tangent vector
+  nx = ty; ny = -tx; % normal vector
+  % seperate x and y coordinates at vesicles indexed by K
+  [Ntar,ncol] = size(Xtar);
+  Ntar = Ntar/2;
+  x2 = Xtar(1:Ntar,:);
+  x = [x(:);x2(:)];
+  y2 = Xtar(Ntar+1:2*Ntar,:);
+  y = [y(:);y2(:)];
+  % Stack the x and y coordinates of the target points
+  [f1,f2] = oc.getXY(den(:,K));
+  % seperate x and y coordinates at vesicles indexed by K
+  nx = [nx(:);zeros(Ntar*ncol,1)];
+  ny = [ny(:);zeros(Ntar*ncol,1)];
+  f1 = [f1(:);zeros(Ntar*ncol,1)];
+  f2 = [f2(:);zeros(Ntar*ncol,1)];
+  % pad density function with zeros so that Xtar doesn't
+  % affect the single-layer potential
+
+  potx = laplaceDLPfmm(f1,x,y,nx,ny);
+  poty = laplaceDLPfmm(f2,x,y,nx,ny);
+  laplaceDLPtar = zeros(2*Ntar,ncol); % initialize
+  for k = 1:ncol
+    is = vesicle.N*numel(K) + (k-1)*Ntar+1;
+    ie = is + Ntar - 1;
+    laplaceDLPtar(1:Ntar,k) = potx(is:ie);
+    laplaceDLPtar(Ntar+1:2*Ntar,k) = poty(is:ie);
+  end
+  % Wrap the output of the FMM in the usual format
+  % for the target points
+end
+
+end % exactLaplaceDLfmm
+
 
 
 
