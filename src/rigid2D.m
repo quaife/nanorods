@@ -4,6 +4,7 @@ ttotal = tic;
 
 om = monitor(options, prams);
 tt = tstep(options, prams, om);
+op = poten(prams.N);
 
 if (om.profile)
     profile on;
@@ -66,12 +67,11 @@ while time < prams.T
         end
     end
     
-    op = poten(prams.N);
     [near,~] = geom.getZone(geom,1);
-    icollision = geom.collision(near,options.ifmm, options.inear, op);
+    icollision = geom.collision(near,options.ifmm, options.inear, op, om);
     
     if (icollision)
-        om.writeMessage('COLLISION DETECTED');
+        om.writeMessage('WARNING: COLLISION DETECTED');
     end
     
     X = geom.getXY();

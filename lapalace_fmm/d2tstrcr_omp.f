@@ -172,17 +172,17 @@ ccc        call prinf('in d2tstrcr before d2tallb, ier=*',ier,1)
 c
 c	 initialize the sorting index 
 c
-C$OMP PARALLEL DO DEFAULT(SHARED) PRIVATE(i)        
+!$OMP PARALLEL DO DEFAULT(SHARED) PRIVATE(i)        
         do i=1,n
 	iz(i)=i
 	enddo
-C$OMP END PARALLEL DO
+!$OMP END PARALLEL DO
 c
-C$OMP PARALLEL DO DEFAULT(SHARED) PRIVATE(i)        
+!$OMP PARALLEL DO DEFAULT(SHARED) PRIVATE(i)        
         do i=1,ntarg
 	iztarg(i)=i
 	enddo
-C$OMP END PARALLEL DO
+!$OMP END PARALLEL DO
 c
         allocate( z0(2,n) )
         if( ntarg .gt. 0 ) then
@@ -191,19 +191,19 @@ c
         allocate( z0targ(2,1) )
         endif
 c
-C$OMP PARALLEL DO DEFAULT(SHARED) PRIVATE(i)        
+!$OMP PARALLEL DO DEFAULT(SHARED) PRIVATE(i)        
         do i=1,n
 	z0(1,i)=z(1,i)
 	z0(2,i)=z(2,i)
 	enddo
-C$OMP END PARALLEL DO
+!$OMP END PARALLEL DO
 c
-C$OMP PARALLEL DO DEFAULT(SHARED) PRIVATE(i)        
+!$OMP PARALLEL DO DEFAULT(SHARED) PRIVATE(i)        
         do i=1,ntarg
 	z0targ(1,i)=ztarg(1,i)
 	z0targ(2,i)=ztarg(2,i)
 	enddo
-C$OMP END PARALLEL DO
+!$OMP END PARALLEL DO
 c
 c        t1=second()
 C$        t1=omp_get_wtime()
@@ -450,17 +450,17 @@ ccc        call prinf('in d2tstrcr before d2tallb, ier=*',ier,1)
 c
 c	 initialize the sorting index 
 c
-C$OMP PARALLEL DO DEFAULT(SHARED) PRIVATE(i)        
+!$OMP PARALLEL DO DEFAULT(SHARED) PRIVATE(i)        
         do i=1,n
 	iz(i)=i
 	enddo
-C$OMP END PARALLEL DO
+!$OMP END PARALLEL DO
 c
-C$OMP PARALLEL DO DEFAULT(SHARED) PRIVATE(i)        
+!$OMP PARALLEL DO DEFAULT(SHARED) PRIVATE(i)        
         do i=1,ntarg
 	iztarg(i)=i
 	enddo
-C$OMP END PARALLEL DO
+!$OMP END PARALLEL DO
 c
         allocate( z0(2,n) )
         if( ntarg .gt. 0 ) then
@@ -469,19 +469,19 @@ c
         allocate( z0targ(2,1) )
         endif
 c
-C$OMP PARALLEL DO DEFAULT(SHARED) PRIVATE(i)        
+!$OMP PARALLEL DO DEFAULT(SHARED) PRIVATE(i)        
         do i=1,n
 	z0(1,i)=z(1,i)
 	z0(2,i)=z(2,i)
 	enddo
-C$OMP END PARALLEL DO
+!$OMP END PARALLEL DO
 c
-C$OMP PARALLEL DO DEFAULT(SHARED) PRIVATE(i)        
+!$OMP PARALLEL DO DEFAULT(SHARED) PRIVATE(i)        
         do i=1,ntarg
 	z0targ(1,i)=ztarg(1,i)
 	z0targ(2,i)=ztarg(2,i)
 	enddo
-C$OMP END PARALLEL DO
+!$OMP END PARALLEL DO
 c
 c        t1=second()
 C$        t1=omp_get_wtime()
@@ -1514,10 +1514,10 @@ cccc          call prinf('in d2tallb, level=*',level,1)
         idad0=laddr(1,level+1)
         idad1=idad0+laddr(2,level+1)-1
 c
-C$OMP PARALLEL DO DEFAULT(SHARED) PRIVATE(idad,numpdad,numtdad)
-C$OMP$PRIVATE(ii,jj,iiz,nz,iiztarg,nztarg,center)
-cccC$OMP$SCHEDULE(DYNAMIC)
-cccC$OMP$NUM_THREADS(1)
+!$OMP PARALLEL DO DEFAULT(SHARED) PRIVATE(idad,numpdad,numtdad)
+!$OMP$PRIVATE(ii,jj,iiz,nz,iiztarg,nztarg,center)
+cccC!$OMP$SCHEDULE(DYNAMIC)
+cccC!$OMP$NUM_THREADS(1)
         do 2000 idad=idad0,idad1
 c
 c       subdivide the box number idad (if needed)
@@ -1576,7 +1576,7 @@ cccc        call prinf('after d2tsepa1, is=*',is,4)
 cccc        call prinf('after d2tsepa1, ns=*',ns,4)
 c
  2000   continue
-C$OMP END PARALLEL DO
+!$OMP END PARALLEL DO
 c
         ison_cnt=ison
         do 2010 idad=idad0,idad1 
@@ -1604,11 +1604,11 @@ c
 ccc        write(*,*) level, ison, ison_cnt
 c
 c
-C$OMP PARALLEL DO DEFAULT(SHARED) PRIVATE(idad)
-C$OMP$PRIVATE(ii,jj,iiz,nz,iiztarg,nztarg)
-C$OMP$PRIVATE(idadson,ison,i,lll,iison,jjson)
-cccC$OMP$SCHEDULE(DYNAMIC)
-cccC$OMP$NUM_THREADS(1)
+!$OMP PARALLEL DO DEFAULT(SHARED) PRIVATE(idad)
+!$OMP$PRIVATE(ii,jj,iiz,nz,iiztarg,nztarg)
+!$OMP$PRIVATE(idadson,ison,i,lll,iison,jjson)
+cccC!$OMP$SCHEDULE(DYNAMIC)
+cccC!$OMP$NUM_THREADS(1)
         do 2020 idad=idad0,idad1 
 c
         ii=boxes(2,idad)
@@ -1660,7 +1660,7 @@ c
         idadson=idadson+1
  1600 continue
  2020 continue
-C$OMP END PARALLEL DO
+!$OMP END PARALLEL DO
 
         ison=ison_cnt
         nboxes=ison
@@ -1708,8 +1708,8 @@ c       . . . construct the corners for all boxes
 c
         x00=center0(1)-size/2
         y00=center0(2)-size/2
-C$OMP PARALLEL DO DEFAULT(SHARED) 
-C$OMP$PRIVATE(i,level,side,side2,ii,jj,center)   
+!$OMP PARALLEL DO DEFAULT(SHARED) 
+!$OMP$PRIVATE(i,level,side,side2,ii,jj,center)   
         do 1400 i=1,nboxes
         level=boxes(1,i)
         side=size/2**level
@@ -1732,7 +1732,7 @@ c
         corners(2,3,i)=center(2)+side/2
         corners(2,4,i)=center(2)+side/2
  1400 continue
-C$OMP END PARALLEL DO
+!$OMP END PARALLEL DO
          return
          end
 c

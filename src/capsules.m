@@ -521,16 +521,21 @@ dist = sqrt((nearestx - xTar)^2 + (nearesty - ytar)^2);
 end % closestPnt
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function icollision = collision(geom,near,fmm,inear,op)
+function icollision = collision(geom,near,ifmm,inear,op, om)
 
-oc = curve;
-[x,y] = oc.getXY(geom.X);
+if (om.profile)
+    tic;
+end
 
 f = [ones(geom.N,geom.nv);zeros(geom.N,geom.nv)];
 % density function.  Solving a scalar-valued layer-potential, so set the
 % second component of density function to 0
 
-kernel = @op.exactLaplaceDL;
+if (ifmm)
+    kernel = @op.exactLaplaceDLfmm;
+else
+    kernel = @op.exactLaplaceDL;
+end
 
 if inear
   DLP = @(X) zeros(2*size(X,1),size(X,2));
@@ -552,6 +557,9 @@ buffer = 1e-4;
 
 icollision = any(abs(Fdlp(:)) > buffer);
 
+if (om.profile)
+    om.writeMessage(['Collision detection completed in ', num2str(toc), ' seconds']);
+end
 
 end
 % collision

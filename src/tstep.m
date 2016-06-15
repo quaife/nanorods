@@ -199,13 +199,23 @@ kernelDirect = @op.exactStokesDL;
 % can be a call to a FMM, but for certain computations, direct
 % summation is faster, so also want kernelDirect
 
-if o.inear
+if o.profile
+    tic;
+end
+
+if o.inear   
+
   DLP = @(X) op.exactStokesDLdiag(geom,o.D,X) - 1/2*X;
   Fdlp = op.nearSingInt(geom,eta,DLP,...
       o.nearStruct,kernel,kernelDirect,geom,true,false);
 else
   Fdlp = kernel(geom,eta);
 end
+
+if o.profile
+    o.om.writeMessage(['Matvec assembly completed in ', num2str(toc), ' seconds']);
+end
+
 valPos = valPos + Fdlp;
 % Add in contribution from other bodies using exactStokesDL
 

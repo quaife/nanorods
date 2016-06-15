@@ -1,9 +1,10 @@
-MEX=/Applications/MATLAB_R2015a.app/bin/mex
+#MEX=/Applications/MATLAB_R2015a.app/bin/mex
+MEX = /usr/local/matlab/bin/mex
 
 FORTRAN = gfortran
 #FORTRAN = ifort
 #FFLAGS = -c -fpic -openmp -O3
-FFLAGS = -c -fpic -O3
+FFLAGS = -c -fpic -O3 -fopenmp
 
 #MEXLIBDIR = /share/apps/intel/Compiler/12.1/composer_xe_2011_sp1.7.256/compiler/lib/intel64/
 #for Ronaldo

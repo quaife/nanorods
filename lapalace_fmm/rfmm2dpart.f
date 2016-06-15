@@ -488,10 +488,10 @@ c
         enddo
 c
         if( ifpot .eq. 1 .or. ifgrad .eq. 1 .or. ifhess .eq. 1) then
-C$OMP PARALLEL DO DEFAULT(SHARED)
-C$OMP$PRIVATE(i,j,ptemp,gtemp,htemp) 
-cccC$OMP$SCHEDULE(DYNAMIC)
-cccC$OMP$NUM_THREADS(1) 
+!$OMP PARALLEL DO DEFAULT(SHARED)
+!$OMP$PRIVATE(i,j,ptemp,gtemp,htemp) 
+cccC!$OMP$SCHEDULE(DYNAMIC)
+cccC!$OMP$NUM_THREADS(1) 
         do j=1,nsource
         do i=1,nsource
             if (i .eq. j) cycle
@@ -510,15 +510,15 @@ cccC$OMP$NUM_THREADS(1)
             endif
         enddo
         enddo
-C$OMP END PARALLEL DO
+!$OMP END PARALLEL DO
         endif
 c
         if( ifpottarg .eq. 1 .or. ifgradtarg .eq. 1 
      $      .or. ifhesstarg .eq. 1) then
-C$OMP PARALLEL DO DEFAULT(SHARED)
-C$OMP$PRIVATE(i,j,ptemp,gtemp,htemp) 
-cccC$OMP$SCHEDULE(DYNAMIC)
-cccC$OMP$NUM_THREADS(1) 
+!$OMP PARALLEL DO DEFAULT(SHARED)
+!$OMP$PRIVATE(i,j,ptemp,gtemp,htemp) 
+cccC!$OMP$SCHEDULE(DYNAMIC)
+cccC!$OMP$NUM_THREADS(1) 
         do j=1,ntarget
         do i=1,nsource
             call rpotgrad2d_sdp(source(1,i),
@@ -537,7 +537,7 @@ cccC$OMP$NUM_THREADS(1)
             endif
         enddo
         enddo
-C$OMP END PARALLEL DO
+!$OMP END PARALLEL DO
         endif
 c
         return

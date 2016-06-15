@@ -212,12 +212,12 @@ c       ... step 3, merge all multipole expansions
 c       
 ccc         do 2200 ibox=nboxes,1,-1
          do 2300 ilev=nlev,3,-1
-C$OMP PARALLEL DO DEFAULT(SHARED)
-C$OMP$PRIVATE(ibox,box,center0,corners0,level0,level,npts,nkids,radius)
-C$OMP$PRIVATE(jbox,box1,center1,corners1,level1)
-C$OMP$PRIVATE(mptemp,lused,ier,i,j,ptemp,ftemp,cd) 
-cccC$OMP$SCHEDULE(DYNAMIC)
-cccC$OMP$NUM_THREADS(4) 
+!$OMP PARALLEL DO DEFAULT(SHARED)
+!$OMP$PRIVATE(ibox,box,center0,corners0,level0,level,npts,nkids,radius)
+!$OMP$PRIVATE(jbox,box1,center1,corners1,level1)
+!$OMP$PRIVATE(mptemp,lused,ier,i,j,ptemp,ftemp,cd) 
+cccC!$OMP$SCHEDULE(DYNAMIC)
+cccC!$OMP$NUM_THREADS(4) 
          do 2200 ibox=laddr(1,ilev),laddr(1,ilev)+laddr(2,ilev)-1
 c
          call d2tgetb(ier,ibox,box,center0,corners0,wlists)
@@ -279,7 +279,7 @@ c
             endif
          endif
  2200    continue
-C$OMP END PARALLEL DO
+!$OMP END PARALLEL DO
  2300    continue
 c
 c
@@ -327,14 +327,14 @@ c        call prinf('itable=*',itable,7*7)
 c
         do 4300 ilev=3,nlev+1
 c        t3=second()
-cC$        t3=omp_get_wtime()
-C$OMP PARALLEL DO DEFAULT(SHARED)
-C$OMP$PRIVATE(ibox,box,center0,corners0,level0,list,nlists,nlist,itype)
-C$OMP$PRIVATE(jbox,box1,center1,corners1,level1,ifdirect2,radius)
-C$OMP$PRIVATE(mptemp,lused,ier,i,j,ptemp,ftemp,htemp,cd,ilist)
-C$OMP$PRIVATE(if_use_trunc,nterms_trunc,ii,jj) 
-C$OMP$SCHEDULE(DYNAMIC)
-cccC$OMP$NUM_THREADS(1)
+cC$        t3=omp_get_wtime() 
+!$OMP PARALLEL DO DEFAULT(SHARED)
+!$OMP$PRIVATE(ibox,box,center0,corners0,level0,list,nlists,nlist,itype)
+!$OMP$PRIVATE(jbox,box1,center1,corners1,level1,ifdirect2,radius)
+!$OMP$PRIVATE(mptemp,lused,ier,i,j,ptemp,ftemp,htemp,cd,ilist)
+!$OMP$PRIVATE(if_use_trunc,nterms_trunc,ii,jj) 
+!$OMP$SCHEDULE(DYNAMIC)
+cccC!$OMP$NUM_THREADS(1)
         do 4200 ibox=laddr(1,ilev),laddr(1,ilev)+laddr(2,ilev)-1
         call d2tgetb(ier,ibox,box,center0,corners0,wlists)
         if (ifprint .ge. 2) then
@@ -447,7 +447,7 @@ c     $           nterms_trunc)
  4150       continue
         endif
  4200   continue
-C$OMP END PARALLEL DO
+!$OMP END PARALLEL DO
 c        t4=second()
 cC$        t4=omp_get_wtime()
 c        write(*,*) 'level ', ilev, ' time in list2:', t4-t3
@@ -470,12 +470,12 @@ c       ... step 5, split all local expansions
 c
 ccc        do 5200 ibox=1,nboxes
         do 5300 ilev=3,nlev
-C$OMP PARALLEL DO DEFAULT(SHARED)
-C$OMP$PRIVATE(ibox,box,center0,corners0,level0,level,npts,nkids,radius)
-C$OMP$PRIVATE(jbox,box1,center1,corners1,level1)
-C$OMP$PRIVATE(mptemp,lused,ier,i,j,ptemp,ftemp,cd) 
-cccC$OMP$SCHEDULE(DYNAMIC)
-cccC$OMP$NUM_THREADS(4) 
+!$OMP PARALLEL DO DEFAULT(SHARED)
+!$OMP$PRIVATE(ibox,box,center0,corners0,level0,level,npts,nkids,radius)
+!$OMP$PRIVATE(jbox,box1,center1,corners1,level1)
+!$OMP$PRIVATE(mptemp,lused,ier,i,j,ptemp,ftemp,cd) 
+cccC!$OMP$SCHEDULE(DYNAMIC)
+cccC!$OMP$NUM_THREADS(4) 
         do 5200 ibox=laddr(1,ilev),laddr(1,ilev)+laddr(2,ilev)-1
 c
         call d2tgetb(ier,ibox,box,center0,corners0,wlists)
@@ -534,7 +534,7 @@ c
             endif
         endif
  5200   continue
-C$OMP END PARALLEL DO
+!$OMP END PARALLEL DO
  5300   continue
 c       
 c        t2=second()
@@ -567,11 +567,11 @@ c
 c
 ccc        call prinf('isource=*',isource,n)
 c
-C$OMP PARALLEL DO DEFAULT(SHARED) PRIVATE(i)
+!$OMP PARALLEL DO DEFAULT(SHARED) PRIVATE(i)
         do i=1,n
         pot(isource(i))=psort(i)
         enddo
-C$OMP END PARALLEL DO
+!$OMP END PARALLEL DO
 c
         return
         end
@@ -587,12 +587,12 @@ c
 c        
 ccc        call prinf('isource=*',isource,n)
 c
-C$OMP PARALLEL DO DEFAULT(SHARED) PRIVATE(i)
+!$OMP PARALLEL DO DEFAULT(SHARED) PRIVATE(i)
         do i=1,n
         fld(1,isource(i))=fldsort(1,i)
         fld(2,isource(i))=fldsort(2,i)
         enddo
-C$OMP END PARALLEL DO
+!$OMP END PARALLEL DO
 c
         return
         end
@@ -608,13 +608,13 @@ c
 c        
 ccc        call prinf('isource=*',isource,n)
 c
-C$OMP PARALLEL DO DEFAULT(SHARED) PRIVATE(i)
+!$OMP PARALLEL DO DEFAULT(SHARED) PRIVATE(i)
         do i=1,n
         hess(1,isource(i))=hesssort(1,i)
         hess(2,isource(i))=hesssort(2,i)
         hess(3,isource(i))=hesssort(3,i)
         enddo
-C$OMP END PARALLEL DO
+!$OMP END PARALLEL DO
 c
         return
         end
@@ -633,7 +633,7 @@ c
         complex *16 charge(*),chargesort(*),dipstr(*),dipstrsort(*)
 c       
 ccc        call prinf('nsource=*',nsource,1)
-C$OMP PARALLEL DO DEFAULT(SHARED) PRIVATE(i)
+!$OMP PARALLEL DO DEFAULT(SHARED) PRIVATE(i)
         do i = 1,nsource
         sourcesort(1,i) = source(1,isource(i))
         sourcesort(2,i) = source(2,isource(i))
@@ -646,7 +646,7 @@ C$OMP PARALLEL DO DEFAULT(SHARED) PRIVATE(i)
         dipvecsort(2,i) = dipvec(2,isource(i))
         endif
         enddo
-C$OMP END PARALLEL DO
+!$OMP END PARALLEL DO
         return
         end
 c
@@ -660,12 +660,12 @@ c
         integer itarget(*)
 c       
 ccc        call prinf('ntarget=*',ntarget,1)
-C$OMP PARALLEL DO DEFAULT(SHARED) PRIVATE(i)
+!$OMP PARALLEL DO DEFAULT(SHARED) PRIVATE(i)
         do i = 1,ntarget
         targetsort(1,i) = target(1,itarget(i))
         targetsort(2,i) = target(2,itarget(i))
         enddo
-C$OMP END PARALLEL DO
+!$OMP END PARALLEL DO
         return
         end
 c
