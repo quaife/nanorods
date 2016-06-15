@@ -38,7 +38,7 @@ end
 % begin time loop
 while time < prams.T
     
-    tic;
+    tSingleStep = tic;
     
     time = time + tt.dt;
     iT = iT + 1;
@@ -78,7 +78,7 @@ while time < prams.T
 
     om.writeMessage(....
         ['Finished t=', num2str(time, '%3.3e'), ' in ' num2str(iter) ...
-         ' iterations after ', num2str(toc, '%2i'), ' seconds (residual ', ...
+         ' iterations after ', num2str(toc(tSingleStep), '%2i'), ' seconds (residual ', ...
          num2str(res), ')']);
     
     if flag ~= 0

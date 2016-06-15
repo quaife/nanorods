@@ -200,7 +200,7 @@ kernelDirect = @op.exactStokesDL;
 % summation is faster, so also want kernelDirect
 
 if o.profile
-    tic;
+    tMatvec = tic;
 end
 
 if o.inear   
@@ -213,7 +213,7 @@ else
 end
 
 if o.profile
-    o.om.writeMessage(['Matvec assembly completed in ', num2str(toc), ' seconds']);
+    o.om.writeMessage(['Matvec assembly completed in ', num2str(toc(tMatvec)), ' seconds']);
 end
 
 valPos = valPos + Fdlp;

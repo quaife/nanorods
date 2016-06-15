@@ -524,7 +524,7 @@ end % closestPnt
 function icollision = collision(geom,near,ifmm,inear,op, om)
 
 if (om.profile)
-    tic;
+    tCollision = tic;
 end
 
 f = [ones(geom.N,geom.nv);zeros(geom.N,geom.nv)];
@@ -558,7 +558,7 @@ buffer = 1e-4;
 icollision = any(abs(Fdlp(:)) > buffer);
 
 if (om.profile)
-    om.writeMessage(['Collision detection completed in ', num2str(toc), ' seconds']);
+    om.writeMessage(['Collision detection completed in ', num2str(toc(tCollision)), ' seconds']);
 end
 
 end
