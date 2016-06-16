@@ -89,10 +89,19 @@ function welcomeMessage(o)
 % welcomeMessage(options,prams) writes specs from the simulation to the
 % log file and console
 
+poolobj = gcp('nocreate'); % If no pool, do not create new one.
+if isempty(poolobj)
+    poolsize = 0;
+else
+    poolsize = poolobj.NumWorkers;
+end
+
 o.writeStars;
-message = ['RIGID FIBRE SIMULAION ', datestr(now), ' OMP_NUM_THREADS = ', ...
-        num2str(getenv('OMP_NUM_THREADS'))];
-o.writeMessage(message);
+message1 = ['RIGID FIBRE SIMULAION ', datestr(now)];
+message2 = [' OMP_NUM_THREADS = ', ...
+        num2str(getenv('OMP_NUM_THREADS')), ', MATLAB WORKERS = ', num2str(poolsize)];
+o.writeMessage(message1);
+o.writeMessage(message2);
 o.writeStars;
 
 end % welcomeMessage
@@ -102,10 +111,19 @@ function restartMessage(o)
 % welcomeMessage(options,prams) writes specs from the simulation to the
 % log file and console
 
+poolobj = gcp('nocreate'); % If no pool, do not create new one.
+if isempty(poolobj)
+    poolsize = 0;
+else
+    poolsize = poolobj.NumWorkers;
+end
+
 o.writeStars;
-message = ['RESTARTING RIGID FIBRE SIMULAION ', datestr(now), ' OMP_NUM_THREADS = ', ...
-        num2str(getenv('OMP_NUM_THREADS'))];
-o.writeMessage(message);
+message1 = ['RESTARTING RIGID FIBRE SIMULAION ', datestr(now)];
+message2 = [' OMP_NUM_THREADS = ', ...
+        num2str(getenv('OMP_NUM_THREADS')), ', MATLAB WORKERS = ', num2str(poolsize)];
+o.writeMessage(message1);
+o.writeMessage(message2);
 o.writeStars;
 
 end % restartMessage
@@ -114,7 +132,7 @@ function writeStars(o)
 % writeStars writes a message of stars to the console
 % and the log file depending on verbose and saveData
 
-messageStars = '*********************************************************';
+messageStars = '**********************************************************************';
 o.writeMessage(messageStars,'%s\n')
 
 end % writeStars

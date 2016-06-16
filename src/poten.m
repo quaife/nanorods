@@ -12,16 +12,15 @@ classdef poten
 properties
   N; % points per curve
   interpMat;  
-  % upsampled quadrature rules for Alpert's quadrature rule.
-  gamma
-  % indicies for Kapur-Rokhlin quadrature
+  profile;
+  om;
 
 end % properties
 
 methods 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function o = poten(N)
+function o = poten(N, om)
 % o = poten(N): constructor; N is the number of points per curve
 
 o.N = N;
@@ -29,17 +28,8 @@ o.interpMat = o.lagrangeInterp;
 % load in the interpolation matrix which is precomputed with 7
 % interpolation points
 
-%o.gamma = [ +1.825748064736159e0;...
-%            -1.325748064736161e0];
-% second-order accurate
-o.gamma = [+4.967362978287758e+0; ...
-         -1.620501504859126e+1; ...
-         +2.585153761832639e+1; ...
-         -2.222599466791883e+1; ...
-         +9.930104998037539e+0; ...
-         -1.817995878141594e+0];
-% sixth-order accurate
-% Load weights that are required near the log singularity
+o.om = om;
+o.profile = om.profile;
 
 end % poten: constructor
 
@@ -526,7 +516,15 @@ else
   dip1 = 0.25/pi*(fy - 1i*fx).*(nx + 1i*ny);
   dip2 = -1i*0.5/pi*(fx.*nx + fy.*ny);
 
-  vel = stokesDLPfmm(dip1(:),dip2(:),x(:),y(:));
+  if o.profile
+      tfmmTotal = tic;
+  end
+  vel = stokesDLPfmm(dip1(:),dip2(:),x(:),y(:));  
+  
+  if o.profile
+      o.om.writeMessage(['FMM for all points took ', num2str(toc(tfmmTotal)), ' seconds']);
+  end
+  
   u = -imag(vel);
   v = real(vel);
   for k = 1:geom.nv
@@ -538,12 +536,24 @@ else
   % Wrap the output of the FMM into the usual 
   % [[x1;y1] [x2;y2] ...] format
 
-  for k = 1:geom.nv
+  
+  if o.profile
+      tfmmLoop = tic;
+  end
+  parfor k = 1:geom.nv
+    %tTmp = tic;
     vel = stokesDLPfmm(dip1(:,k),dip2(:,k),x(:,k),y(:,k));
+    %toc(tTmp);
     u = -imag(vel);
     v = real(vel);
     stokesDLP(:,k) = stokesDLP(:,k) - [u;v];
   end
+  
+  if o.profile
+      o.om.writeMessage(['FMM for self interactions took ', num2str(toc(tfmmLoop)), ' seconds']);
+  end
+  
+  
   % Subtract potential due to each geom on its own.  Nothing
   % to change here for potential at Xtar
 end

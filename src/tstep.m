@@ -44,7 +44,7 @@ o.inear = options.inear; % near-singular integration interpolation scheme
 o.gmresTol = prams.gmresTol;
 o.farField = @(X) o.bgFlow(X,options.farField);
 o.usePreco = options.usePreco;
-o.op = poten(prams.N);
+o.op = poten(prams.N, om);
 o.profile = options.profile;
 o.om = om;
 
