@@ -532,7 +532,6 @@ else
   end
   % Wrap the output of the FMM into the usual 
   % [[x1;y1] [x2;y2] ...] format
-
   
   if o.profile
       tfmmLoop = tic;
@@ -541,29 +540,27 @@ else
   D = o.stokesDLmatrix(geom); %this can be passed in from tstep
   diagDL = o.exactStokesDLdiag(geom, D, f);
 
-%   oc = curve;
-%   [tx,ty] = oc.getXY(geom.xt);
+  oc = curve;
+  [tx,ty] = oc.getXY(geom.xt);
       
   for k = 1:geom.nv
-      %     vel = stokesDLPfmm(dip1(:,k),dip2(:,k),x(:,k),y(:,k));
-      %     u = -imag(vel);
-      %     v = real(vel);
+          vel = stokesDLPfmm(dip1(:,k),dip2(:,k),x(:,k),y(:,k));
+          u = -imag(vel);
+          v = real(vel);
       %     stokesDLP(:,k) = stokesDLP(:,k) - [u;v];
       
-%       txk = tx(:,k)'; tyk = ty(:,k)';
-%       sa = geom.sa(:,k)';
-%       cur = geom.cur(:,k)';
-%       sa = sa(ones(geom.N,1),:);
+      txk = tx(:,k); tyk = ty(:,k);
+      sa = geom.sa(:,k);
+      cur = geom.cur(:,k);
+       
+      fDotTau = txk.*f(1:end/2,k) + tyk.*f(end/2+1:end,k);
+      diag = 0.5*[fDotTau.*cur.*sa.*txk; fDotTau.*cur.*sa.*tyk];
       
-      stokesDLP(:,k) = stokesDLP(:,k) - diagDL(:,k);
-      
-      %subtract out diagonal terms
-%       diag = [0.5*cur.*sa(1,:).*txk.^2.*f(1:end/2,k)', 0.5*cur.*sa(1,:).*txk*tyk.*f(1:end/2,k)';
-%               0.5*cur.*sa(1,:).*txk*tyk.*f(end/2+1:end,k)', 0.5*cur.*sa(1,:).*tyk.^2.*f(end/2+1:k)'];
+      stokesDLP(:,k) = stokesDLP(:,k) - (diagDL(:,k) - diag);
   end
   
   if o.profile
-      o.om.writeMessage(['FMM for self interactions took ', num2str(toc(tfmmLoop)), ' seconds']);
+      o.om.writeMessage(['Direct summation for self interactions took ', num2str(toc(tfmmLoop)), ' seconds']);
   end
   
   
