@@ -394,9 +394,6 @@ function [stokesDLP,stokesDLPtar] = ...
 % of the geometry in K1 will be evaluated at Xtar.  Everything but Xtar
 % is in the 2*N x nv format Xtar is in the 2*Ntar x ncol format
 
-% normal = [-geom.xt(geom.N+1:2*geom.N,1:end);geom.xt(1:geom.N,1:end)]; %this line take 60 seconds! 
-% Normal vector
-
 if nargin == 5
   Ntar = size(Xtar,1)/2;
   ncol = size(Xtar,2);
@@ -540,13 +537,29 @@ else
   if o.profile
       tfmmLoop = tic;
   end
-  parfor k = 1:geom.nv
-    %tTmp = tic;
-    vel = stokesDLPfmm(dip1(:,k),dip2(:,k),x(:,k),y(:,k));
-    %toc(tTmp);
-    u = -imag(vel);
-    v = real(vel);
-    stokesDLP(:,k) = stokesDLP(:,k) - [u;v];
+  
+  D = o.stokesDLmatrix(geom); %this can be passed in from tstep
+  diagDL = o.exactStokesDLdiag(geom, D, f);
+
+%   oc = curve;
+%   [tx,ty] = oc.getXY(geom.xt);
+      
+  for k = 1:geom.nv
+      %     vel = stokesDLPfmm(dip1(:,k),dip2(:,k),x(:,k),y(:,k));
+      %     u = -imag(vel);
+      %     v = real(vel);
+      %     stokesDLP(:,k) = stokesDLP(:,k) - [u;v];
+      
+%       txk = tx(:,k)'; tyk = ty(:,k)';
+%       sa = geom.sa(:,k)';
+%       cur = geom.cur(:,k)';
+%       sa = sa(ones(geom.N,1),:);
+      
+      stokesDLP(:,k) = stokesDLP(:,k) - diagDL(:,k);
+      
+      %subtract out diagonal terms
+%       diag = [0.5*cur.*sa(1,:).*txk.^2.*f(1:end/2,k)', 0.5*cur.*sa(1,:).*txk*tyk.*f(1:end/2,k)';
+%               0.5*cur.*sa(1,:).*txk*tyk.*f(end/2+1:end,k)', 0.5*cur.*sa(1,:).*tyk.^2.*f(end/2+1:k)'];
   end
   
   if o.profile

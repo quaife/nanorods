@@ -1,7 +1,7 @@
 function [Xfinal] = rigid2D(options, prams, xc, tau)
 
-delete(gcp('nocreate'))
-parpool(options.n_cores_matlab)   
+% delete(gcp('nocreate'))
+% parpool(options.n_cores_matlab)   
 
 ttotal = tic;
 
@@ -11,7 +11,6 @@ op = poten(prams.N, om);
 
 if (om.profile)
     profile on;
-    profile clear
 end
 
 % read in existing file if necessary
