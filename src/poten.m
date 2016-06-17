@@ -554,7 +554,7 @@ else
       cur = geom.cur(:,k);
        
       fDotTau = txk.*f(1:end/2,k) + tyk.*f(end/2+1:end,k);
-      diag = 0.5*[fDotTau.*cur.*sa.*txk; fDotTau.*cur.*sa.*tyk];
+      diag = [fDotTau.*cur.*sa.*txk; fDotTau.*cur.*sa.*tyk]/geom.N;
       
       stokesDLP(:,k) = stokesDLP(:,k) - (diagDL(:,k) - diag);
   end
