@@ -32,7 +32,7 @@ end % properties
 methods
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function o = tstep(options,prams, om)
+function o = tstep(options,prams, om, geom)
 % o.tstep(options,prams): constructor.  Initialize class.  Take all
 % elements of options and prams needed by the time stepper
 
@@ -44,7 +44,7 @@ o.inear = options.inear; % near-singular integration interpolation scheme
 o.gmresTol = prams.gmresTol;
 o.farField = @(X) o.bgFlow(X,options.farField);
 o.usePreco = options.usePreco;
-o.op = poten(prams.N, om);
+o.op = poten(geom, om);
 o.profile = options.profile;
 o.om = om;
 
@@ -170,7 +170,6 @@ valTorque = zeros(nv,1);
 eta = zeros(2*N,nv);
 for k = 1:nv
   eta(1:2*N,k) = Xn((k-1)*2*N+1:k*2*N);
-  %disp((k-1)*2*N+1:k*2*N)
 end
 % organize as matrix where columns correspond to unique bodies
 Up = zeros(2,nv);
@@ -185,7 +184,7 @@ end
 valPos = valPos - 1/2*eta;
 % Jump term in double-layer potential
 
-valPos = valPos + op.exactStokesDLdiag(geom,o.D,eta);
+valPos = valPos + op.exactStokesDLdiag(geom, o.D, eta);
 % self contribution
 
 if o.ifmm

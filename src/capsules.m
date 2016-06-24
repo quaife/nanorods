@@ -58,11 +58,11 @@ else if length(varargin) == 2 %centres and orientation angles
 end
 
 oc = curve;
-for i = 1:2
-    for k = 1:o.nv
-        o.X(:,k) = oc.redistributeArcLength(o.X(:,k)); 
-    end
-end
+% for i = 1:2
+%     for k = 1:o.nv
+%         o.X(:,k) = oc.redistributeArcLength(o.X(:,k)); 
+%     end
+% end
 
 [o.sa,o.xt,o.cur] = oc.diffProp(o.X);
 [~,o.length] = oc.geomProp(o.X);

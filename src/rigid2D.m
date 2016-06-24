@@ -4,10 +4,12 @@ function [Xfinal] = rigid2D(options, prams, xc, tau)
 % parpool(options.n_cores_matlab)   
 
 ttotal = tic;
+    
+geom = capsules(prams, xc, tau);
 
 om = monitor(options, prams);
-tt = tstep(options, prams, om);
-op = poten(prams.N, om);
+tt = tstep(options, prams, om, geom);
+op = poten(geom, om);
 
 if (om.profile)
     profile on;

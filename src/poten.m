@@ -14,22 +14,35 @@ properties
   interpMat;  
   profile;
   om;
-
+  Dup;
+  
 end % properties
 
 methods 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function o = poten(N, om)
+function o = poten(geom, om)
 % o = poten(N): constructor; N is the number of points per curve
 
-o.N = N;
+o.N = geom.N;
 o.interpMat = o.lagrangeInterp;
 % load in the interpolation matrix which is precomputed with 7
 % interpolation points
 
 o.om = om;
 o.profile = om.profile;
+
+
+Xsou = geom.X; % source positions
+Nsou = size(Xsou,1)/2; % number of source points
+Nup = Nsou*ceil(sqrt(Nsou));
+
+Xup = [interpft(Xsou(1:Nsou,:),Nup);...
+       interpft(Xsou(Nsou+1:2*Nsou,:),Nup)];
+
+geomUp = capsules([],Xup);
+
+o.Dup = o.stokesDLmatrix(geomUp);
 
 end % poten: constructor
 
@@ -114,7 +127,7 @@ if tEqualS % sources == targets
     else
       for k = 1:nvSou
         K = [(1:k-1) (k+1:nvSou)];
-        [~,farField(:,k)] = kernelDirect(geomUp,fup,Xtar(:,k),K);
+        [~,farField(:,k)] = kernelDirect(geomUp,fup,Xtar(:,k),K, []);
       end
       % This is a huge savings if we are using a direct method rather
       % than the fmm to evaluate the layer potential.  The speedup is
@@ -533,22 +546,16 @@ else
   % Wrap the output of the FMM into the usual 
   % [[x1;y1] [x2;y2] ...] format
   
+  diagDL = o.exactStokesDLdiag(geom, o.Dup, f);
+
+  oc = curve;
+  [tx,ty] = oc.getXY(geom.xt);
+  
   if o.profile
       tfmmLoop = tic;
   end
   
-  D = o.stokesDLmatrix(geom); %this can be passed in from tstep
-  diagDL = o.exactStokesDLdiag(geom, D, f);
-
-  oc = curve;
-  [tx,ty] = oc.getXY(geom.xt);
-      
-  for k = 1:geom.nv
-          vel = stokesDLPfmm(dip1(:,k),dip2(:,k),x(:,k),y(:,k));
-          u = -imag(vel);
-          v = real(vel);
-      %     stokesDLP(:,k) = stokesDLP(:,k) - [u;v];
-      
+  for k = 1:geom.nv %in principle this could be done using a parfor loop 
       txk = tx(:,k); tyk = ty(:,k);
       sa = geom.sa(:,k);
       cur = geom.cur(:,k);
