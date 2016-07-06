@@ -214,7 +214,7 @@ end
 if (relate == 1 || relate == 3)
   for k = 1:nv1
     distSS{k} = spalloc(N1,nv1,0);
-    % dist(n,k,j) is the distance of point n on boundary k to
+    % dist(n,k,j) is the distance of point n on boundary k to boundary j
     zoneSS{k} = spalloc(N1,nv1,0);
     % near or far zone
     nearestSS{k} = spalloc(2*N1,nv1,0);
