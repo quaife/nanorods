@@ -21,10 +21,9 @@ end % properties
 methods 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function o = poten(geom, om)
+function o = poten(om)
 % o = poten(N): constructor; N is the number of points per curve
 
-o.N = geom.N;
 o.interpMat = o.lagrangeInterp;
 % load in the interpolation matrix which is precomputed with 7
 % interpolation points
@@ -32,22 +31,21 @@ o.interpMat = o.lagrangeInterp;
 o.om = om;
 o.profile = om.profile;
 
-
-Xsou = geom.X; % source positions
-Nsou = size(Xsou,1)/2; % number of source points
-Nup = Nsou*ceil(sqrt(Nsou));
-
-Xup = [interpft(Xsou(1:Nsou,:),Nup);...
-       interpft(Xsou(Nsou+1:2*Nsou,:),Nup)];
-
-geomUp = capsules([],Xup);
-
-o.Dup = o.stokesDLmatrix(geomUp);
+% Xsou = geom.X; % source positions
+% Nsou = size(Xsou,1)/2; % number of source points
+% Nup = Nsou*ceil(sqrt(Nsou));
+% 
+% Xup = [interpft(Xsou(1:Nsou,:),Nup);...
+%        interpft(Xsou(Nsou+1:2*Nsou,:),Nup)];
+% 
+% geomUp = capsules([],Xup);
+% 
+% o.Dup = o.stokesDLmatrix(geomUp);
 
 end % poten: constructor
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function LP = nearSingInt(o,geomSou,f,selfMat,...
+function LP = nearSingInt(o,geomSou,f,selfMat,Dup,...
     NearStruct,kernel,kernelDirect,geomTar,tEqualS,idebug)
 % LP = nearSingInt(geom,f,selfMat,NearStruct,kernel,kernelDirect,
 % geomTar,tEqualS,idebug) computes a layer potential due to f at all
@@ -71,7 +69,7 @@ end
 % only a single geom, so velocity on all other geoms will always
 % be zero
 
-if (nargin == 9)
+if (nargin == 10)
   idebug = false;
 end
 
@@ -103,10 +101,8 @@ Nup = Nsou*ceil(sqrt(Nsou));
 vself = selfMat(f);
 
 % upsample to N^(3/2).  
-Xup = [interpft(Xsou(1:Nsou,:),Nup);...
-       interpft(Xsou(Nsou+1:2*Nsou,:),Nup)];
-fup = [interpft(f(1:Nsou,:),Nup);...
-       interpft(f(Nsou+1:2*Nsou,:),Nup)];
+Xup = [interpft(Xsou(1:Nsou,:),Nup); interpft(Xsou(Nsou+1:2*Nsou,:),Nup)];
+fup = [interpft(f(1:Nsou,:),Nup); interpft(f(Nsou+1:2*Nsou,:),Nup)];
 
 geomUp = capsules([],Xup);
 % Build an object with the upsampled geom
@@ -120,14 +116,14 @@ p = ceil((interpOrder+1)/2);
 if tEqualS % sources == targets
   if nvSou > 1
     if (strfind(char(kernel),'fmm'))
-      farField = kernel(geomUp,fup);
+      farField = kernel(geomUp,fup,Dup);
       farField = farField(1:Nup/Ntar:end,:);
       % evaluate layer potential at all targets except ignore the
       % diagonal term
     else
       for k = 1:nvSou
         K = [(1:k-1) (k+1:nvSou)];
-        [~,farField(:,k)] = kernelDirect(geomUp,fup,Xtar(:,k),K, []);
+        [~,farField(:,k)] = kernelDirect(geomUp,fup,Dup,Xtar(:,k),K, []);
       end
       % This is a huge savings if we are using a direct method rather
       % than the fmm to evaluate the layer potential.  The speedup is
@@ -139,7 +135,7 @@ if tEqualS % sources == targets
   end
 
 else % sources ~= targets
-  [~,farField] = kernel(geomUp,fup,Xtar,1:nvSou);
+  [~,farField] = kernel(geomUp,fup,Dup,Xtar,1:nvSou);
   % evaluate layer potential due to all 'geoms' at all points in
   % Xtar
 end
@@ -184,11 +180,9 @@ for k1 = 1:nvSou
 %     using local interpolant
       
       if ((numel(J) + numel(fup)) >= 512 && numel(J) > 32)
-        [~,potTar] = kernel(geomUp,fup,...
-           [Xtar(J,k2);Xtar(J+Ntar,k2)],k1);
+        [~,potTar] = kernel(geomUp,fup,Dup, [Xtar(J,k2);Xtar(J+Ntar,k2)],k1);
       else
-        [~,potTar] = kernelDirect(geomUp,fup,...
-           [Xtar(J,k2);Xtar(J+Ntar,k2)],k1);
+        [~,potTar] = kernelDirect(geomUp,fup,Dup,[Xtar(J,k2);Xtar(J+Ntar,k2)],k1);
       end
       % Need to subtract off contribution due to geom k1 since its
       % layer potential will be evaulted using Lagrange interpolant of
@@ -214,9 +208,9 @@ for k1 = 1:nvSou
       end
 
       if (numel(XLag)/2 > 100)
-        [~,lagrangePts] = kernel(geomUp,fup,XLag,k1);
+        [~,lagrangePts] = kernel(geomUp,fup,Dup,XLag,k1);
       else
-        [~,lagrangePts] = kernelDirect(geomUp,fup,XLag,k1);
+        [~,lagrangePts] = kernelDirect(geomUp,fup,Dup,XLag,k1);
       end
       % evaluate velocity at the lagrange interpolation points
       
@@ -381,8 +375,11 @@ function DLP = exactStokesDLdiag(o,geom,D,f)
 
 DLP = zeros(2*geom.N,geom.nv);
 for k = 1:geom.nv
-  DLP(:,k) = D(:,:,k) * f(:,k);
+  A = D(:,:,k);
+  DLP(:,k) = A * f(:,k);
 end
+% 
+% DLP = permute(sum(bsxfun(@times, D, permute(f,[3 1 2])),2), [1 3 2]);
 
 end % exactStokesDLdiag
 
@@ -399,7 +396,7 @@ end % exactStokesDLdiag
 % TARGET POINTS Xtar
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function [stokesDLP,stokesDLPtar] = ...
-    exactStokesDL(o,geom,f,Xtar,K1)
+    exactStokesDL(o,geom,f,D,Xtar,K1)
 % [stokesDLP,stokesDLPtar] = exactStokesDL(geom,f,Xtar,K1) computes the
 % double-layer potential due to f around all parts of the geometry
 % except itself.  Also can pass a set of target points Xtar and a
@@ -407,7 +404,7 @@ function [stokesDLP,stokesDLPtar] = ...
 % of the geometry in K1 will be evaluated at Xtar.  Everything but Xtar
 % is in the 2*N x nv format Xtar is in the 2*Ntar x ncol format
 
-if nargin == 5
+if nargin == 6
   Ntar = size(Xtar,1)/2;
   ncol = size(Xtar,2);
   stokesDLPtar = zeros(2*Ntar,ncol);
@@ -463,7 +460,7 @@ stokesDLPtar = stokesDLPtar/pi;
 % evaluated at arbitrary points
 
 stokesDLP = zeros(2*geom.N,geom.nv);
-if (nargin == 3 && geom.nv > 1)
+if (nargin == 4 && geom.nv > 1)
   for k = 1:geom.nv
     K = [(1:k-1) (k+1:geom.nv)];
     [x,y] = oc.getXY(geom.X(:,K));
@@ -500,7 +497,7 @@ end % exactStokesDL
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function [stokesDLP,stokesDLPtar] = ...
-    exactStokesDLfmm(o,geom,f,Xtar,K)
+    exactStokesDLfmm(o,geom,f, D, Xtar,K)
 % [stokesDLP,stokeDLPtar] = exactStokesDLfmm(geom,f,Xtar,K) uses the
 % FMM to compute the double-layer potential due to all geoms except
 % itself geom is a class of object capsules and f is the density
@@ -516,7 +513,7 @@ ny = geom.xt(1:geom.N,:);
 
 den = f.*[geom.sa;geom.sa]*2*pi/geom.N;
 
-if (nargin == 5)
+if (nargin == 6)
   stokesDLP = [];
 else
   stokesDLP = zeros(2*geom.N,geom.nv);
@@ -546,7 +543,7 @@ else
   % Wrap the output of the FMM into the usual 
   % [[x1;y1] [x2;y2] ...] format
   
-  diagDL = o.exactStokesDLdiag(geom, o.Dup, f);
+  diagDL = o.exactStokesDLdiag(geom, D, f);
 
   oc = curve;
   [tx,ty] = oc.getXY(geom.xt);
@@ -575,7 +572,7 @@ else
   % to change here for potential at Xtar
 end
 
-if nargin == 3
+if nargin == 4
   stokesDLPtar = [];
 else
   [Ntar,ncol] = size(Xtar);
@@ -737,7 +734,7 @@ end % exactLaplaceDL
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function [laplaceDLP,laplaceDLPtar] = ...
-    exactLaplaceDLfmm(o,vesicle,f,Xtar,K)
+    exactLaplaceDLfmm(o,vesicle,f,D,Xtar,K)
 % [laplaceDLP,laplaceDLPtar] = exactLaplaceDLfmm(vesicle,f,Xtar,K) uses
 % the FMM to compute the double-layer potential due to all vesicles
 % except itself vesicle is a class of object capsules and f is the
@@ -749,7 +746,7 @@ oc = curve;
 
 den = f.*[vesicle.sa;vesicle.sa]*2*pi/vesicle.N;
 
-if (nargin == 5)
+if (nargin == 6)
   laplaceDLP = [];
 else
   [x,y] = oc.getXY(vesicle.X); % seperate x and y coordinates
@@ -780,7 +777,7 @@ else
   % to change here for potential at Xtar
 end
 
-if nargin == 3
+if nargin == 4
   laplaceDLPtar = [];
 else
   [x,y] = oc.getXY(vesicle.X(:,K)); % seperate x and y coordinates

@@ -5,11 +5,12 @@ function [Xfinal] = rigid2D(options, prams, xc, tau)
 
 ttotal = tic;
     
-geom = capsules(prams, xc, tau);
+%geom = capsules(prams, xc, tau);
 
+geom = capsules(prams, xc, tau);
 om = monitor(options, prams);
 tt = tstep(options, prams, om, geom);
-op = poten(geom, om);
+op = poten(om);
 
 if (om.profile)
     profile on;
@@ -25,7 +26,8 @@ if options.append
     iT = length(pp.times);
     
     xc = [pp.centres_x(end,:); pp.centres_y(end,:)];
-    tau = pp.orientations(end,:);
+    tau = pp.orientations(end,:);    
+    wp = pp.omega(end,:);
     
     if (options.tstep_order == 2)
         Up_m1 = [pp.u_x(end,:); pp.u_y(end,:)];
@@ -38,6 +40,8 @@ else
     om.writeData(0, xc, tau, zeros(1,prams.nv), zeros(1,prams.nv), zeros(1,prams.nv));
     time = 0;
     iT = 0;
+    
+    wp = zeros(size(tau));
 end
 
 % begin time loop
@@ -50,7 +54,7 @@ while time < prams.T
     
     geom = capsules(prams, xc, tau);
     
-    [density,Up,wp,iter,flag, res] = tt.timeStep(geom);
+    [density,Up,wp,iter,flag,res] = tt.timeStep(geom, tt.dt*wp);
     
     % update centres and angles
     if (iT == 1 || options.tstep_order == 1) % use forward Euler
@@ -72,6 +76,7 @@ while time < prams.T
         end
     end
     
+    % check for collisions
     [near,~] = geom.getZone(geom,1);
     icollision = geom.collision(near,options.ifmm, options.inear, op, om);
     

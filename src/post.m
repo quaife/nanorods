@@ -99,9 +99,9 @@ function [] = plot_fibres_with_stats(o, iT, xmin, xmax, ymin, ymax)
     axes(ax2)
     fill([x;x(1,:)],[y;y(1,:)],'k');
     
+    axis equal
     xlim([xmin, xmax]);
     ylim([ymin, ymax]);
-    axis equal
     
     title(sprintf('t = %6.3f', o.times(iT))); 
     axes(ax1)
@@ -132,9 +132,9 @@ function [] = plot_fibres(o, iT, xmin, xmax, ymin, ymax)
     
     fill([x;x(1,:)],[y;y(1,:)],'k');
     
+    axis equal
     xlim([xmin, xmax]);
     ylim([ymin, ymax]);
-    axis equal
     
     title(sprintf('t = %6.3f', o.times(iT)));
     
@@ -313,7 +313,7 @@ for i = 1:stride:itmax
     
     switch type
         case 'fibres'           
-            o.plot_fibres_with_stats(i, xmin, xmax, ymin, ymax);
+            o.plot_fibres(i, xmin, xmax, ymin, ymax);
             
         case 'fluid'
            o.plot_fluid(i, xmin, xmax, ymin, ymax, o.EPS); 

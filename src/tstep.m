@@ -15,6 +15,7 @@ beta       % single real number used in IMEX
 order      % time stepping order (will just do IMEX-Euler for now)
 dt         % time step size
 D          % Stokes double-layer potential matrix
+Dup        % Upsampled Stokes double-layer potential matrix
 ifmm       % flag for using the FMM
 inear      % flag for using near-singular integration
 gmresTol   % GMRES tolerance
@@ -36,6 +37,9 @@ function o = tstep(options,prams, om, geom)
 % o.tstep(options,prams): constructor.  Initialize class.  Take all
 % elements of options and prams needed by the time stepper
 
+N = geom.N;
+nv = geom.nv;
+
 o.order = options.tstep_order;  % times stepping order (1 for now)
 o.dt = prams.T/prams.m;   % time step size
 
@@ -44,42 +48,24 @@ o.inear = options.inear; % near-singular integration interpolation scheme
 o.gmresTol = prams.gmresTol;
 o.farField = @(X) o.bgFlow(X,options.farField);
 o.usePreco = options.usePreco;
-o.op = poten(geom, om);
+o.op = poten(om);
 o.profile = options.profile;
 o.om = om;
 
-end % constructor: tstep
+o.D = o.op.stokesDLmatrix(geom);
 
+% create upsampled matrix
+Xsou = geom.X; % source positions
+Nsou = size(Xsou,1)/2; % number of source points
+Nup = Nsou*ceil(sqrt(Nsou));
 
+Xup = [interpft(Xsou(1:Nsou,:),Nup);...
+       interpft(Xsou(Nsou+1:2*Nsou,:),Nup)];
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function [eta,Up,wp,iter,iflag,res] = timeStep(o,geom)
-% [X,iter,iflag] = timeStep(Xstore) takes the current configuration
-% in Xstore (can be a three-dimensional array corresponding to  previous
-% time steps if doing multistep) and returns a new shape X, the number
-% of GMRES iterations, and the GMRES flag 
+geomUp = capsules([],Xup);
 
-N = geom.N;
-nv = geom.nv;
+o.Dup = o.op.stokesDLmatrix(geomUp);
 
-if o.inear
-    if o.profile
-        tic;
-    end
-    
-    o.nearStruct = geom.getZone([],1);
-    
-    if o.profile
-        o.om.writeMessage(['getZone ... ', num2str(toc)]);
-    end
-end
-
-op = o.op;
-
-% build double-layer potential matrix for each rigid body
-o.D = op.stokesDLmatrix(geom);
-
-% compute preconditioner if needed
 if o.usePreco
     
     if o.profile
@@ -108,6 +94,84 @@ if o.usePreco
       o.om.writeMessage(['Building preconditioner ... ', num2str(toc)]);
   end
 end
+  
+end % constructor: tstep
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+function [eta,Up,wp,iter,iflag,res] = timeStep(o,geom,tau)
+% [X,iter,iflag] = timeStep(Xstore) takes the current configuration
+% in Xstore (can be a three-dimensional array corresponding to  previous
+% time steps if doing multistep) and returns a new shape X, the number
+% of GMRES iterations, and the GMRES flag 
+
+N = geom.N;
+nv = geom.nv;
+
+Nup = N*ceil(sqrt(N));
+
+if o.inear
+    if o.profile
+        tic;
+    end
+    
+    o.nearStruct = geom.getZone([],1);
+    
+    if o.profile
+        o.om.writeMessage(['getZone ... ', num2str(toc)]);
+    end
+end
+
+% rotate DLP matrices and preconditioner matrices
+for i = 1:nv
+    R = spdiags([sin(tau(i))*ones(2*N,1), cos(tau(i))*ones(2*N,1)...
+                -sin(tau(i))*ones(2*N,1)], [-N, 0, N], zeros(2*N, 2*N));
+    
+    Rup = spdiags([sin(tau(i))*ones(2*Nup,1), cos(tau(i))*ones(2*Nup,1)...
+                -sin(tau(i))*ones(2*Nup,1)], [-Nup, 0, Nup], zeros(2*Nup, 2*Nup));  
+            
+    o.D(:,:,i) = R*o.D(:,:,i)*R';
+    o.bdiagPreco.L(1:2*N,1:2*N,i) = R*o.bdiagPreco.L(1:2*N,1:2*N,i)*R';
+    o.bdiagPreco.U(1:2*N,1:2*N,i) = R*o.bdiagPreco.U(1:2*N,1:2*N,i)*R';
+    
+    o.Dup(:,:,i) = Rup*o.Dup(:,:,i)*Rup';
+end
+
+%op = o.op;
+
+% build double-layer potential matrix for each rigid body
+% o.D = op.stokesDLmatrix(geom);
+
+% compute preconditioner if needed
+% if o.usePreco
+%     
+%     if o.profile
+%         tic;
+%     end
+%     
+%   o.bdiagPreco.L = zeros(2*N+3,2*N+3,nv);
+%   o.bdiagPreco.U = zeros(2*N+3,2*N+3,nv);
+%   for k = 1:nv
+%     [o.bdiagPreco.L(:,:,k),o.bdiagPreco.U(:,:,k)] = lu([...
+%       -1/2*eye(2*N)+o.D(:,:,k) ...
+%         [-ones(N,1);zeros(N,1)] ...
+%         [zeros(N,1);-ones(N,1)] ...
+%         [geom.X(end/2+1:end,k)-geom.center(2,k);...
+%           -geom.X(1:end/2,k)+geom.center(1,k)];
+%         [-geom.sa(:,k)'*2*pi/N zeros(1,N) 0 0 0];
+%         [zeros(1,N) -geom.sa(:,k)'*2*pi/N 0 0 0];
+%         [(-geom.X(end/2+1:end,k)'+geom.center(2,k)).*...
+%             geom.sa(:,k)'*2*pi/N ...
+%          (geom.X(1:end/2,k)'-geom.center(1,k)).*...
+%             geom.sa(:,k)'*2*pi/N 0 0 0]]);
+%     % whole diagonal block which doesn't have a null space
+%   end
+%   
+%   if o.profile
+%       o.om.writeMessage(['Building preconditioner ... ', num2str(toc)]);
+%   end
+% end
 
 rhs = o.farField(geom.X);
 rhs = -rhs(:);
@@ -118,11 +182,9 @@ rhs = [rhs; zeros(3*nv,1)];
 
 maxit = 2*N*nv;%should be a lot lower than this
 if ~o.usePreco
-  [Xn,iflag,res,I] = gmres(@(X) o.timeMatVec(X,geom),...
-      rhs,[],o.gmresTol,maxit);
+  [Xn,iflag,res,I] = gmres(@(X) o.timeMatVec(X,geom),rhs,[],o.gmresTol,maxit);
 else
-  [Xn,iflag,res,I] = gmres(@(X) o.timeMatVec(X,geom),...
-      rhs,[],o.gmresTol,maxit,@o.preconditionerBD);
+  [Xn,iflag,res,I] = gmres(@(X) o.timeMatVec(X,geom),rhs,[],o.gmresTol,maxit,@o.preconditionerBD);
 end
 % Use GMRES to find density function, translation, and rotation
 % velocities
@@ -143,7 +205,6 @@ wp = zeros(1,nv);
 for k = 1:nv
   wp(k) = Xn(2*N*nv+2*nv+k);
 end
-
 
 end % timeStep
 
@@ -205,8 +266,7 @@ end
 if o.inear   
 
   DLP = @(X) op.exactStokesDLdiag(geom,o.D,X) - 1/2*X;
-  Fdlp = op.nearSingInt(geom,eta,DLP,...
-      o.nearStruct,kernel,kernelDirect,geom,true,false);
+  Fdlp = op.nearSingInt(geom,eta,DLP,o.Dup,o.nearStruct,kernel,kernelDirect,geom,true,false);
 else
   Fdlp = kernel(geom,eta);
 end
@@ -224,12 +284,9 @@ for k = 1:nv
 end
 
 for k = 1:nv
-  valPos(1:end/2,k) = valPos(1:end/2,k) + ...
-      (geom.X(end/2+1:end,k) - geom.center(2,k))*wp(k);
-  valPos(end/2+1:end,k) = valPos(end/2+1:end,k) - ...
-      (geom.X(1:end/2,k) - geom.center(1,k))*wp(k);
+  valPos(1:end/2,k) = valPos(1:end/2,k) + (geom.X(end/2+1:end,k) - geom.center(2,k))*wp(k);
+  valPos(end/2+1:end,k) = valPos(end/2+1:end,k) - (geom.X(1:end/2,k) - geom.center(1,k))*wp(k);
 end
-
 
 for k = 1:nv
   valForce(1,k) = sum(eta(1:N,k).*geom.sa(:,k))*2*pi/N;

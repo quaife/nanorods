@@ -24,6 +24,8 @@ function o = capsules(prams, varargin)
 % takes the values of prams and options that it requires.
 % This is the constructor
 
+oc = curve;
+
 if length(varargin) == 1 % coordinates provided directly
     o.X = varargin{1};
     o.N = size(o.X,1)/2; % points per component
@@ -52,17 +54,14 @@ else if length(varargin) == 2 %centres and orientation angles
 
         o.X(:,k) = [x_square*cos(tau(k)) - y_square*sin(tau(k)) + xc(1,k);
             x_square*sin(tau(k)) + y_square*cos(tau(k)) + xc(2,k)];
+        
+        for i = 1:2
+            o.X(:,k) = oc.redistributeArcLength(o.X(:,k)); 
+        end
     end
     
     end
 end
-
-oc = curve;
-% for i = 1:2
-%     for k = 1:o.nv
-%         o.X(:,k) = oc.redistributeArcLength(o.X(:,k)); 
-%     end
-% end
 
 [o.sa,o.xt,o.cur] = oc.diffProp(o.X);
 [~,o.length] = oc.geomProp(o.X);
@@ -543,8 +542,7 @@ if inear
   % always zero, so don't have to build the DLP matrix for
   % self-interactions
 
-  Fdlp = op.nearSingInt(geom,f,DLP,...
-      near,kernel,kernel,geom,true,false);
+  Fdlp = op.nearSingInt(geom,f,DLP,[], near,kernel,kernel,geom,true,false);
 else
   Fdlp = kernel(vesicle,f);
 end
