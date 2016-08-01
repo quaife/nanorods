@@ -1,1 +1,14 @@
+*.o
+*.log
+*.csv
+*.mex*
 *.dat
+*.gif
+*.mat
+*.jpg
+*.png
+*.jpeg
+*~
+*.6
+*.
+*.out
