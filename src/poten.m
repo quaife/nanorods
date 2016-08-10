@@ -21,7 +21,7 @@ end % properties
 methods 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function o = poten(om)
+function o = poten(N, om)
 % o = poten(N): constructor; N is the number of points per curve
 
 o.interpMat = o.lagrangeInterp;
@@ -30,6 +30,7 @@ o.interpMat = o.lagrangeInterp;
 
 o.om = om;
 o.profile = om.profile;
+o.N = N;
 
 % Xsou = geom.X; % source positions
 % Nsou = size(Xsou,1)/2; % number of source points

@@ -14,8 +14,10 @@ rhsCoeff   % coefficients for forming the right-hand side used in IMEX
 beta       % single real number used in IMEX
 order      % time stepping order (will just do IMEX-Euler for now)
 dt         % time step size
-D          % Stokes double-layer potential matrix
-Dup        % Upsampled Stokes double-layer potential matrix
+DFibers    % Stokes double-layer potential for fibers
+DWalls     % Stokes double-layer potential for walls
+DupFibers  % Upsampled Stokes double-layer potential matrix for fibers
+DupWalls   % Upsampled Stokes double-layer potential matrix for walls
 ifmm       % flag for using the FMM
 inear      % flag for using near-singular integration
 gmresTol   % GMRES tolerance
@@ -23,7 +25,8 @@ nearStruct % near-singular integration structure
 farField   % background flow
 usePreco   % use a block-diagonal preconditioner
 bdiagPreco % block-diagonal preconditioner
-op         % class for layer potentials
+opFibers   % class for fiber layer potentials
+opWall     % class for wall layer potentials
 profile    % flag to time certain parts of code
 om         % monitor class
 
@@ -33,7 +36,7 @@ end % properties
 methods
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function o = tstep(options,prams, om, geom)
+function o = tstep(options, prams, om, geom, walls)
 % o.tstep(options,prams): constructor.  Initialize class.  Take all
 % elements of options and prams needed by the time stepper
 
@@ -48,13 +51,21 @@ o.inear = options.inear; % near-singular integration interpolation scheme
 o.gmresTol = prams.gmresTol;
 o.farField = @(X) o.bgFlow(X,options.farField);
 o.usePreco = options.usePreco;
-o.op = poten(om);
+o.opFibers = poten(prams.N, om);
+
+if options.confined
+    o.opWall = poten(prams.Nbd, om);
+else
+    o.opWall = [];
+end
+
 o.profile = options.profile;
 o.om = om;
 
-o.D = o.op.stokesDLmatrix(geom);
+o.DFibers = o.opFibers.stokesDLmatrix(geom);
+o.DWalls = o.opWall.stokesDLmatrix(walls);
 
-% create upsampled matrix
+% create upsampled matrices
 Xsou = geom.X; % source positions
 Nsou = size(Xsou,1)/2; % number of source points
 Nup = Nsou*ceil(sqrt(Nsou));
@@ -64,7 +75,19 @@ Xup = [interpft(Xsou(1:Nsou,:),Nup);...
 
 geomUp = capsules([],Xup);
 
-o.Dup = o.op.stokesDLmatrix(geomUp);
+o.DupFibers = o.opFibers.stokesDLmatrix(geomUp);
+
+Xsou = walls.X; % source positions
+Nsou = size(Xsou,1)/2; % number of source points
+Nup = Nsou*ceil(sqrt(Nsou));
+
+Xup = [interpft(Xsou(1:Nsou,:),Nup);...
+       interpft(Xsou(Nsou+1:2*Nsou,:),Nup)];
+
+wallsUp = capsules([],Xup);
+
+o.DupWalls = o.opFibers.stokesDLmatrix(wallsUp);
+
 
 if o.usePreco
     
@@ -96,8 +119,6 @@ if o.usePreco
 end
   
 end % constructor: tstep
-
-
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function [eta,Up,wp,iter,iflag,res] = timeStep(o,geom,tau)
@@ -141,7 +162,7 @@ end
 %op = o.op;
 
 % build double-layer potential matrix for each rigid body
-% o.D = op.stokesDLmatrix(geom);
+% o.D = opFibers.stokesDLmatrix(geom);
 
 % compute preconditioner if needed
 % if o.usePreco
@@ -210,51 +231,76 @@ end % timeStep
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function Tx = timeMatVec(o,Xn,geom)
-% Tx = timeMatVec(Xn,geom) does a matvec for GMRES with the IMEX scheme
-% Xn is a column vector which contains the x-coordinate followed by the
-% y-coordinate of body 1, x-coordinate followed by the y-coordinate of
-% body 2, etc
+function Tx = timeMatVec(o,Xn,geom,walls)
+% Tx = timeMatVec(Xn,geom) does a matvec for GMRES 
+% Xn is a state vector that contains the following in order:
+% fiber1: eta_x, eta_y fiber2: eta_x, eta_y ... fiberNv: eta_x, eta_y
+% wall1 : xi_x, xi_y wall2: xi_x, xi_y ... wallNvbd: xi_x, xi_y
+% fiber1: u, v fiber2: u, v ... fiberNv: u, v
+% fiber1: omega fiber2: omega ... fiberNv: omega
 
 N = geom.N; % points per body
-op = o.op; 
+potFibers = o.opFibers;
+potWalls = o.opWall;
+
 % this can be setup as a property of tstep if it is too expensive
 nv = geom.nv; % number of bodies
 
-valPos = zeros(2*N,nv);
-% Output of Tx that corresponds to the position of the bodies
+if o.confined
+    Nbd = walls.N;
+    nvbd = walls.nv;
+else
+    Nbd = 0;
+    nv = 0;
+end
+
+valFibers = zeros(2*N,nv);
+% Output of Tx that corresponds to the velocity of the fibers
+valWalls = zeros(2*Nbd,nvbd);
+% Output of Tx that corresponds to the velocity of the walls
 valForce = zeros(2,nv);
 % output of Tx that corresponds to force caused by density function
 valTorque = zeros(nv,1);
 % output of Tx that corresponds to torque caused by density function
 
-eta = zeros(2*N,nv);
+
+% extract density function for fibers
+etaFibers = zeros(2*N,nv);
 for k = 1:nv
-  eta(1:2*N,k) = Xn((k-1)*2*N+1:k*2*N);
+  etaFibers(:,k) = Xn((k-1)*2*N+1:k*2*N);
 end
-% organize as matrix where columns correspond to unique bodies
+
+% extract density function for walls
+etaWalls = zeros(2*Nbd,nvbd);
+for k = 1:nvbd
+  etaWalls(:,k) = Xn(2*N*nv+1+(k-1)*Nbd:2*N*nv+1+k*Nbd);
+end
+
+% extract translational and rotational velocities
 Up = zeros(2,nv);
 for k = 1:nv
-  Up(:,k) = Xn(2*N*nv+(k-1)*2+1:2*N*nv+k*2);
+  Up(:,k) = Xn(2*N*nv+2*Nbd*nvbd+1+2*(k-1):2*N*nv+2*Nbd*nvbd+1+2*k);
 end
 wp = zeros(1,nv);
 for k = 1:nv
-  wp(k) = Xn(2*N*nv+2*nv+k);
+  wp(k) = Xn(2*N*nv+2*Nbd*nvbd+2*nv+k);
 end
 
-valPos = valPos - 1/2*eta;
+valFibers = valFibers - 1/2*etaFibers;
+valWalls = valWalls - 1/2*etaWalls;
 % Jump term in double-layer potential
 
-valPos = valPos + op.exactStokesDLdiag(geom, o.D, eta);
+valFibers = valFibers + potFibers.exactStokesDLdiag(geom, o.DFibers, etaFibers);
+valWalls = valWalls + potWalls.exactStokesDLdiag(walls, o.DWalls, etaWalls);
 % self contribution
 
 if o.ifmm
-  kernel = @op.exactStokesDLfmm;
+  kernel = @potFibers.exactStokesDLfmm;
 else
-  kernel = @op.exactStokesDL;
+  kernel = @potFibers.exactStokesDL;
 end
 
-kernelDirect = @op.exactStokesDL;
+kernelDirect = @potFibers.exactStokesDL;
 % kernel function for evaluating the double layer potential.  kernel
 % can be a call to a FMM, but for certain computations, direct
 % summation is faster, so also want kernelDirect
@@ -263,29 +309,63 @@ if o.profile
     tMatvec = tic;
 end
 
-if o.inear   
-
-  DLP = @(X) op.exactStokesDLdiag(geom,o.D,X) - 1/2*X;
-  Fdlp = op.nearSingInt(geom,eta,DLP,o.Dup,o.nearStruct,kernel,kernelDirect,geom,true,false);
+% START COMPUTING FIBRE-FIBRE DLP
+if o.inear
+  DLP = @(X) potFibers.exactStokesDLdiag(geom,o.DFibers,X) - 1/2*X;
+  Fdlp = potFibers.nearSingInt(geom,eta,DLP,o.DupFibers,o.nearStruct,kernel,kernelDirect,geom,true,false);
 else
   Fdlp = kernel(geom,eta);
 end
+% END COMPUTING FIBRE-FIBRE DLP
+
+
+% START COMPUTING WALL-FIBRE DLP
+if o.confined
+   potWall = o.opWall;
+   
+   if o.ifmm
+        kernel = @potWall.exactStokesDLfmm;       
+   else
+       kernel = @potwall.exactStokesDL;
+   end
+   
+   kernelDirect = @potWall.exactStokesDL;
+   
+   if o.inear
+       DLP = @(X) potWalls.exactStokesDLdiag(walls, o.DWalls, X) - 1/2*X;
+       FWallFibreDLP = potWalls.nearSingInt(walls, etaWalls, DLP, o.DupWalls, o.nearStruct, ...
+           kernel, kernelDirect,walls,true,false);
+   else
+       FWallFibreDLP = kernal(walls, etaWalls);
+   end
+else
+    FWallFibreDLP = zeros(2*N,nv);
+end
+% END COMPUTING WALL-FIBRES DLP
 
 if o.profile
     o.om.writeMessage(['Matvec assembly completed in ', num2str(toc(tMatvec)), ' seconds']);
 end
 
-valPos = valPos + Fdlp;
-% Add in contribution from other bodies using exactStokesDL
+% EVALUATE VELOCITY ON WALLS
+if o.confined
+    valWalls = valWalls - 1/2*etaWalls + potWalls.exactStokesDLdiag(walls, o.DWall, etaWalls);
+    valWalls(:,1) = valWalls(:,1) + potWalls.exactStokesN0diag(walls, o.N0wall, etaWalls(:,1));
+    
+    valWalls = valWalls + FWallFibreDLP;
+end
+
+% EVALUATE VELOCITY ON FIBERS
+valFibers = valFibers + Fdlp + potWalls.exactStokesDL(geom,etaFibers,D,Xtar,K1);
 
 for k = 1:nv
-  valPos(1:end/2,k) = valPos(1:end/2,k) - Up(1,k);
-  valPos(end/2+1:end,k) = valPos(end/2+1:end,k) - Up(2,k);
+  valFibers(1:end/2,k) = valFibers(1:end/2,k) - Up(1,k);
+  valFibers(end/2+1:end,k) = valFibers(end/2+1:end,k) - Up(2,k);
 end
 
 for k = 1:nv
-  valPos(1:end/2,k) = valPos(1:end/2,k) + (geom.X(end/2+1:end,k) - geom.center(2,k))*wp(k);
-  valPos(end/2+1:end,k) = valPos(end/2+1:end,k) - (geom.X(1:end/2,k) - geom.center(1,k))*wp(k);
+  valFibers(1:end/2,k) = valFibers(1:end/2,k) + (geom.X(end/2+1:end,k) - geom.center(2,k))*wp(k);
+  valFibers(end/2+1:end,k) = valFibers(end/2+1:end,k) - (geom.X(1:end/2,k) - geom.center(1,k))*wp(k);
 end
 
 for k = 1:nv
@@ -299,7 +379,7 @@ for k = 1:nv
                      geom.sa(:,k))*2*pi/N;
 end
 
-Tx = [valPos(:);-valForce(:);-valTorque(:)];
+Tx = [valFibers(:); valWalls(:); -valForce(:);-valTorque(:)];
 
 end % timeMatVec
 

@@ -33,7 +33,7 @@ if length(varargin) == 1 % coordinates provided directly
     o.center = [mean(o.X(1:end/2,:));mean(o.X(end/2+1:end,:))];
     % centers of each component
     
-else if length(varargin) == 2 %centres and orientation angles
+else if length(varargin) == 2 % centres and orientation angles
         
     xc = varargin{1};
     tau = varargin{2};
