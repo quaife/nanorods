@@ -1,23 +1,17 @@
-%TODO: Just realized that o.D and preconditioner do not changes since
-%the geometry only rotates and translates.  So, they only need to be
-%computed once at the beginning of the code and used at all time steps!
 classdef tstep < handle
 % This class defines the functions required to advance the geometry
 % forward in time.  Routines that we may need to add are different
 % integrators such as semi-implicit, SDC, Runge-Kutta, adaptivity
 
-
 properties
-XCoeff     % coefficients for forming the configuration where the
-           % layer potential operators are constructed.  Comes from IMEX
-rhsCoeff   % coefficients for forming the right-hand side used in IMEX
-beta       % single real number used in IMEX
-order      % time stepping order (will just do IMEX-Euler for now)
+
+order      % time stepping order
 dt         % time step size
-DFibers    % Stokes double-layer potential for fibers
-DWalls     % Stokes double-layer potential for walls
-DupFibers  % Upsampled Stokes double-layer potential matrix for fibers
-DupWalls   % Upsampled Stokes double-layer potential matrix for walls
+Df         % Stokes double-layer potential for fiber-fiber interaction
+Dw         % Stokes double-layer potential for wall-wall interaction
+Dupf       % Upsampled Stokes double-layer potential matrix for fibers
+Dupw       % Upsampled Stokes double-layer potential matrix for walls
+rhs        % Right hand side
 ifmm       % flag for using the FMM
 inear      % flag for using near-singular integration
 gmresTol   % GMRES tolerance
@@ -32,25 +26,27 @@ om         % monitor class
 
 end % properties
 
-
 methods
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function o = tstep(options, prams, om, geom, walls)
 % o.tstep(options,prams): constructor.  Initialize class.  Take all
 % elements of options and prams needed by the time stepper
 
-N = geom.N;
-nv = geom.nv;
+o.order = options.tstep_order;        
+o.ifmm = options.ifmm;                  
+o.inear = options.inear;                
+o.usePreco = options.usePreco;           
+o.profile = options.profile;             
 
-o.order = options.tstep_order;  % times stepping order (1 for now)
-o.dt = prams.T/prams.m;   % time step size
+o.dt = prams.T/prams.m;                  
+o.gmresTol = prams.gmresTol;             
 
-o.ifmm = options.ifmm;   % fast multipole method
-o.inear = options.inear; % near-singular integration interpolation scheme
-o.gmresTol = prams.gmresTol;
-o.farField = @(X) o.bgFlow(X,options.farField);
-o.usePreco = options.usePreco;
+o.farField = @(X) o.bgFlow(X,options); 
+o.om = om;
+
+
+% CREATE CLASSES TO EVALUATE POTENTIALS ON FIBRES AND WALLS
 o.opFibers = poten(prams.N, om);
 
 if options.confined
@@ -59,36 +55,35 @@ else
     o.opWall = [];
 end
 
-o.profile = options.profile;
-o.om = om;
+% CREATE MATRICES FOR FIBRE-FIBRE SELF INTERATIONS AND 
+% WALL-WALL INTERACTIONS
+o.Df = o.opFibers.stokesDLmatrix(geom);
+o.Dw = o.opWall.stokesDLmatrix(walls);
 
-o.DFibers = o.opFibers.stokesDLmatrix(geom);
-o.DWalls = o.opWall.stokesDLmatrix(walls);
-
-% create upsampled matrices
-Xsou = geom.X; % source positions
-Nsou = size(Xsou,1)/2; % number of source points
+% CREATE UPSAMPLES MATRICES
+% FIBRE-FIBRE
+Xsou = geom.X; 
+Nsou = size(Xsou,1)/2; 
 Nup = Nsou*ceil(sqrt(Nsou));
 
 Xup = [interpft(Xsou(1:Nsou,:),Nup);...
        interpft(Xsou(Nsou+1:2*Nsou,:),Nup)];
 
 geomUp = capsules([],Xup);
+o.Dupf = o.opFibers.stokesDLmatrix(geomUp);
 
-o.DupFibers = o.opFibers.stokesDLmatrix(geomUp);
-
-Xsou = walls.X; % source positions
-Nsou = size(Xsou,1)/2; % number of source points
+% WALL-WALL
+Xsou = walls.X; 
+Nsou = size(Xsou,1)/2; 
 Nup = Nsou*ceil(sqrt(Nsou));
 
 Xup = [interpft(Xsou(1:Nsou,:),Nup);...
        interpft(Xsou(Nsou+1:2*Nsou,:),Nup)];
 
 wallsUp = capsules([],Xup);
+o.Dupw = o.opFibers.stokesDLmatrix(wallsUp);
 
-o.DupWalls = o.opFibers.stokesDLmatrix(wallsUp);
-
-
+% CREATE BLOCK-DIAGONAL PRECONDITIONER
 if o.usePreco
     
     if o.profile
@@ -116,6 +111,14 @@ if o.usePreco
   if o.profile
       o.om.writeMessage(['Building preconditioner ... ', num2str(toc)]);
   end
+  
+% CREATE RIGHT HAND SIDE
+if options.confined
+    rhs = o.farField(walls.X);
+    o.rhs = [zeros(2*N*nv,1); rhs; zeros(3*nv,1)];    
+else
+   rhs = o.farField(geom.X); 
+   o.rhs = [-rhs; zeros(2*Nbd*nvbd,1); zeros(3*nv,1)];
 end
   
 end % constructor: tstep
@@ -126,11 +129,6 @@ function [eta,Up,wp,iter,iflag,res] = timeStep(o,geom,tau)
 % in Xstore (can be a three-dimensional array corresponding to  previous
 % time steps if doing multistep) and returns a new shape X, the number
 % of GMRES iterations, and the GMRES flag 
-
-N = geom.N;
-nv = geom.nv;
-
-Nup = N*ceil(sqrt(N));
 
 if o.inear
     if o.profile
@@ -144,7 +142,12 @@ if o.inear
     end
 end
 
-% rotate DLP matrices and preconditioner matrices
+% ROTATE FIBRE-FIBRE DLP AND FIBRE-FIBRE PRECONDITIONER
+N = geom.N;
+nv = geom.nv;
+
+Nup = N*ceil(sqrt(N));
+
 for i = 1:nv
     R = spdiags([sin(tau(i))*ones(2*N,1), cos(tau(i))*ones(2*N,1)...
                 -sin(tau(i))*ones(2*N,1)], [-N, 0, N], zeros(2*N, 2*N));
@@ -152,76 +155,38 @@ for i = 1:nv
     Rup = spdiags([sin(tau(i))*ones(2*Nup,1), cos(tau(i))*ones(2*Nup,1)...
                 -sin(tau(i))*ones(2*Nup,1)], [-Nup, 0, Nup], zeros(2*Nup, 2*Nup));  
             
-    o.D(:,:,i) = R*o.D(:,:,i)*R';
+    o.Df(:,:,i) = R*o.Df(:,:,i)*R';
     o.bdiagPreco.L(1:2*N,1:2*N,i) = R*o.bdiagPreco.L(1:2*N,1:2*N,i)*R';
     o.bdiagPreco.U(1:2*N,1:2*N,i) = R*o.bdiagPreco.U(1:2*N,1:2*N,i)*R';
     
-    o.Dup(:,:,i) = Rup*o.Dup(:,:,i)*Rup';
+    o.Dupf(:,:,i) = Rup*o.Dupf(:,:,i)*Rup';
 end
 
-%op = o.op;
-
-% build double-layer potential matrix for each rigid body
-% o.D = opFibers.stokesDLmatrix(geom);
-
-% compute preconditioner if needed
-% if o.usePreco
-%     
-%     if o.profile
-%         tic;
-%     end
-%     
-%   o.bdiagPreco.L = zeros(2*N+3,2*N+3,nv);
-%   o.bdiagPreco.U = zeros(2*N+3,2*N+3,nv);
-%   for k = 1:nv
-%     [o.bdiagPreco.L(:,:,k),o.bdiagPreco.U(:,:,k)] = lu([...
-%       -1/2*eye(2*N)+o.D(:,:,k) ...
-%         [-ones(N,1);zeros(N,1)] ...
-%         [zeros(N,1);-ones(N,1)] ...
-%         [geom.X(end/2+1:end,k)-geom.center(2,k);...
-%           -geom.X(1:end/2,k)+geom.center(1,k)];
-%         [-geom.sa(:,k)'*2*pi/N zeros(1,N) 0 0 0];
-%         [zeros(1,N) -geom.sa(:,k)'*2*pi/N 0 0 0];
-%         [(-geom.X(end/2+1:end,k)'+geom.center(2,k)).*...
-%             geom.sa(:,k)'*2*pi/N ...
-%          (geom.X(1:end/2,k)'-geom.center(1,k)).*...
-%             geom.sa(:,k)'*2*pi/N 0 0 0]]);
-%     % whole diagonal block which doesn't have a null space
-%   end
-%   
-%   if o.profile
-%       o.om.writeMessage(['Building preconditioner ... ', num2str(toc)]);
-%   end
-% end
-
-rhs = o.farField(geom.X);
-rhs = -rhs(:);
-rhs = [rhs; zeros(3*nv,1)];
-% right-hand side with an arbitrarily chosen background flow
-% need to negate right-hand side since it moves to the other side of the
-% governing equations
-
+% SOLVE SYSTEM USING GMRES
 maxit = 2*N*nv;%should be a lot lower than this
 if ~o.usePreco
-  [Xn,iflag,res,I] = gmres(@(X) o.timeMatVec(X,geom),rhs,[],o.gmresTol,maxit);
+  [Xn,iflag,res,I] = gmres(@(X) o.timeMatVec(X,geom),o.rhs,[],o.gmresTol,...
+      maxit);
 else
-  [Xn,iflag,res,I] = gmres(@(X) o.timeMatVec(X,geom),rhs,[],o.gmresTol,maxit,@o.preconditionerBD);
+  [Xn,iflag,res,I] = gmres(@(X) o.timeMatVec(X,geom),o.rhs,[],o.gmresTol,...
+      maxit,@o.preconditionerBD);
 end
-% Use GMRES to find density function, translation, and rotation
-% velocities
+
 iter = I(2);
 
+% REORGANIZE COLUMN VECTOR INTO MATRIX
+% each column corresponds to the density function of the rigid body
 eta = zeros(2*N,nv);
 for k = 1:nv
   eta(1:2*N,k) = Xn((k-1)*2*N+1:k*2*N);
 end
-% take column vector coming out of GMRES and organize in matrix where
-% each column corresponds to the density function of the rigid body
 
+% EXTRACT TRANSLATIONAL AND ROTATIONAL VELOCITIES
 Up = zeros(2,nv);
 for k = 1:nv
   Up(:,k) = Xn(2*N*nv+(k-1)*2+1:2*N*nv+k*2);
 end
+
 wp = zeros(1,nv);
 for k = 1:nv
   wp(k) = Xn(2*N*nv+2*nv+k);
@@ -243,19 +208,19 @@ if o.profile
     tMatvec = tic;
 end
 
-N = geom.N; % points per body
+N = geom.N;   % points per body
 nv = geom.nv; % number of bodies
 
-potFibers = o.opFibers;
-potWalls = o.opWall;
-
 if o.confined
-    Nbd = walls.N;
-    nvbd = walls.nv;
+    Nbd = walls.N;   % points per wall
+    nvbd = walls.nv; % number of wallls
 else
     Nbd = 0;
     nv = 0;
 end
+
+potFibers = o.opFibers;
+potWalls = o.opWall;
 
 % Output of Tx that corresponds to the velocity of the fibers
 valFibers = zeros(2*N,nv);
@@ -297,11 +262,7 @@ valFibers = valFibers + potFibers.exactStokesDLdiag(geom, o.DFibers, etaFibers);
 valWalls = valWalls + potWalls.exactStokesDLdiag(walls, o.DWalls, etaWalls);
 
 
-% START COMPUTING FIBRE-FIBRE DLP
-
-% kernel function for evaluating the double layer potential.  kernel
-% can be a call to a FMM, but for certain computations, direct
-% summation is faster, so also want kernelDirect
+% COMPUTE FIBRE-FIBRE DLP
 if o.ifmm
   kernel = @potFibers.exactStokesDLfmm;
 else
@@ -317,10 +278,9 @@ if o.inear
 else
   ffdlp = kernel(geom,etaFibers);
 end
-% END COMPUTING FIBRE-FIBRE DLP
 
 
-% START COMPUTING WALL-FIBRE DLP
+% COMPUTE WALL-FIBRE DLP
 if o.confined
    
    if o.ifmm
@@ -341,9 +301,8 @@ if o.confined
 else
     wfdlp = zeros(2*N,nv);
 end
-% END COMPUTING WALL-FIBRE DLP
 
-% START COMPUTING FIBRE-WALL DLP
+% COMPUTE FIBRE-WALL DLP
 if o.confined
    
    if o.ifmm
@@ -364,7 +323,6 @@ if o.confined
 else
     fwdlp = zeros(2*N,nv);
 end
-% END COMPUTING FIBRE-WALL DLP
 
 % EVALUATE VELOCITY ON WALLS
 if o.confined
@@ -436,34 +394,34 @@ end % preconditioner
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function vInf = bgFlow(o,X,type)
+function vInf = bgFlow(o,X,options)
 
 N = size(X,1)/2;
 nv = size(X,2);
+[x,y] = oc.getXY(X);
 
-if strcmp(type,'shear')
-  vInf = [X(end/2+1:end,:);zeros(N,nv)];
-elseif strcmp(type,'extensional')
-  vInf = [X(1:end/2,:);-X(end/2+1:end,:)];
-elseif strcmp(type, 'poiseuille')
-    %poiseuille flow with 0s at -100 and 100
-    vInf = [-(X(end/2+1:end,:) - 15).*(X(end/2+1:end,:) + 15)/(10^2); zeros(N,nv)];
-elseif strcmp(type, 'rotlet')
-    %rotlet centered at (0,0)
-    rot = @(x, y, xc, yc) 1./((x-xc).^2+(y-yc).^2).*[(y-yc), -(x-xc)];
-    
-    vInf = zeros(size(X));
-    
-    for i = 1:N
+if options.confined
+    switch options.farField
+        case 'shear'
+          vInf = [X(end/2+1:end,:);zeros(N,nv)];  
         
-        for j = 1:nv
-            rotTmp = rot(X(i,j), X(i+N,j), 0, 0) + rot(X(i,j), X(i+N,j), 4, 4);
-            vInf(i,j) = rotTmp(1);
-            vInf(i+N,j) = rotTmp(2);
-        end
+        case 'extenstional'
+          vInf = [X(1:end/2,:);-X(end/2+1:end,:)];
+          
+        otherwise
+           vInf = [ones(N,nv);zeros(N,nv)];           
     end
 else
-  vInf = [ones(N,nv);zeros(N,nv)];
+    switch options.farField
+        case 'constant'
+          vInf = [ones(N,nv);zeros(N,nv)];    
+          
+        case 'couette'
+            vInf = [zeros(2*N,1) 1*[-y(:,2)+mean(y(:,2));x(:,2)-mean(x(:,2))]];
+            
+        otherwise
+         vInf = [zeros(N,nv);zeros(N,nv)];     
+    end
 end
 
 end % bgFlow
