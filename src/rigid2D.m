@@ -1,4 +1,4 @@
-function [Xfinal] = rigid2D(options, prams, xc, tau)
+function [Xfinal] = rigid2D(options, prams, xc, tau, xWalls)
 
 % delete(gcp('nocreate'))
 % parpool(options.n_cores_matlab)   

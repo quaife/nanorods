@@ -14,7 +14,6 @@ properties
   interpMat;  
   profile;
   om;
-  Dup;
   
 end % properties
 
@@ -396,8 +395,7 @@ end % exactStokesDLdiag
 % COMPUTE LAYER POTENTIAL DUE TO VESICLES INDEXED IN K1 AT 
 % TARGET POINTS Xtar
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function [stokesDLP,stokesDLPtar] = ...
-    exactStokesDL(o,geom,f,D,Xtar,K1)
+function [stokesDLP,stokesDLPtar] = exactStokesDL(o,geom,f,Xtar,K1)
 % [stokesDLP,stokesDLPtar] = exactStokesDL(geom,f,Xtar,K1) computes the
 % double-layer potential due to f around all parts of the geometry
 % except itself.  Also can pass a set of target points Xtar and a
@@ -497,8 +495,7 @@ end
 end % exactStokesDL
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function [stokesDLP,stokesDLPtar] = ...
-    exactStokesDLfmm(o,geom,f, D, Xtar,K)
+function [stokesDLP,stokesDLPtar] = exactStokesDLfmm(o,geom,f, D, Xtar,K)
 % [stokesDLP,stokeDLPtar] = exactStokesDLfmm(geom,f,Xtar,K) uses the
 % FMM to compute the double-layer potential due to all geoms except
 % itself geom is a class of object capsules and f is the density
@@ -620,8 +617,7 @@ end
 end % exactStokesDLfmm
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function [laplaceDLP,laplaceDLPtar] = ...
-    exactLaplaceDL(o,vesicle,f,Xtar,K1)
+function [laplaceDLP,laplaceDLPtar] = exactLaplaceDL(o,vesicle,f,Xtar,K1)
 % pot = exactLaplaceDL(vesicle,f,Xtar,K1) computes the double-layer
 % laplace potential due to f around all vesicles except itself.  Also
 % can pass a set of target points Xtar and a collection of vesicles K1

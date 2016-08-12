@@ -239,12 +239,15 @@ function Tx = timeMatVec(o,Xn,geom,walls)
 % fiber1: u, v fiber2: u, v ... fiberNv: u, v
 % fiber1: omega fiber2: omega ... fiberNv: omega
 
+if o.profile
+    tMatvec = tic;
+end
+
 N = geom.N; % points per body
+nv = geom.nv; % number of bodies
+
 potFibers = o.opFibers;
 potWalls = o.opWall;
-
-% this can be setup as a property of tstep if it is too expensive
-nv = geom.nv; % number of bodies
 
 if o.confined
     Nbd = walls.N;
@@ -254,15 +257,14 @@ else
     nv = 0;
 end
 
-valFibers = zeros(2*N,nv);
 % Output of Tx that corresponds to the velocity of the fibers
-valWalls = zeros(2*Nbd,nvbd);
+valFibers = zeros(2*N,nv);
 % Output of Tx that corresponds to the velocity of the walls
-valForce = zeros(2,nv);
+valWalls = zeros(2*Nbd,nvbd);
 % output of Tx that corresponds to force caused by density function
-valTorque = zeros(nv,1);
+valForce = zeros(2,nv);
 % output of Tx that corresponds to torque caused by density function
-
+valTorque = zeros(nv,1);
 
 % extract density function for fibers
 etaFibers = zeros(2*N,nv);
@@ -286,14 +288,20 @@ for k = 1:nv
   wp(k) = Xn(2*N*nv+2*Nbd*nvbd+2*nv+k);
 end
 
+% Jump term in double-layer potential
 valFibers = valFibers - 1/2*etaFibers;
 valWalls = valWalls - 1/2*etaWalls;
-% Jump term in double-layer potential
 
+% self contribution
 valFibers = valFibers + potFibers.exactStokesDLdiag(geom, o.DFibers, etaFibers);
 valWalls = valWalls + potWalls.exactStokesDLdiag(walls, o.DWalls, etaWalls);
-% self contribution
 
+
+% START COMPUTING FIBRE-FIBRE DLP
+
+% kernel function for evaluating the double layer potential.  kernel
+% can be a call to a FMM, but for certain computations, direct
+% summation is faster, so also want kernelDirect
 if o.ifmm
   kernel = @potFibers.exactStokesDLfmm;
 else
@@ -301,27 +309,19 @@ else
 end
 
 kernelDirect = @potFibers.exactStokesDL;
-% kernel function for evaluating the double layer potential.  kernel
-% can be a call to a FMM, but for certain computations, direct
-% summation is faster, so also want kernelDirect
 
-if o.profile
-    tMatvec = tic;
-end
-
-% START COMPUTING FIBRE-FIBRE DLP
 if o.inear
   DLP = @(X) potFibers.exactStokesDLdiag(geom,o.DFibers,X) - 1/2*X;
-  Fdlp = potFibers.nearSingInt(geom,eta,DLP,o.DupFibers,o.nearStruct,kernel,kernelDirect,geom,true,false);
+  ffdlp = potFibers.nearSingInt(geom,eta,DLP,o.nearStruct,kernel,...
+        kernelDirect,geom,true,false);
 else
-  Fdlp = kernel(geom,eta);
+  ffdlp = kernel(geom,etaFibers);
 end
 % END COMPUTING FIBRE-FIBRE DLP
 
 
 % START COMPUTING WALL-FIBRE DLP
 if o.confined
-   potWall = o.opWall;
    
    if o.ifmm
         kernel = @potWall.exactStokesDLfmm;       
@@ -333,30 +333,49 @@ if o.confined
    
    if o.inear
        DLP = @(X) potWalls.exactStokesDLdiag(walls, o.DWalls, X) - 1/2*X;
-       FWallFibreDLP = potWalls.nearSingInt(walls, etaWalls, DLP, o.DupWalls, o.nearStruct, ...
-           kernel, kernelDirect,walls,true,false);
+       wfdlp = potWalls.nearSingInt(geom, etaWalls, DLP, o.nearStruct, ...
+           kernel, kernelDirect,walls,false,false);
    else
-       FWallFibreDLP = kernal(walls, etaWalls);
+       wfdlp = kernal(geom, etaWalls);
    end
 else
-    FWallFibreDLP = zeros(2*N,nv);
+    wfdlp = zeros(2*N,nv);
 end
-% END COMPUTING WALL-FIBRES DLP
+% END COMPUTING WALL-FIBRE DLP
 
-if o.profile
-    o.om.writeMessage(['Matvec assembly completed in ', num2str(toc(tMatvec)), ' seconds']);
+% START COMPUTING FIBRE-WALL DLP
+if o.confined
+   
+   if o.ifmm
+        kernel = @potWall.exactStokesDLfmm;       
+   else
+       kernel = @potwall.exactStokesDL;
+   end
+   
+   kernelDirect = @potWall.exactStokesDL;
+   
+   if o.inear
+       DLP = @(X) potWalls.exactStokesDLdiag(walls, o.DWalls, X) - 1/2*X;
+       fwdlp = potWalls.nearSingInt(walls, etaWalls, DLP, o.nearStruct, ...
+           kernel, kernelDirect,geom,false,false);
+   else
+       fwdlp = kernal(walls, etaFibers);
+   end
+else
+    fwdlp = zeros(2*N,nv);
 end
+% END COMPUTING FIBRE-WALL DLP
 
 % EVALUATE VELOCITY ON WALLS
 if o.confined
     valWalls = valWalls - 1/2*etaWalls + potWalls.exactStokesDLdiag(walls, o.DWall, etaWalls);
     valWalls(:,1) = valWalls(:,1) + potWalls.exactStokesN0diag(walls, o.N0wall, etaWalls(:,1));
     
-    valWalls = valWalls + FWallFibreDLP;
+    valWalls = valWalls + fwdlp;
 end
 
 % EVALUATE VELOCITY ON FIBERS
-valFibers = valFibers + Fdlp + potWalls.exactStokesDL(geom,etaFibers,D,Xtar,K1);
+valFibers = valFibers + ffdlp + potWalls.exactStokesDL(geom,etaFibers,D,Xtar,K1);
 
 for k = 1:nv
   valFibers(1:end/2,k) = valFibers(1:end/2,k) - Up(1,k);
@@ -380,6 +399,10 @@ for k = 1:nv
 end
 
 Tx = [valFibers(:); valWalls(:); -valForce(:);-valTorque(:)];
+
+if o.profile
+    o.om.writeMessage(['Matvec assembly completed in ', num2str(toc(tMatvec)), ' seconds']);
+end
 
 end % timeMatVec
 
