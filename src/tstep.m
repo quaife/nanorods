@@ -262,6 +262,10 @@ valFibers = valFibers + potFibers.exactStokesDLdiag(geom, o.DFibers, etaFibers);
 valWalls = valWalls + potWalls.exactStokesDLdiag(walls, o.DWalls, etaWalls);
 
 
+% START OF SOURCE == FIBRES
+
+
+% START OF TARGET == FIBRES
 % COMPUTE FIBRE-FIBRE DLP
 if o.ifmm
   kernel = @potFibers.exactStokesDLfmm;
@@ -278,8 +282,10 @@ if o.inear
 else
   ffdlp = kernel(geom,etaFibers);
 end
+% END OF TARGET == FIBRES
 
 
+% START OF TARGET == WALLS 
 % COMPUTE WALL-FIBRE DLP
 if o.confined
    
