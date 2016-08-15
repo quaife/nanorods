@@ -45,6 +45,8 @@ o.gmresTol = prams.gmresTol;
 o.farField = @(X) o.bgFlow(X,options); 
 o.om = om;
 
+N = prams.N;
+Nbd = prams.Nbd;
 
 % CREATE CLASSES TO EVALUATE POTENTIALS ON FIBRES AND WALLS
 o.opFibers = poten(prams.N, om);
@@ -56,29 +58,27 @@ else
 end
 
 % CREATE MATRICES FOR FIBRE-FIBRE SELF INTERATIONS AND 
-% WALL-WALL INTERACTIONS
+% WALL-WALL SELF INTERACTIONS
 o.Df = o.opFibers.stokesDLmatrix(geom);
 o.Dw = o.opWall.stokesDLmatrix(walls);
 
 % CREATE UPSAMPLES MATRICES
 % FIBRE-FIBRE
 Xsou = geom.X; 
-Nsou = size(Xsou,1)/2; 
-Nup = Nsou*ceil(sqrt(Nsou));
+Nup = N*ceil(sqrt(N));
 
-Xup = [interpft(Xsou(1:Nsou,:),Nup);...
-       interpft(Xsou(Nsou+1:2*Nsou,:),Nup)];
+Xup = [interpft(Xsou(1:N,:),Nup);...
+       interpft(Xsou(N+1:2*N,:),Nup)];
 
 geomUp = capsules([],Xup);
 o.Dupf = o.opFibers.stokesDLmatrix(geomUp);
 
 % WALL-WALL
 Xsou = walls.X; 
-Nsou = size(Xsou,1)/2; 
-Nup = Nsou*ceil(sqrt(Nsou));
+Nup = Nsou*ceil(sqrt(Nbd));
 
-Xup = [interpft(Xsou(1:Nsou,:),Nup);...
-       interpft(Xsou(Nsou+1:2*Nsou,:),Nup)];
+Xup = [interpft(Xsou(1:Nbd,:),Nup);...
+       interpft(Xsou(Nbd+1:2*Nbd,:),Nup)];
 
 wallsUp = capsules([],Xup);
 o.Dupw = o.opFibers.stokesDLmatrix(wallsUp);
@@ -90,29 +90,46 @@ if o.usePreco
         tic;
     end
     
-  o.bdiagPreco.L = zeros(2*N+3,2*N+3,nv);
-  o.bdiagPreco.U = zeros(2*N+3,2*N+3,nv);
-  for k = 1:nv
-    [o.bdiagPreco.L(:,:,k),o.bdiagPreco.U(:,:,k)] = lu([...
-      -1/2*eye(2*N)+o.D(:,:,k) ...
-        [-ones(N,1);zeros(N,1)] ...
-        [zeros(N,1);-ones(N,1)] ...
-        [geom.X(end/2+1:end,k)-geom.center(2,k);...
-          -geom.X(1:end/2,k)+geom.center(1,k)];
-        [-geom.sa(:,k)'*2*pi/N zeros(1,N) 0 0 0];
-        [zeros(1,N) -geom.sa(:,k)'*2*pi/N 0 0 0];
-        [(-geom.X(end/2+1:end,k)'+geom.center(2,k)).*...
-            geom.sa(:,k)'*2*pi/N ...
-         (geom.X(1:end/2,k)'-geom.center(1,k)).*...
-            geom.sa(:,k)'*2*pi/N 0 0 0]]);
-    % whole diagonal block which doesn't have a null space
-  end
-  
-  if o.profile
-      o.om.writeMessage(['Building preconditioner ... ', num2str(toc)]);
-  end
-  
-% CREATE RIGHT HAND SIDE
+    if o.confined
+        o.bdiagPreco.L = zeros(2*N+3,2*N+3,nv);
+        o.bdiagPreco.U = zeros(2*N+3,2*N+3,nv);
+        for k = 1:nv
+            [o.bdiagPreco.L(:,:,k),o.bdiagPreco.U(:,:,k)] =...
+                lu([-1/2*eye(2*N)+o.D(:,:,k) ...
+                [-ones(N,1);zeros(N,1)] ...
+                [zeros(N,1);-ones(N,1)] ...
+                [geom.X(end/2+1:end,k)-geom.center(2,k); -geom.X(1:end/2,k)+geom.center(1,k)];...
+                [-geom.sa(:,k)'*2*pi/N zeros(1,N) 0 0 0];
+                [zeros(1,N) -geom.sa(:,k)'*2*pi/N 0 0 0];
+                [(-geom.X(end/2+1:end,k)'+geom.center(2,k)).*geom.sa(:,k)'*2*pi/N ...
+                (geom.X(1:end/2,k)'-geom.center(1,k)).*geom.sa(:,k)'*2*pi/N 0 0 0]]);
+            
+            % whole diagonal block which doesn't have a null space
+        end
+        
+    else
+        o.bdiagPreco.L = zeros(2*N+3,2*N+3,nv);
+        o.bdiagPreco.U = zeros(2*N+3,2*N+3,nv);
+        for k = 1:nv
+            [o.bdiagPreco.L(:,:,k),o.bdiagPreco.U(:,:,k)] =...
+                lu([-1/2*eye(2*N)+o.D(:,:,k) ...
+                [-ones(N,1);zeros(N,1)] ...
+                [zeros(N,1);-ones(N,1)] ...
+                [geom.X(end/2+1:end,k)-geom.center(2,k); -geom.X(1:end/2,k)+geom.center(1,k)];...
+                [-geom.sa(:,k)'*2*pi/N zeros(1,N) 0 0 0];
+                [zeros(1,N) -geom.sa(:,k)'*2*pi/N 0 0 0];
+                [(-geom.X(end/2+1:end,k)'+geom.center(2,k)).*geom.sa(:,k)'*2*pi/N ...
+                (geom.X(1:end/2,k)'-geom.center(1,k)).*geom.sa(:,k)'*2*pi/N 0 0 0]]);
+            
+            % whole diagonal block which doesn't have a null space
+        end
+    end
+    
+    if o.profile
+        o.om.writeMessage(['Building preconditioner ... ', num2str(toc)]);
+    end
+    
+    % CREATE RIGHT HAND SIDE
 if options.confined
     rhs = o.farField(walls.X);
     o.rhs = [zeros(2*N*nv,1); rhs; zeros(3*nv,1)];    
@@ -163,7 +180,7 @@ for i = 1:nv
 end
 
 % SOLVE SYSTEM USING GMRES
-maxit = 2*N*nv;%should be a lot lower than this
+maxit = 2*N*nv;% should be a lot lower than this
 if ~o.usePreco
   [Xn,iflag,res,I] = gmres(@(X) o.timeMatVec(X,geom),o.rhs,[],o.gmresTol,...
       maxit);
@@ -226,24 +243,24 @@ potWalls = o.opWall;
 valFibers = zeros(2*N,nv);
 % Output of Tx that corresponds to the velocity of the walls
 valWalls = zeros(2*Nbd,nvbd);
-% output of Tx that corresponds to force caused by density function
+% output of Tx that corresponds to force on fibres
 valForce = zeros(2,nv);
-% output of Tx that corresponds to torque caused by density function
+% output of Tx that corresponds to torque on fibres
 valTorque = zeros(nv,1);
 
-% extract density function for fibers
+% EXTRACT DENSITY FUNCTION FOR FIBRES
 etaFibers = zeros(2*N,nv);
 for k = 1:nv
   etaFibers(:,k) = Xn((k-1)*2*N+1:k*2*N);
 end
 
-% extract density function for walls
+% EXTRACT DENSITY FUNCTION FOR WALLS
 etaWalls = zeros(2*Nbd,nvbd);
 for k = 1:nvbd
   etaWalls(:,k) = Xn(2*N*nv+1+(k-1)*Nbd:2*N*nv+1+k*Nbd);
 end
 
-% extract translational and rotational velocities
+% EXTRACT TRANSLATIONAL AND ROTATIONAL VELOCITIES OF FIBRES
 Up = zeros(2,nv);
 for k = 1:nv
   Up(:,k) = Xn(2*N*nv+2*Nbd*nvbd+1+2*(k-1):2*N*nv+2*Nbd*nvbd+1+2*k);
@@ -253,16 +270,15 @@ for k = 1:nv
   wp(k) = Xn(2*N*nv+2*Nbd*nvbd+2*nv+k);
 end
 
-% Jump term in double-layer potential
+% ADD JUMP IN DLP
 valFibers = valFibers - 1/2*etaFibers;
 valWalls = valWalls - 1/2*etaWalls;
 
-% self contribution
-valFibers = valFibers + potFibers.exactStokesDLdiag(geom, o.DFibers, etaFibers);
-valWalls = valWalls + potWalls.exactStokesDLdiag(walls, o.DWalls, etaWalls);
+% ADD SELF CONTRIBUTION
+valFibers = valFibers + potFibers.exactStokesDLdiag(geom, o.Df, etaFibers);
+valWalls = valWalls + potWalls.exactStokesDLdiag(walls, o.Dw, etaWalls);
 
-
-% COMPUTE FIBRE-FIBRE DLP
+% COMPUTE FIBRE-FIBRE DLP (source = fibres, targets = fibres)
 if o.ifmm
   kernel = @potFibers.exactStokesDLfmm;
 else
@@ -272,29 +288,28 @@ end
 kernelDirect = @potFibers.exactStokesDL;
 
 if o.inear
-  DLP = @(X) potFibers.exactStokesDLdiag(geom,o.DFibers,X) - 1/2*X;
-  ffdlp = potFibers.nearSingInt(geom,eta,DLP,o.nearStruct,kernel,...
-        kernelDirect,geom,true,false);
+  DLP = @(X) potFibers.exactStokesDLdiag(geom,o.Df,X) - 1/2*X;
+  ffdlp = potFibers.nearSingInt(geom, etaFibres, DLP, o.nearStruct ,kernel,...
+        kernelDirect, geom, true, false);
 else
-  ffdlp = kernel(geom,etaFibers);
+  ffdlp = kernel(geom, etaFibers);
 end
 
-
-% COMPUTE WALL-FIBRE DLP
+% COMPUTE WALL-FIBRE DLP (source = walls, targets = fibres)
 if o.confined
    
    if o.ifmm
-        kernel = @potWall.exactStokesDLfmm;       
+        kernel = @potFibres.exactStokesDLfmm;       
    else
-       kernel = @potwall.exactStokesDL;
+       kernel = @potFibres.exactStokesDL;
    end
    
-   kernelDirect = @potWall.exactStokesDL;
+   kernelDirect = @potFibres.exactStokesDL;
    
    if o.inear
-       DLP = @(X) potWalls.exactStokesDLdiag(walls, o.DWalls, X) - 1/2*X;
-       wfdlp = potWalls.nearSingInt(geom, etaWalls, DLP, o.nearStruct, ...
-           kernel, kernelDirect,walls,false,false);
+       DLP = @(X) potFibres.exactStokesDLdiag(geom, o.Df, X);
+       wfdlp = potWalls.nearSingInt(walls, etaWalls, DLP, o.nearStruct, ...
+           kernel, kernelDirect, geom, false, false);
    else
        wfdlp = kernal(geom, etaWalls);
    end
@@ -302,7 +317,7 @@ else
     wfdlp = zeros(2*N,nv);
 end
 
-% COMPUTE FIBRE-WALL DLP
+% COMPUTE FIBRE-WALL DLP (source = fibres, targets = wall)
 if o.confined
    
    if o.ifmm
@@ -314,22 +329,14 @@ if o.confined
    kernelDirect = @potWall.exactStokesDL;
    
    if o.inear
-       DLP = @(X) potWalls.exactStokesDLdiag(walls, o.DWalls, X) - 1/2*X;
-       fwdlp = potWalls.nearSingInt(walls, etaWalls, DLP, o.nearStruct, ...
-           kernel, kernelDirect,geom,false,false);
+       DLP = @(X) potWalls.exactStokesDLdiag(walls, o.Dw, X);
+       fwdlp = potWalls.nearSingInt(geom, etaFibres, DLP, o.nearStruct, ...
+           kernel, kernelDirect, walls, false, false);
    else
        fwdlp = kernal(walls, etaFibers);
    end
 else
     fwdlp = zeros(2*N,nv);
-end
-
-% EVALUATE VELOCITY ON WALLS
-if o.confined
-    valWalls = valWalls - 1/2*etaWalls + potWalls.exactStokesDLdiag(walls, o.DWall, etaWalls);
-    valWalls(:,1) = valWalls(:,1) + potWalls.exactStokesN0diag(walls, o.N0wall, etaWalls(:,1));
-    
-    valWalls = valWalls + fwdlp;
 end
 
 % EVALUATE VELOCITY ON FIBERS
@@ -345,17 +352,28 @@ for k = 1:nv
   valFibers(end/2+1:end,k) = valFibers(end/2+1:end,k) - (geom.X(1:end/2,k) - geom.center(1,k))*wp(k);
 end
 
+% EVALUATE VELOCITY ON WALLS
+if o.confined
+    valWalls = valWalls - 1/2*etaWalls + potWalls.exactStokesDLdiag(walls, o.DWall, etaWalls);
+    valWalls(:,1) = valWalls(:,1) + potWalls.exactStokesN0diag(walls, o.N0wall, etaWalls(:,1));
+    
+    valWalls = valWalls + fwdlp;
+end
+
+% EVALUTATE FORCES ON FIBRES
 for k = 1:nv
   valForce(1,k) = sum(eta(1:N,k).*geom.sa(:,k))*2*pi/N;
   valForce(2,k) = sum(eta(N+1:2*N,k).*geom.sa(:,k))*2*pi/N;
 end
 
+% EVALUATE TORQUES ON FIBRES
 for k = 1:nv
   valTorque(k) = sum(((geom.X(N+1:2*N,k)-geom.center(2,k)).*eta(1:N,k) - ...
                      ((geom.X(1:N,k)-geom.center(1,k)).*eta(N+1:2*N,k))).*...
                      geom.sa(:,k))*2*pi/N;
 end
 
+% CONSTRUCT OUTPUT VECTOR
 Tx = [valFibers(:); valWalls(:); -valForce(:);-valTorque(:)];
 
 if o.profile
