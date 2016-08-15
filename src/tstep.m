@@ -278,7 +278,10 @@ valWalls = valWalls - 1/2*etaWalls;
 valFibers = valFibers + potFibers.exactStokesDLdiag(geom, o.Df, etaFibers);
 valWalls = valWalls + potWalls.exactStokesDLdiag(walls, o.Dw, etaWalls);
 
-% COMPUTE FIBRE-FIBRE DLP (source = fibres, targets = fibres)
+% START OF SOURCE == FIBRES
+
+% START OF TARGET == FIBRES
+% COMPUTE FIBRE-FIBRE DLP
 if o.ifmm
   kernel = @potFibers.exactStokesDLfmm;
 else
@@ -294,8 +297,10 @@ if o.inear
 else
   ffdlp = kernel(geom, etaFibers);
 end
+% END OF TARGET == FIBRES
 
-% COMPUTE WALL-FIBRE DLP (source = walls, targets = fibres)
+% START OF TARGET == WALLS 
+% COMPUTE WALL-FIBRE DLP
 if o.confined
    
    if o.ifmm
@@ -316,8 +321,12 @@ if o.confined
 else
     wfdlp = zeros(2*N,nv);
 end
+% END OF TARGET == WALLS
 
-% COMPUTE FIBRE-WALL DLP (source = fibres, targets = wall)
+% START OF SOURCE == WALLS
+
+% START OF TARGET == FIBERS
+% COMPUTE FIBRE-WALL DLP
 if o.confined
    
    if o.ifmm
@@ -338,6 +347,11 @@ if o.confined
 else
     fwdlp = zeros(2*N,nv);
 end
+
+% WALL-WALL INTERACTIONS ARE COMPUTED IN CONSTRUCTOR
+
+% END OF SOURCE == WALLS
+
 
 % EVALUATE VELOCITY ON FIBERS
 valFibers = valFibers + ffdlp + potWalls.exactStokesDL(geom,etaFibers,D,Xtar,K1);
