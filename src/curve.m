@@ -122,14 +122,18 @@ end % redistributeArcLength
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function Xwalls = createWalls(o, N, options)
-
+    
 t = (0:N-1)'*2*pi/N;
-if any(strcmp(options,'circle'))
-  x = 20*cos(t)+cen(1,1);
-  y = 20*sin(t)+cen(2,1);
-  Xwalls = o.setXY(x,y);
+cen = [0;0];
+
+switch options.farField
+    case 'couette'
+        x = 20*cos(t)+cen(1,1);
+        y = 20*sin(t)+cen(2,1);
+        Xwalls = o.setXY(x,y);
+
 end
-   
+    
 end % createWalls
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function [theta,arcLength] = arcLengthParameter(o,x,y)
