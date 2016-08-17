@@ -8,9 +8,10 @@ ttotal = tic;
 %geom = capsules(prams, xc, tau);
 
 geom = capsules(prams, xc, tau);
+walls = capsules(prams, xWalls);
 om = monitor(options, prams);
-tt = tstep(options, prams, om, geom);
-op = poten(om);
+tt = tstep(options, prams, om, geom, walls);
+potF = poten(geom.N,om);
 
 if (om.profile)
     profile on;
@@ -54,7 +55,7 @@ while time < prams.T
     
     geom = capsules(prams, xc, tau);
     
-    [density,Up,wp,iter,flag,res] = tt.timeStep(geom, tt.dt*wp);
+    [density,Up,wp,iter,flag,res] = tt.timeStep(geom, tt.dt*wp,walls);
     
     % update centres and angles
     if (iT == 1 || options.tstep_order == 1) % use forward Euler
@@ -78,7 +79,7 @@ while time < prams.T
     
     % check for collisions
     [near,~] = geom.getZone(geom,1);
-    icollision = geom.collision(near,options.ifmm, options.inear, op, om);
+    icollision = geom.collision(near,options.ifmm, options.inear, potF, om);
     
     if (icollision)
         om.writeMessage('WARNING: COLLISION DETECTED');
