@@ -450,7 +450,7 @@ end % preconditioner
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function vInf = bgFlow(o,X,options)
-
+    
 N = size(X,1)/2;
 nv = size(X,2);
 oc = curve;
@@ -459,28 +459,29 @@ oc = curve;
 
 if options.confined
     switch options.farField
-        case 'shear'
-          vInf = [X(end/2+1:end,:);zeros(N,nv)];  
-        
-        case 'extenstional'
-          vInf = [X(1:end/2,:);-X(end/2+1:end,:)];
-          
+        case 'constant'
+            vInf = [ones(N,nv);zeros(N,nv)];
+
+        case 'couette'
+            vInf = 1*[-y(:,1)+mean(y(:,1));x(:,1)-mean(x(:,1))];
+
         otherwise
-           vInf = [ones(N,nv);zeros(N,nv)];           
+            vInf = [zeros(N,nv);zeros(N,nv)];
     end
 else
     switch options.farField
-        case 'constant'
-          vInf = [ones(N,nv);zeros(N,nv)];    
-          
-        case 'couette'
-            vInf = [zeros(2*N,1) 1*[-y(:,2)+mean(y(:,2));x(:,2)-mean(x(:,2))]];
-            
-        otherwise
-         vInf = [zeros(N,nv);zeros(N,nv)];     
-    end
-end
+        case 'shear'
+            vInf = [X(end/2+1:end,:);zeros(N,nv)];
 
+        case 'extenstional'
+            vInf = [X(1:end/2,:);-X(end/2+1:end,:)];
+
+        otherwise
+            vInf = [ones(N,nv);zeros(N,nv)];
+    end
+
+end
+    
 end % bgFlow
 
 
