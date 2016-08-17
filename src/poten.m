@@ -10,6 +10,7 @@ classdef poten
 % potentials using near-singular integration.
     
 properties
+    
   N; % points per curve
   interpMat;  
   profile;
@@ -30,17 +31,6 @@ o.interpMat = o.lagrangeInterp;
 o.om = om;
 o.profile = om.profile;
 o.N = N;
-
-% Xsou = geom.X; % source positions
-% Nsou = size(Xsou,1)/2; % number of source points
-% Nup = Nsou*ceil(sqrt(Nsou));
-% 
-% Xup = [interpft(Xsou(1:Nsou,:),Nup);...
-%        interpft(Xsou(Nsou+1:2*Nsou,:),Nup)];
-% 
-% geomUp = capsules([],Xup);
-% 
-% o.Dup = o.stokesDLmatrix(geomUp);
 
 end % poten: constructor
 
@@ -282,7 +272,7 @@ end % nearSingInt
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function D = stokesDLmatrix(o,geom)
 % D = stokesDLmatrix(geom), generate double-layer potential for 
-% Stokes geom is a data structure defined as in the capsules class
+% Stokes. geom is a data structure defined as in the capsules class
 % D is (2N,2N,nv) array where N is the number of points per curve and 
 % nv is the number of curves in X 
 
@@ -395,7 +385,7 @@ end % exactStokesDLdiag
 % COMPUTE LAYER POTENTIAL DUE TO VESICLES INDEXED IN K1 AT 
 % TARGET POINTS Xtar
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function [stokesDLP,stokesDLPtar] = exactStokesDL(o,geom,f,Xtar,K1)
+function [stokesDLP,stokesDLPtar] = exactStokesDL(o, geom, f, D, Xtar,K1)
 % [stokesDLP,stokesDLPtar] = exactStokesDL(geom,f,Xtar,K1) computes the
 % double-layer potential due to f around all parts of the geometry
 % except itself.  Also can pass a set of target points Xtar and a
@@ -812,13 +802,61 @@ end
 
 end % exactLaplaceDLfmm
 
-
-
-
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % END OF ROUTINES THAT EVALUATE LAYER-POTENTIALS
 % WHEN SOURCES ~= TARGETS
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+function N0 = stokesN0matrix(o,wall)
+% N0 = stokesN0matrix(vesicle) generates the the integral operator with kernel
+% normal(x) \otimes normal(y) which removes the rank one defficiency of the
+% double-layer potential.  Need this operator for solid walls
+
+oc = curve;
+[x,y] = oc.getXY(wall.X); % Vesicle positions
+
+normal = [wall.xt(wall.N+1:2*wall.N,:);...
+         -wall.xt(1:wall.N,:)]; % Normal vector
+normal = normal(:,ones(2*wall.N,1));
+
+sa = [wall.sa(:,1);wall.sa(:,1)];
+sa = sa(:,ones(2*wall.N,1));
+N0 = zeros(2*wall.N,2*wall.N,wall.nv);
+N0(:,:,1) = normal.*normal'.*sa'*2*pi/wall.N;
+% Use N0 if solving (-1/2 + DLP)\eta = f where f has no flux through
+% the boundary.  By solving (-1/2 + DLP + N0)\eta = f, we guarantee
+% that \eta also has no flux through the boundary.  This is not
+% required, but it means we're enforcing one addition condition on eta
+% which removes the rank one kernel.  DLP is the double-layer potential
+% for stokes equation
+
+end % stokesN0matrix
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+function N0 = exactStokesN0diag(o,wall,N0,f)
+% DLP = exactStokesN0diag(vesicle,f) computes the diagonal term of the
+% modification of the double-layer potential due to f around outermost
+% vesicle.  Source and target points are the same.  This uses trapezoid
+% rule
+if isempty(N0)
+  N = size(f,1)/2;
+  oc = curve;
+  [fx,fy] = oc.getXY(f(:,1));
+  fx = fx.*wall.sa(:,1);
+  fy = fy.*wall.sa(:,1);
+  [tx,ty] = oc.getXY(wall.xt(:,1));
+  % tangent vector
+  const = sum(ty.*fx - tx.*fy)*2*pi/N;
+  % function to be integrated is dot product of normal with density
+  % function
+  N0 = zeros(2*N,1);
+  N0 = const*[ty;-tx];
+else
+  N0 = N0(:,:,1)*f(:,1);
+end
+
+end % exactStokesN0diag
 
 end % methods
 
