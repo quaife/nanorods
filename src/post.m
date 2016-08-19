@@ -4,6 +4,7 @@ classdef post
 properties
 dataFile       
 densityFile
+geomFile
 
 widths;
 lengths;
@@ -19,11 +20,19 @@ u_x;
 u_y;
 omega;
 
+tracker_pts;
+
 nv;
 N;
 tstep_order;
 fmm;
 near_singular;
+
+walls_x;
+walls_y;
+
+nw;
+Nbd;
 
 EPS;
 OUTPUTPATH_GIFS;
@@ -33,9 +42,10 @@ end % properties
 methods
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function o = post(dataFile, densityFile)
+function o = post(dataFile, geomFile, densityFile)
  
 o.dataFile = dataFile;
+o.geomFile = geomFile;
 o.densityFile = densityFile;
 
 N_LINES_HEAD = 7;
@@ -43,7 +53,7 @@ N_LINES_HEAD = 7;
 M = dlmread(o.dataFile, '', N_LINES_HEAD, 0);
 
 [~, nc] = size(M);
-o.nv = (nc - 1)/6;
+o.nv = (nc - 1)/7;
 
 o.lengths = nonzeros(M(1,1:o.nv));
 o.widths = nonzeros(M(2,1:o.nv));
@@ -60,7 +70,15 @@ o.centres_y = M(5:end,o.nv+2:2*o.nv+1);
 o.orientations = M(5:end,2*o.nv+2:3*o.nv+1);
 o.u_x = M(5:end, 3*o.nv+2:4*o.nv+1);
 o.u_y = M(5:end, 4*o.nv+2:5*o.nv+1);
-o.omega = M(5:end, 5*o.nv+2:end); 
+o.omega = M(5:end, 5*o.nv+2:6*o.nv+1);
+o.tracker_pts = M(5:end, 6*o.nv+2:end);
+
+% read geometry file
+M = dlmread(o.geomFile, ',', 0,0);
+o.walls_x = M(1:end/2,:);
+o.walls_y = M(end/2+1:end,:);
+
+[o.Nbd, o.nw] = size(M);
 
 % read density file
 M = dlmread(o.densityFile, '', 0, 0);
@@ -116,7 +134,6 @@ end % post : plot_fibres_with_stats
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function [] = plot_fibres(o, iT, xmin, xmax, ymin, ymax)
-    
     
     prams.N = o.N;
     prams.nv = o.nv;
@@ -275,7 +292,23 @@ o.plot_fibres(iT, xmin, xmax, ymin, ymax);
 title(sprintf('V at t = %6.3f', o.times(iT)));
 
 end % post : plot_fluid
+  
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+function [] = plot_walls(o,iT)
     
+    hold on;
+    for i = 1:o.nw
+        plot([o.walls_x(:,i);o.walls_x(1,i)], [o.walls_y(:,i);o.walls_y(1,i)],...
+                'r', 'linewidth', 2);
+    end
+    
+    %plot tracker points if any
+    [~,np] = size(o.tracker_pts);
+    
+    for i = 1:np/2
+       plot(o.tracker_pts(iT,2*(i-1)+1), o.tracker_pts(iT,2*(i-1)+2), 'b.', 'MarkerSize', 20); 
+    end
+end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function [] = animated_gif(o, gname, stride, itmax, type)
     
@@ -295,6 +328,8 @@ for i = 1:stride:itmax
     
     clf;
 
+    o.plot_walls(i);
+    hold on
 %     xmin = min(min(o.centres_x(i,:))) - max(o.lengths);
 %     xmax = max(max(o.centres_x(i,:))) + max(o.lengths);        
 %     ymin = min(min(o.centres_y(i,:))) - max(o.lengths);

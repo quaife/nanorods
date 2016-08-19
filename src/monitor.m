@@ -8,6 +8,7 @@ saveData        % save data to the dat files and log file
 dataFile        % name of data file containing fibre centres and orientations
 densityFile     % name of data file containing density function
 logFile         % name of log file
+geomFile        % name of geometry file
 profileFile     % name of profile folder
 append          % append new data to files
 
@@ -34,6 +35,7 @@ o.verbose = options.verbose;
 o.saveData = options.saveData;
 o.dataFile = [o.OUTPUTPATH_DATA, options.fileBase, '.dat'];
 o.densityFile = [o.OUTPUTPATH_DATA, options.fileBase, '_density.dat'];
+o.geomFile = [o.OUTPUTPATH_DATA, options.fileBase, '_geometry', '.dat'];
 o.logFile = [o.OUTPUTPATH_LOG, options.fileBase, '.log'];
 o.profileFile = [o.OUTPUTPATH_PROFILE, options.fileBase];
 
@@ -78,9 +80,12 @@ function clearFiles(o)
 fid1 = fopen(o.dataFile,'w');
 fid2 = fopen(o.densityFile,'w');
 fid3 = fopen(o.logFile,'w');
+fid4 = fopen(o.geomFile,'w');
+
 fclose(fid1);
 fclose(fid2);
 fclose(fid3);
+fclose(fid4);
 
 end % clearFiles
 
@@ -163,16 +168,25 @@ end
 end % writeMessage
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function writeData(o, t, c, tau, Ux, Uy, omega)
+function writeData(o, prams, t, c, tau, Ux, Uy, omega)
 % writeData(t, cp, tau) writes centre point and orientation of each fibre
 % to a csv file. This file can be read in to Matlab later for
 % postprocessing.
 
+if ~isempty(prams.tracker_fnc)
+   p = prams.tracker_fnc(t);
+end
 fid = fopen(o.dataFile,'a');
-fprintf(fid,'%s\n', num2str([t, c(1,:), c(2,:), tau, Ux, Uy, omega]));
+fprintf(fid,'%s\n', num2str([t, c(1,:), c(2,:), tau, Ux, Uy, omega, p']));
 fclose(fid);
 
 end % writeData
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+function writeGeometry(o, walls)
+   
+    dlmwrite(o.geomFile,walls.X);
+end % writeGeometry
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function writeDensity(o,t, eta)

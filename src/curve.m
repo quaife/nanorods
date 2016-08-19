@@ -124,14 +124,13 @@ end % redistributeArcLength
 function Xwalls = createWalls(o, N, options)
     
 t = (0:N-1)'*2*pi/N;
-cen = [0;0];
+cen = [0 0;0 0];
 
 switch options.farField
     case 'couette'
-        x = 20*cos(t)+cen(1,1);
-        y = 20*sin(t)+cen(2,1);
+        x = [20*cos(t)+cen(1,1), 5*cos(-t)+cen(1,2)];
+        y = [-20*sin(t)+cen(2,1), -5*sin(-t)+cen(2,2)];
         Xwalls = o.setXY(x,y);
-
 end
     
 end % createWalls
