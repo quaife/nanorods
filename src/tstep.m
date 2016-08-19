@@ -19,7 +19,6 @@ gmresTol     % GMRES tolerance
 nearStructff % near-singular integration structure (fibre-fibre)
 nearStructfw % near-singular integration structure (fibre-wall)
 nearStructwf % near-singular integration structure (wall-fibre)
-nearStructww % near-singular integration structure (wall-wall)
 farField     % background flow
 usePreco     % use a block-diagonal preconditioner
 precoF       % block-diagonal preconditioner for fibres
@@ -167,7 +166,6 @@ if o.inear
     o.nearStructff = geom.getZone([],1);
     
     if o.confined
-        o.nearStructww = walls.getZone([],1);
         [~,o.nearStructfw] = geom.getZone(walls,2);
         [~,o.nearStructwf] = walls.getZone(geom,2);
     end
@@ -363,7 +361,7 @@ if o.confined
        wfdlp = potWalls.nearSingInt(geom, etaF, DLP, o.Dupf, o.nearStructfw, ...
            kernel, kernelDirect, walls, false, false);
    else
-       wfdlp = kernal(geom, etaF);
+       wfdlp = kernel(geom, etaF);
    end
 else
     wfdlp = zeros(2*N,nbd);
@@ -387,7 +385,7 @@ if o.confined
        fwdlp = potFibers.nearSingInt(walls, etaW, DLP, o.Dupw, o.nearStructwf, ...
            kernel, kernelDirect, geom, false, false);
    else
-       fwdlp = kernal(walls, etaW);
+       fwdlp = kernel(walls, etaW);
    end
 else
     fwdlp = zeros(2*Nbd,nv);
@@ -396,22 +394,15 @@ end
 
 % START OF TARGET == WALLS
 if o.confined
-   
-   if o.ifmm
-        kernel = @potWalls.exactStokesDLfmm;       
-   else
-       kernel = @potwalls.exactStokesDL;
-   end
-   
-   kernelDirect = @potWalls.exactStokesDL;
-   
-   if o.inear
-       DLP = @(X) potWalls.exactStokesDLdiag(walls, o.Dw, X) - 1/2*X;
-       wwdlp = potWalls.nearSingInt(walls, etaW, DLP, o.Dupw, o.nearStructww, ...
-           kernel, kernelDirect, walls, true, false);
-   else
-       wwdlp = kernal(walls, etaW);
-   end
+    
+    if o.ifmm
+        kernel = @potWalls.exactStokesDLfmm;
+    else
+        kernel = @potwalls.exactStokesDL;
+    end
+    
+    wwdlp = kernel(walls, etaW);
+    
 else
     wwdlp = zeros(2*Nbd,nbd);
 end
