@@ -28,13 +28,13 @@ opWall       % class for wall layer potentials
 profile      % flag to time certain parts of code
 om           % monitor class
 confined     % flag to indicate whether flow is bounded
-
+tau0         % initial angles of fibres
 end % properties
 
 methods
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function o = tstep(options, prams, om, geom, walls)
+function o = tstep(options, prams, om, geom, walls, tau0)
 % o.tstep(options,prams): constructor.  Initialize class.  Take all
 % elements of options and prams needed by the time stepper
 
@@ -50,6 +50,7 @@ o.gmresTol = prams.gmresTol;
 
 o.farField = @(X) o.bgFlow(X,options); 
 o.om = om;
+o.tau0 = tau0;
 
 N = prams.N;
 Nbd = prams.Nbd;
@@ -102,23 +103,49 @@ if o.usePreco
     end
     
     if o.confined
-        o.precoF.L = zeros(2*N+3 + 2*Nbd,2*N+3 + 2*Nbd,nv);
-        o.precoF.U = zeros(2*N+3 + 2*Nbd,2*N+3 + 2*Nbd,nv);
+        
+        o.precoF.L = zeros(2*N+3,2*N+3,nv);
+        o.precoF.U = zeros(2*N+3,2*N+3,nv);
         for k = 1:nv
             [o.precoF.L(:,:,k),o.precoF.U(:,:,k)] =...
                 lu([-1/2*eye(2*N)+o.Df(:,:,k) ...
-                zeros(2*N, 2*Nbd)...
                 [-ones(N,1);zeros(N,1)] ...
                 [zeros(N,1);-ones(N,1)] ...
                 [geom.X(end/2+1:end,k)-geom.center(2,k); -geom.X(1:end/2,k)+geom.center(1,k)];...
-                [-geom.sa(:,k)'*2*pi/N zeros(1,N + 2*Nbd) 0 0 0];
-                [zeros(1,N + 2*Nbd) -geom.sa(:,k)'*2*pi/N 0 0 0];
+                [-geom.sa(:,k)'*2*pi/N zeros(1,N) 0 0 0];
+                [zeros(1,N) -geom.sa(:,k)'*2*pi/N 0 0 0];
                 [(-geom.X(end/2+1:end,k)'+geom.center(2,k)).*geom.sa(:,k)'*2*pi/N ...
-                (geom.X(1:end/2,k)'-geom.center(1,k)).*geom.sa(:,k)'*2*pi/N zeros(1, 2*Nbd + 3)]]);
+                (geom.X(1:end/2,k)'-geom.center(1,k)).*geom.sa(:,k)'*2*pi/N 0 0 0]]);
         end
         
-        o.precoF.L = zeros(2*N+3 + 2*Nbd,2*N+3 + 2*Nbd,nv);
-        o.precoF.U = zeros(2*N+3 + 2*Nbd,2*N+3 + 2*Nbd,nv);
+%         o.precoF.L = zeros(2*N,2*N,nv);
+%         o.precoF.U = zeros(2*N,2*N,nv);
+%         for k = 1:nv
+%             [o.precoF.L(:,:,k),o.precoF.U(:,:,k)] = lu(-1/2*eye(2*N)+o.Df(:,:,k));
+%         end
+%         
+        o.precoW.L = zeros(2*Nbd + 3,2*Nbd + 3,nbd);
+        o.precoW.U = zeros(2*Nbd + 3,2*Nbd + 3,nbd);
+%         
+%         oc = curve;
+%         [x,y] = oc.getXY(walls.X);
+%         [cx,cy] = oc.getXY(walls.center);
+        
+%         for k = 1:nbd
+%             
+%             if k == 1 % first wall does not need Rotlets and Stokeslets
+%                 [o.precoW.L(1:2*Nbd,1:2*Nbd,k),o.precoW.U(1:2*Nbd,1:2*Nbd,k)] =...
+%                     lu(-1/2*eye(2*Nbd)+o.Dw(:,:,k)+o.N0w(:,:,k));
+%             
+%             else  
+%                 rho2 = (x(:,k) - cx(k)).^2 + (y(:,k) - cy(k)).^2;
+%                 col_rot = 1/4/pi*((x(:,ktar)-cx(k+1))./rho2.*(y(:,ktar)-cy(k+1)));
+%                 col_stokes = 1/4/pi*(-0.5*log(rho2) + (x(:,k)-cx(k))./rho2.*...
+%                                     (x(:,k)-cx(k)));
+%             end
+%         end
+%         
+        
     else
         o.precoF.L = zeros(2*N+3,2*N+3,nv);
         o.precoF.U = zeros(2*N+3,2*N+3,nv);
@@ -183,31 +210,50 @@ Nbd = walls.N;
 nbd = walls.nv;
 
 Nup = N*ceil(sqrt(N));
+dtau = tau - o.tau0;
+o.tau0 = tau;
 
 for i = 1:nv
-    R = spdiags([sin(tau(i))*ones(2*N,1), cos(tau(i))*ones(2*N,1)...
-                -sin(tau(i))*ones(2*N,1)], [-N, 0, N], zeros(2*N, 2*N));
+
+    R = spdiags([sin(dtau(i))*ones(2*N,1), cos(dtau(i))*ones(2*N,1)...
+                -sin(dtau(i))*ones(2*N,1)], [-N, 0, N], zeros(2*N, 2*N));
     
-    Rup = spdiags([sin(tau(i))*ones(2*Nup,1), cos(tau(i))*ones(2*Nup,1)...
-                -sin(tau(i))*ones(2*Nup,1)], [-Nup, 0, Nup], zeros(2*Nup, 2*Nup));  
+    Rup = spdiags([sin(dtau(i))*ones(2*Nup,1), cos(dtau(i))*ones(2*Nup,1)...
+                -sin(dtau(i))*ones(2*Nup,1)], [-Nup, 0, Nup], zeros(2*Nup, 2*Nup));  
             
     o.Df(:,:,i) = R*o.Df(:,:,i)*R';
     o.Dupf(:,:,i) = Rup*o.Dupf(:,:,i)*Rup';
     
     if o.usePreco
-        o.precoF.L(1:2*N,1:2*N,i) = R*o.bdiagPreco.L(1:2*N,1:2*N,i)*R';
-        o.precoF.U(1:2*N,1:2*N,i) = R*o.bdiagPreco.U(1:2*N,1:2*N,i)*R;
+        
+        o.precoF.L = zeros(2*N+3,2*N+3,nv);
+        o.precoF.U = zeros(2*N+3,2*N+3,nv);
+        for k = 1:nv
+            [o.precoF.L(:,:,k),o.precoF.U(:,:,k)] =...
+                lu([-1/2*eye(2*N)+o.Df(:,:,k) ...
+                [-ones(N,1);zeros(N,1)] ...
+                [zeros(N,1);-ones(N,1)] ...
+                [geom.X(end/2+1:end,k)-geom.center(2,k); -geom.X(1:end/2,k)+geom.center(1,k)];...
+                [-geom.sa(:,k)'*2*pi/N zeros(1,N) 0 0 0];
+                [zeros(1,N) -geom.sa(:,k)'*2*pi/N 0 0 0];
+                [(-geom.X(end/2+1:end,k)'+geom.center(2,k)).*geom.sa(:,k)'*2*pi/N ...
+                (geom.X(1:end/2,k)'-geom.center(1,k)).*geom.sa(:,k)'*2*pi/N 0 0 0]]);
+        end
+%         o.precoF.L(1:2*N,1:2*N,i) = R*o.precoF.L(1:2*N,1:2*N,i)*R';
+%         o.precoF.U(1:2*N,1:2*N,i) = R*o.precoF.U(1:2*N,1:2*N,i)*R';
     end    
 end
 
 % SOLVE SYSTEM USING GMRES
 maxit = 2*N*nv;% should be a lot lower than this
-if ~o.usePreco
-  [Xn,iflag,res,I] = gmres(@(X) o.timeMatVec(X,geom,walls),o.rhs,[],o.gmresTol,...
-      maxit);
-else
+%o.rhs  = [ones(2*nv*N,1);2*ones(2*Nbd*nbd,1);3*ones(2*nv,1);4*ones(nv,1);5*ones(2*(nbd-1),1);6*ones(nbd-1,1)];
+
+if o.usePreco
   [Xn,iflag,res,I] = gmres(@(X) o.timeMatVec(X,geom,walls),o.rhs,[],o.gmresTol,...
       maxit,@o.preconditionerBD);
+else
+  [Xn,iflag,res,I] = gmres(@(X) o.timeMatVec(X,geom,walls),o.rhs,[],o.gmresTol,...
+      maxit);
 end
 
 iter = I(2);
@@ -401,7 +447,7 @@ if o.confined
         kernel = @potwalls.exactStokesDL;
     end
     
-    wwdlp = kernel(walls, etaW);
+    wwdlp = kernel(walls, etaW, o.Dw);
     
 else
     wwdlp = zeros(2*Nbd,nbd);
@@ -484,19 +530,49 @@ function Pz = preconditionerBD(o,z)
 % apply the block-diagonal preconditioner whose LU factorization is
 % precomputed and stored
 
-N = (size(o.bdiagPreco.L,1)-3)/2;
-nv = size(o.bdiagPreco.L,3);
+N = (size(o.precoF.L,1)-3)/2;
+nv = size(o.precoF.L,3);
 
-Pz = zeros(2*N*nv+3*nv,1);
+if o.confined
+    Nbd = (size(o.precoW.L,1)-3)/2;
+    nbd = size(o.precoW.L,3);
+else
+    Nbd = 0;
+    nbd = 0;
+end
+
+Pz = z;
+
+% Apply exact inverse for self fibre-fibre blocks
+% for k = 1:nv
+%    istart = (k-1)*2*N + 1;
+%    iend = istart + 2*N - 1;
+%    
+%    zblock = o.precoF.U(:,:,k)\(o.precoF.L(:,:,k)\z(istart:iend));
+%    Pz(istart:iend) = zblock;
+% end
+
+% if (o.confined)
+%     % Apply exact inverse for self wall-wall blocks
+%     for k = 1:nbd
+%         istart = 2*N*nv + (k-1)*2*Nbd + 1;
+%         iend = istart + 2*Nbd - 1;
+%         
+%         zblock = o.precoW.U(:,:,k)\(o.precoW.L(:,:,k)\z(istart:iend));
+%         Pz(istart:iend) = zblock;
+%     end
+%     
+% end
+
 for k = 1:nv
   istart1 = (k-1)*2*N + 1;
   iend1 = istart1 + 2*N - 1;
-  istart2 = 2*N*nv + (k-1)*2 + 1;
+  istart2 = 2*N*nv + 2*Nbd*nbd + (k-1)*2 + 1;
   iend2 = istart2 + 1;
-  istart3 = 2*N*nv + nv*2 + (k-1) + 1;
+  istart3 = 2*N*nv + 2*Nbd*nbd + nv*2 + (k-1) + 1;
   iend3 = istart3;
-  zblock = o.bdiagPreco.U(:,:,k)\...
-      (o.bdiagPreco.L(:,:,k)\...
+  zblock = o.precoF.U(:,:,k)\...
+      (o.precoF.L(:,:,k)\...
       [z(istart1:iend1);z(istart2:iend2);z(istart3:iend3)]);
 
   Pz(istart1:iend1) = zblock(1:2*N);

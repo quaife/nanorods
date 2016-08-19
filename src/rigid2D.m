@@ -10,7 +10,7 @@ ttotal = tic;
 geom = capsules(prams, xc, tau);
 walls = capsules(prams, xWalls);
 om = monitor(options, prams);
-tt = tstep(options, prams, om, geom, walls);
+tt = tstep(options, prams, om, geom, walls, tau);
 potF = poten(geom.N,om);
 
 om.writeGeometry(walls);
@@ -57,7 +57,7 @@ while time < prams.T
     
     geom = capsules(prams, xc, tau);
     
-    [densityF,~,Up,wp,iter,flag,res] = tt.timeStep(geom, tt.dt*wp,walls);
+    [densityF,~,Up,wp,iter,flag,res] = tt.timeStep(geom, tau, walls);
     
     % update centres and angles
     if (iT == 1 || options.tstep_order == 1) % use forward Euler
