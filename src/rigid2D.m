@@ -5,15 +5,21 @@ function [Xfinal] = rigid2D(options, prams, xc, tau, xWalls)
 
 ttotal = tic;
     
-%geom = capsules(prams, xc, tau);
 
 geom = capsules(prams, xc, tau);
 walls = capsules(prams, xWalls);
-om = monitor(options, prams);
+
+% [xc_added, tau_added] = geom.fill_couette(5, 10, 66, prams);
+% xc = [xc, xc_added];
+% tau = [tau, tau_added];
+
+prams.nv = length(tau);
+prams.legnths = prams.lengths(1)*ones(1,prams.nv);
+prams.widths = prams.widths(1)*ones(1,prams.nv);
+
+om = monitor(options, prams, xc, tau);
 tt = tstep(options, prams, om, geom, walls, tau);
 potF = poten(geom.N,om);
-
-om.writeGeometry(walls);
 
 if (om.profile)
     profile on;
@@ -22,29 +28,25 @@ end
 % read in existing file if necessary
 if options.append
     
-    pp = post(['../output/data/',options.fileBase, '.dat'], ...
-    ['../output/data/',options.fileBase,'_density.dat']);
+    pp = post('../output/data/',options.fileBase, '.mat');
 
     time = pp.times(end);
     iT = length(pp.times);
     
-    xc = [pp.centres_x(end,:); pp.centres_y(end,:)];
-    tau = pp.orientations(end,:);    
-    wp = pp.omega(end,:);
+    xc = pp.xc(end,:);
+    tau = pp.tau(end,:);    
     
     if (options.tstep_order == 2)
-        Up_m1 = [pp.u_x(end,:); pp.u_y(end,:)];
+        Up_m1 = pp.U(end,:);
         wp_m1 = pp.omega(end,:);
     end
     
     om.restartMessage();
     
 else
-    om.writeData(prams, 0, xc, tau, zeros(1,prams.nv), zeros(1,prams.nv), zeros(1,prams.nv));
+    
     time = 0;
     iT = 0;
-    
-    wp = zeros(size(tau));
 end
 
 % begin time loop
@@ -57,7 +59,7 @@ while time < prams.T
     
     geom = capsules(prams, xc, tau);
     
-    [densityF,~,Up,wp,iter,flag,res] = tt.timeStep(geom, tau, walls);
+    [densityF,densityW,Up,wp,stokes,rot,iter,flag,res] = tt.timeStep(geom, tau, walls);
     
     % update centres and angles
     if (iT == 1 || options.tstep_order == 1) % use forward Euler
@@ -98,8 +100,7 @@ while time < prams.T
        om.writeMessage(['WARNING: GMRES flag = ', num2str(flag)]); 
     end
     
-    om.writeData(prams, time, xc, tau, Up(1,:), Up(2,:), wp);
-    om.writeDensity(time, densityF);      
+    om.writeData(time, xc, tau, Up, wp, stokes, rot, densityF, densityW);   
 end
 
 Xfinal = X;
