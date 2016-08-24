@@ -1,4 +1,4 @@
-classdef capsules
+classdef capsules < handle
 % This class implements standard calculations that need to be done to a
 % componenet of the solid wall, or a collection of arbitrary target
 % points (such as tracers).  The main tasks that can be performed
@@ -49,8 +49,8 @@ else if length(varargin) == 2 % centres and orientation angles
 
     for k = 1:prams.nv
 
-        x_square = prams.lengths(k)/2*r.*cos(theta);
-        y_square = prams.widths(k)/2*r.*sin(theta);
+        x_square = prams.lengths(1)/2*r.*cos(theta);
+        y_square = prams.widths(1)/2*r.*sin(theta);
 
         o.X(:,k) = [x_square*cos(tau(k)) - y_square*sin(tau(k)) + xc(1,k);
             x_square*sin(tau(k)) + y_square*cos(tau(k)) + xc(2,k)];
@@ -67,6 +67,90 @@ end
 [~,o.length] = oc.geomProp(o.X);
 
 end % capsules: constructor
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+function [Xnew, xc, tau, add] = add_fibre(o, rmin, rmax, prams)
+    max_attempts = 1000;
+        
+    attempt = 0;
+    
+    theta = (0:prams.N-1)'*2*pi/prams.N;    
+    Xoriginal = o.X;
+    rt = (cos(theta).^prams.order+ sin(theta).^prams.order).^(-1/prams.order);
+    
+    x_square = mean(prams.lengths)/2*rt.*cos(theta);
+    y_square = mean(prams.widths)/2*rt.*sin(theta);
+
+    while attempt < max_attempts
+        
+        add = true;
+        
+        r = rmin + (rmax-rmin)*rand(1,1);
+        theta = 2*pi*rand(1,1);
+        
+        xc = [r*cos(theta);r*sin(theta)];
+        tau = 2*pi*rand(1,1);
+        
+        o.X = [Xoriginal, [x_square*cos(tau) - y_square*sin(tau) + xc(1);
+            x_square*sin(tau) + y_square*cos(tau) + xc(2)]];
+        o.nv = o.nv + 1;
+        
+        [near,~] = o.getZone(o,1);
+        
+        rx = sqrt(o.X(1:end/2,end).^2+o.X(end/2+1:end,end).^2);
+        
+        for i = 1:o.nv
+            
+            if (length(near.nearFibers{i}) > 0 || min(rx) < rmin + 0.1 || max(rx) > rmax - 0.1)
+                add = false;                
+            end            
+        end
+        
+        attempt = attempt + 1;
+        o.X = Xoriginal;
+        o.nv = o.nv - 1;
+        
+        if add
+            Xnew = [x_square*cos(tau) - y_square*sin(tau) + xc(1);
+                    x_square*sin(tau) + y_square*cos(tau) + xc(2)];
+            
+            disp('inserted fibre');
+            break;
+        else
+            disp('failed to insert fibre, trying again');
+        end
+    end
+    
+    if (attempt == max_attempts)
+        add = false;
+        disp('Failed to insert fibre, try increasing maximum number of iterations');
+    end
+end
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+function [xc, tau] = fill_couette(o, rmin, rmax, nv, prams)
+   
+    rng(12345);
+
+    xc = zeros(2,nv);
+    tau =zeros(1,nv);
+    
+    for i = 1:nv
+       
+        [Xnew, xc(:,i),tau(i), add] = o.add_fibre(rmin, rmax, prams); 
+       
+       if add
+           o.X(:,end+1) = Xnew;
+           
+            oc = curve;
+            o.center(:,end+1) = xc(:,i);
+            o.nv = o.nv+1;
+           [o.sa,o.xt,o.cur] = oc.diffProp(o.X);
+           [~,o.length] = oc.geomProp(o.X);
+       end
+
+    end
+end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function [NearSelf,NearOther] = getZone(bd1,bd2,relate)
