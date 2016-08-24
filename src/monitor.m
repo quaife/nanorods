@@ -6,11 +6,11 @@ verbose         % write data to console
 profile         % profile code (TO DO)
 saveData        % save data to the dat files and log file
 dataFile        % name of data file containing fibre centres and orientations
-densityFile     % name of data file containing density function
 logFile         % name of log file
-geomFile        % name of geometry file
 profileFile     % name of profile folder
 append          % append new data to files
+options         % options structure
+prams           % prameter structure
 
 OUTPUTPATH_DATA % folder in which to save data
 OUTPUTPATH_LOG  % folder in which to save logs
@@ -21,7 +21,7 @@ end % properties
 methods
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function o = monitor(options, prams)
+function o = monitor(options, prams, xc, tau)
 % monitor(options,prams) saves options and parameters needed by the class.
 % This is the constructor
 
@@ -33,41 +33,31 @@ o.verbose = options.verbose;
 % write data to console
 
 o.saveData = options.saveData;
-o.dataFile = [o.OUTPUTPATH_DATA, options.fileBase, '.dat'];
-o.densityFile = [o.OUTPUTPATH_DATA, options.fileBase, '_density.dat'];
-o.geomFile = [o.OUTPUTPATH_DATA, options.fileBase, '_geometry', '.dat'];
+o.dataFile = [o.OUTPUTPATH_DATA, options.fileBase, '.mat'];
 o.logFile = [o.OUTPUTPATH_LOG, options.fileBase, '.log'];
 o.profileFile = [o.OUTPUTPATH_PROFILE, options.fileBase];
 
 o.append = options.append;
 o.profile = options.profile;
 
+o.options = options;
+o.prams = prams;
+
 o.welcomeMessage();
 %% start new data file if needed
 if (o.saveData && ~o.append)
-    o.clearFiles();
-    fid = fopen(o.dataFile,'w');
+
+    etaW = zeros(2*prams.Nbd, prams.nbd);
+    etaF = zeros(2*prams.N, prams.nv);
     
-    fprintf(fid, '%s\n', ['Data file for nanorod simulation ', datestr(now)]);    
-
-    fprintf(fid, '%s\n', 'Line 8 contains length of each rectangular rod');
-    fprintf(fid, '%s\n', 'Line 9 contains width of each rectangular rod');
-    fprintf(fid, '%s\n', ['Line 10 contains the order that determines the ',...
-                        'curvature of the rods']);
-    fprintf(fid, '%s\n', ['Line 11 contains: time step order, '...
-                         'FMM status, near singular integration status']);
-    fprintf(fid, '%s\n', ['Lines 12 onward contain the time, x centre ',...
-                        'coordinate, y centre coordinate and the ', ...
-                        'orientation for each rod at time t']);
-
-    fprintf(fid,'%s\n', 'BEGIN DATA');
-    fprintf(fid,'%s\n', num2str(prams.lengths));
-    fprintf(fid,'%s\n', num2str(prams.widths));
-    fprintf(fid,'%s\n', num2str(prams.order));
-    fprintf(fid,'%s\n', [num2str(options.tstep_order), ' ', ...
-                        num2str(double(options.ifmm)), ' ',...
-                        num2str(double(options.inear))]);
-    fclose(fid);   
+    U = zeros(2, prams.nv);
+    omega = zeros(1,prams.nv);
+    
+    stokes = zeros(2,prams.nbd-1);
+    rot = zeros(1,prams.nbd-1);
+    t = 0;
+    
+    save(o.dataFile, 'prams', 'options', 't', 'xc', 'tau', 'U', 'omega', 'stokes', 'rot', 'etaW', 'etaF');
 end
 
 end % constructor: monitor
@@ -168,35 +158,32 @@ end
 end % writeMessage
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function writeData(o, prams, t, c, tau, Ux, Uy, omega)
-% writeData(t, cp, tau) writes centre point and orientation of each fibre
-% to a csv file. This file can be read in to Matlab later for
+function writeData(o, t_c, xc_c, tau_c, U_c, omega_c, stokes_c, rot_c, etaF_c, etaW_c)
+% writeData(t, xc, tau, U, omega, etaF, etaW) writes centre point and orientation of each fibre
+% to a mat file. This file can be read in to Matlab later for
 % postprocessing.
 
-if ~isempty(prams.tracker_fnc)
-   p = prams.tracker_fnc(t);
+load(o.dataFile);
+
+t = [t, t_c];
+xc(:,:,end+1) = xc_c;
+tau = [tau; tau_c];
+U(:,:,end+1) = U_c;
+omega = [omega;omega_c];
+etaF(:,:,end+1) = etaF_c;
+
+if o.options.confined
+    etaW(:,:,end+1) = etaW_c;
+
+    if o.prams.nbd > 1
+        stokes(:,:,end+1) = stokes_c;
+        rot(:,end+1) = rot_c;
+    end
 end
-fid = fopen(o.dataFile,'a');
-fprintf(fid,'%s\n', num2str([t, c(1,:), c(2,:), tau, Ux, Uy, omega, p']));
-fclose(fid);
+
+save(o.dataFile, 'prams', 'options', 't', 'xc', 'tau', 'U', 'omega', 'stokes', 'rot', 'etaW', 'etaF');
 
 end % writeData
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function writeGeometry(o, walls)
-   
-    dlmwrite(o.geomFile,walls.X);
-end % writeGeometry
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function writeDensity(o,t, eta)
-% writeData(t, eta) write the density function eta at time t to
-% o.densityFile. This can be read in later to plot the velocity field.
-
-    fid = fopen(o.densityFile,'a');
-    fprintf(fid,'%s\n', num2str([t,eta(:)']));
-    fclose(fid);
-end % writeDensity
 
 end % methods
 

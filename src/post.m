@@ -1,38 +1,17 @@
 classdef post
 % Post-processing of data from output files
 
-properties
-dataFile       
-densityFile
-geomFile
+properties    
+prams
+options
 
-widths;
-lengths;
-order;
-
-centres_x;
-centres_y
-orientations;
-times;
-eta;
-
-u_x;
-u_y;
-omega;
-
-tracker_pts;
-
-nv;
-N;
-tstep_order;
-fmm;
-near_singular;
-
-walls_x;
-walls_y;
-
-nw;
-Nbd;
+times
+xc
+tau
+U
+omega
+etaF
+etaW
 
 EPS;
 OUTPUTPATH_GIFS;
@@ -42,54 +21,21 @@ end % properties
 methods
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function o = post(dataFile, geomFile, densityFile)
+function o = post(dataFile)
  
-o.dataFile = dataFile;
-o.geomFile = geomFile;
-o.densityFile = densityFile;
 
-N_LINES_HEAD = 7;
-% read data file; first 7 lines are header lines
-M = dlmread(o.dataFile, '', N_LINES_HEAD, 0);
 
-[~, nc] = size(M);
-o.nv = (nc - 1)/7;
+load(dataFile)
 
-o.lengths = nonzeros(M(1,1:o.nv));
-o.widths = nonzeros(M(2,1:o.nv));
-o.order = nonzeros(M(3,1:o.nv));
-
-dtmp = nonzeros(M(4,1:3));
-o.tstep_order = dtmp(1);
-o.fmm = dtmp(2);
-o.near_singular = dtmp(3);
-
-o.times = M(5:end,1);
-o.centres_x = M(5:end,2:o.nv+1);
-o.centres_y = M(5:end,o.nv+2:2*o.nv+1);
-o.orientations = M(5:end,2*o.nv+2:3*o.nv+1);
-o.u_x = M(5:end, 3*o.nv+2:4*o.nv+1);
-o.u_y = M(5:end, 4*o.nv+2:5*o.nv+1);
-o.omega = M(5:end, 5*o.nv+2:6*o.nv+1);
-o.tracker_pts = M(5:end, 6*o.nv+2:end);
-
-% read geometry file
-M = dlmread(o.geomFile, ',', 0,0);
-o.walls_x = M(1:end/2,:);
-o.walls_y = M(end/2+1:end,:);
-
-[o.Nbd, o.nw] = size(M);
-
-% read density file
-M = dlmread(o.densityFile, '', 0, 0);
-eta_tmp = M(:,2:end);
-
-o.eta = zeros(size(eta_tmp,2)/o.nv, o.nv, length(o.times));
-o.N = size(eta_tmp,2)/(2*o.nv);
-
-for i = 2:length(o.times)
-   o.eta(:,:,i) = reshape(eta_tmp(i - 1,:),size(eta_tmp,2)/o.nv, o.nv);  
-end
+o.prams = prams;
+o.options = options;
+o.times = t;
+o.xc = xc;
+o.tau = tau;
+o.U = U;
+o.omega = omega;
+o.etaF = etaF;
+o.etaW = etaW;
 
 o.EPS = 0.1;
 o.OUTPUTPATH_GIFS = '../output/gifs/';
@@ -101,15 +47,9 @@ function [] = plot_fibres_with_stats(o, iT, xmin, xmax, ymin, ymax)
     
     ax1 = axes('Position', [0 0 1 1], 'Visible', 'off');
     ax2 = axes('Position', [0.1 0.3 0.8 0.6]);
+
     
-    prams.N = o.N;
-    prams.nv = o.nv;
-    prams.lengths = o.lengths;
-    prams.widths = o.widths;
-    prams.order = o.order;
-    
-    geom = capsules(prams, [o.centres_x(iT,:); o.centres_y(iT,:)], ...
-                            o.orientations(iT,:));
+    geom = capsules(o.prams, o.xc(:,:,iT), o.tau(iT,:));
     X = geom.getXY();
     oc = curve;
     [x, y] = oc.getXY(X);
@@ -123,33 +63,28 @@ function [] = plot_fibres_with_stats(o, iT, xmin, xmax, ymin, ymax)
     
     title(sprintf('t = %6.3f', o.times(iT))); 
     axes(ax1)
-    text(0.3, 0.15, {['N       : ' num2str(o.N)], ['nv      : ' num2str(o.nv)], ...
-        ['order : ', num2str(o.order(1))]});
+    text(0.3, 0.15, {['N       : ' num2str(o.prams.N)], ['nv      : ' num2str(o.prams.nv)], ...
+        ['order : ', num2str(o.prams.order(1))]});
     
-    text(0.5, 0.15, {['timestep order : ' num2str(o.tstep_order)], ...
-                    ['FMM      : ' num2str(o.fmm)], ...
-                    ['near singular : ', num2str(o.near_singular)]});       
+    text(0.5, 0.15, {['timestep order : ' num2str(o.prams.tstep_order)], ...
+                    ['FMM      : ' num2str(o.prams.fmm)], ...
+                    ['near singular : ', num2str(o.prams.near_singular)]});       
                 
 end % post : plot_fibres_with_stats
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function [] = plot_fibres(o, iT, xmin, xmax, ymin, ymax)
     
-    prams.N = o.N;
-    prams.nv = o.nv;
-    prams.lengths = o.lengths;
-    prams.widths = o.widths;
-    prams.order = o.order;
+    geom = capsules(o.prams, o.xc(:,:,iT), o.tau(iT,:));
     
-    geom = capsules(prams, [o.centres_x(iT,:); o.centres_y(iT,:)], ...
-                            o.orientations(iT,:));
     X = geom.getXY();
     oc = curve;
     [x, y] = oc.getXY(X);
     
     fill([x;x(1,:)],[y;y(1,:)],'k');
-    
+
     axis equal
+
     xlim([xmin, xmax]);
     ylim([ymin, ymax]);
     
@@ -194,16 +129,11 @@ M = 30;
 [X, Y] = meshgrid(linspace(xmin, xmax, M), linspace(ymin, ymax, M));
 
 [nx, ny] = size(X);
-U = zeros(nx,ny,2);
+Ufluid = zeros(nx,ny,2);
 
-prams.N = o.N;
-prams.nv = o.nv;
-prams.lengths = o.lengths;
-prams.widths = o.widths;
-prams.order = o.order;
 
-geom = capsules(prams, [o.centres_x(iT,:); o.centres_y(iT,:)], ...
-    o.orientations(iT,:));
+
+geom = capsules(o.prams, o.xc(:,:,iT), o.tau(iT,:));
 
 % for i = 1:nx
 %     for j = 1:ny
@@ -247,15 +177,15 @@ geom = capsules(prams, [o.centres_x(iT,:); o.centres_y(iT,:)], ...
 
 Utmp =  o.evaluateDLP(geom, o.eta(:,:,iT), X(:), Y(:));
 
-U = reshape(Utmp(1:end/2), M, M);
+Ufluid = reshape(Utmp(1:end/2), M, M);
 V = reshape(Utmp(end/2+1:end), M, M);
-U = U + X;
+Ufluid = Ufluid + X;
 V = V - Y;
 
 % U = Utmp(1:end/2);
 % V = Utmp(end/2+1:end);
 
-quiver(X, Y, U, V, 4);
+quiver(X, Y, Ufluid, V, 4);
 
 %surf(X,Y,U);
 % plot(X, U, '-o','linewidth', 2);
@@ -296,38 +226,41 @@ end % post : plot_fluid
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function [] = plot_walls(o,iT)
     
+    oc = curve;
+    xWalls = oc.createWalls(o.prams.Nbd, o.options);
+    
     hold on;
-    for i = 1:o.nw
-        plot([o.walls_x(:,i);o.walls_x(1,i)], [o.walls_y(:,i);o.walls_y(1,i)],...
+    for i = 1:o.prams.nbd
+        plot([xWalls(1:end/2,i);xWalls(1,i)], [xWalls(end/2+1:end,i);xWalls(end/2+1,i)],...
                 'r', 'linewidth', 2);
     end
+
+    ptsTrack = o.prams.tracker_fnc(o.times(iT));
     
-    %plot tracker points if any
-    [~,np] = size(o.tracker_pts);
-    
-    for i = 1:np/2
-       plot(o.tracker_pts(iT,2*(i-1)+1), o.tracker_pts(iT,2*(i-1)+2), 'b.', 'MarkerSize', 20); 
-    end
+    plot(ptsTrack(:,1),ptsTrack(:,2), 'b.', 'MarkerSize', 20); 
 end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function [] = animated_gif(o, gname, stride, itmax, type)
     
 h = figure();
-
+set(h,'Units','normalized');
+set(h,'Position',[0 0 1 1]);
+    
+    
 if isempty(itmax)
     itmax = length(o.times);
 end
 
-xmin = min(min(o.centres_x(1:itmax,:))) - max(o.lengths);
-xmax = max(max(o.centres_x(1:itmax,:))) + max(o.lengths);
-
-ymin = min(min(o.centres_y(1:itmax,:))) - max(o.lengths);
-ymax = max(max(o.centres_y(1:itmax,:))) + max(o.lengths);
-        
+% xmin = min(min(o.centres_x(1:itmax,:))) - max(o.lengths);
+% xmax = max(max(o.centres_x(1:itmax,:))) + max(o.lengths);
+% 
+% ymin = min(min(o.centres_y(1:itmax,:))) - max(o.lengths);
+% ymax = max(max(o.centres_y(1:itmax,:))) + max(o.lengths);
+%         
 for i = 1:stride:itmax
     
     clf;
-
+    
     o.plot_walls(i);
     hold on
 %     xmin = min(min(o.centres_x(i,:))) - max(o.lengths);
@@ -335,10 +268,10 @@ for i = 1:stride:itmax
 %     ymin = min(min(o.centres_y(i,:))) - max(o.lengths);
 %     ymax = max(max(o.centres_y(i,:))) + max(o.lengths);
      
-    xmin = -20;
-    xmax = 20;        
-    ymin = -20;
-    ymax = 20;
+    xmin = -10;
+    xmax = 10;        
+    ymin = -10;
+    ymax = 10;
 
            
 %     ymin = o.centres_y(i,2)+0.5 - 1e-4;
@@ -355,10 +288,13 @@ for i = 1:stride:itmax
     end
     
     drawnow;
+    %pause(1);
+    
     frame = getframe(h);
     im = frame2im(frame);
     
     [imind, cm] = rgb2ind(im,256);
+    
     if i == 1;
         
         imwrite(imind, cm, [o.OUTPUTPATH_GIFS,  gname], 'gif', ...
