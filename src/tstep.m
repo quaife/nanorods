@@ -102,9 +102,8 @@ if o.usePreco
         tic;
     end
     
-    if o.confined
-        
-        o.precoF.L = zeros(2*N+3,2*N+3,nv);
+    % FIBEE-FIBRE PRECONDITIONER
+    o.precoF.L = zeros(2*N+3,2*N+3,nv);
         o.precoF.U = zeros(2*N+3,2*N+3,nv);
         for k = 1:nv
             [o.precoF.L(:,:,k),o.precoF.U(:,:,k)] =...
@@ -118,48 +117,41 @@ if o.usePreco
                 (geom.X(1:end/2,k)'-geom.center(1,k)).*geom.sa(:,k)'*2*pi/N 0 0 0]]);
         end
         
-%         o.precoF.L = zeros(2*N,2*N,nv);
-%         o.precoF.U = zeros(2*N,2*N,nv);
-%         for k = 1:nv
-%             [o.precoF.L(:,:,k),o.precoF.U(:,:,k)] = lu(-1/2*eye(2*N)+o.Df(:,:,k));
-%         end
-%         
+    if o.confined
+         
+        % WALL-WALL PRECONDITIONER
         o.precoW.L = zeros(2*Nbd + 3,2*Nbd + 3,nbd);
         o.precoW.U = zeros(2*Nbd + 3,2*Nbd + 3,nbd);
-%         
-%         oc = curve;
-%         [x,y] = oc.getXY(walls.X);
-%         [cx,cy] = oc.getXY(walls.center);
         
-%         for k = 1:nbd
-%             
-%             if k == 1 % first wall does not need Rotlets and Stokeslets
-%                 [o.precoW.L(1:2*Nbd,1:2*Nbd,k),o.precoW.U(1:2*Nbd,1:2*Nbd,k)] =...
-%                     lu(-1/2*eye(2*Nbd)+o.Dw(:,:,k)+o.N0w(:,:,k));
-%             
-%             else  
-%                 rho2 = (x(:,k) - cx(k)).^2 + (y(:,k) - cy(k)).^2;
-%                 col_rot = 1/4/pi*((x(:,ktar)-cx(k+1))./rho2.*(y(:,ktar)-cy(k+1)));
-%                 col_stokes = 1/4/pi*(-0.5*log(rho2) + (x(:,k)-cx(k))./rho2.*...
-%                                     (x(:,k)-cx(k)));
-%             end
-%         end
-%         
+        oc = curve;
+        sa = walls.sa;
+        [x,y] = oc.getXY(walls.X);
+        [cx,cy] = oc.getXY(walls.center);
         
-    else
-        o.precoF.L = zeros(2*N+3,2*N+3,nv);
-        o.precoF.U = zeros(2*N+3,2*N+3,nv);
-        for k = 1:nv
-            [o.precoF.L(:,:,k),o.precoF.U(:,:,k)] =...
-                lu([-1/2*eye(2*N)+o.Df(:,:,k) ...
-                [-ones(N,1);zeros(N,1)] ...
-                [zeros(N,1);-ones(N,1)] ...
-                [geom.X(end/2+1:end,k)-geom.center(2,k); -geom.X(1:end/2,k)+geom.center(1,k)];...
-                [-geom.sa(:,k)'*2*pi/N zeros(1,N) 0 0 0];
-                [zeros(1,N) -geom.sa(:,k)'*2*pi/N 0 0 0];
-                [(-geom.X(end/2+1:end,k)'+geom.center(2,k)).*geom.sa(:,k)'*2*pi/N ...
-                (geom.X(1:end/2,k)'-geom.center(1,k)).*geom.sa(:,k)'*2*pi/N 0 0 0]]);
-        end
+        for k = 1:nbd
+            
+            if k == 1 % first wall does not need Rotlets and Stokeslets
+                [o.precoW.L(1:2*Nbd,1:2*Nbd,k),o.precoW.U(1:2*Nbd,1:2*Nbd,k)] =...
+                    lu(-1/2*eye(2*Nbd)+o.Dw(:,:,k)+o.N0w(:,:,k));
+            
+            else  
+                r = [x(:,k) - cx(k), y(:,k) - cy(k)];
+                rho2 = (x(:,k) - cx(k)).^2 + (y(:,k) - cy(k)).^2;                
+                
+                col_stokes1 = [-0.5*log(rho2) + r(:,1).*r(:,1)./rho2; r(:,2).*r(:,1)./rho2]/(4*pi);
+                col_stokes2 = [r(:,2).*r(:,1)./rho2; -0.5*log(rho2) + r(:,2).*r(:,2)./rho2]/(4*pi);
+                col_rot = [r(:,2)./rho2; -r(:,1)./rho2];
+                
+                int_stokes = sa(:,k)';
+                int_rot = [(y(:,k).*sa(:,k))', -(x(:,k).*sa(:,k))'];
+                
+                [o.precoW.L(:,:,k),o.precoW.U(:,:,k)] =...
+                    lu([-1/2*eye(2*Nbd)+o.Dw(:,:,k), col_stokes1, col_stokes2, col_rot;...
+                    int_stokes, zeros(1,Nbd), -2*pi, 0, 0;...
+                    zeros(1,Nbd), int_stokes, 0, -2*pi, 0;...
+                    int_rot, 0, 0, -2*pi]);
+            end
+        end      
     end
     
     if o.profile
@@ -178,7 +170,7 @@ end
 
 end % constructor: tstep
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function [etaF,etaW,Up,wp,iter,iflag,res] = timeStep(o,geom,tau,walls)
+function [etaF,etaW,Up,wp,stokes,rot,iter,iflag,res] = timeStep(o,geom,tau,walls)
 % [X,iter,iflag] = timeStep(Xstore) takes the current configuration
 % in Xstore (can be a three-dimensional array corresponding to  previous
 % time steps if doing multistep) and returns a new shape X, the number
@@ -226,19 +218,16 @@ for i = 1:nv
     
     if o.usePreco
         
-        o.precoF.L = zeros(2*N+3,2*N+3,nv);
-        o.precoF.U = zeros(2*N+3,2*N+3,nv);
-        for k = 1:nv
-            [o.precoF.L(:,:,k),o.precoF.U(:,:,k)] =...
-                lu([-1/2*eye(2*N)+o.Df(:,:,k) ...
-                [-ones(N,1);zeros(N,1)] ...
-                [zeros(N,1);-ones(N,1)] ...
-                [geom.X(end/2+1:end,k)-geom.center(2,k); -geom.X(1:end/2,k)+geom.center(1,k)];...
-                [-geom.sa(:,k)'*2*pi/N zeros(1,N) 0 0 0];
-                [zeros(1,N) -geom.sa(:,k)'*2*pi/N 0 0 0];
-                [(-geom.X(end/2+1:end,k)'+geom.center(2,k)).*geom.sa(:,k)'*2*pi/N ...
-                (geom.X(1:end/2,k)'-geom.center(1,k)).*geom.sa(:,k)'*2*pi/N 0 0 0]]);
-        end
+        [o.precoF.L(:,:,i),o.precoF.U(:,:,i)] =...
+            lu([-1/2*eye(2*N)+o.Df(:,:,i) ...
+            [-ones(N,1);zeros(N,1)] ...
+            [zeros(N,1);-ones(N,1)] ...
+            [geom.X(end/2+1:end,i)-geom.center(2,i); -geom.X(1:end/2,i)+geom.center(1,i)];...
+            [-geom.sa(:,i)'*2*pi/N zeros(1,N) 0 0 0];
+            [zeros(1,N) -geom.sa(:,i)'*2*pi/N 0 0 0];
+            [(-geom.X(end/2+1:end,i)'+geom.center(2,i)).*geom.sa(:,i)'*2*pi/N ...
+            (geom.X(1:end/2,i)'-geom.center(1,i)).*geom.sa(:,i)'*2*pi/N 0 0 0]]);
+
 %         o.precoF.L(1:2*N,1:2*N,i) = R*o.precoF.L(1:2*N,1:2*N,i)*R';
 %         o.precoF.U(1:2*N,1:2*N,i) = R*o.precoF.U(1:2*N,1:2*N,i)*R';
     end    
@@ -283,6 +272,16 @@ for k = 1:nv
   wp(k) = Xn(2*N*nv+2*Nbd*nbd+2*nv+k);
 end
 
+stokes = zeros(2,nbd-1);
+for k = 1:nbd-1
+   stokes(:,k) = Xn(2*N*nv+2*Nbd*nbd+3*nv+1+2*(k-1): 2*N*nv+2*Nbd*nbd+3*nv+2*k);
+end
+
+rot = zeros(1,nbd-1);
+for k = 1:nbd-1
+   rot(k) = Xn(2*N*nv+2*Nbd*nbd+3*nv+2*(nbd-1)+k);
+end
+
 end % timeStep
 
 
@@ -294,7 +293,8 @@ function Tx = timeMatVec(o,Xn,geom,walls)
 % wall1 : xi_x, xi_y wall2: xi_x, xi_y ... wallnbd: xi_x, xi_y
 % fiber1: u, v fiber2: u, v ... fiberNv: u, v
 % fiber1: omega fiber2: omega ... fiberNv: omega
-
+% wall2 : stokeslets ... wallnbd stokeslets 
+% wall2 : rotlet ... wallnbd rotlet
 if o.profile
     tMatvec = tic;
 end
@@ -348,18 +348,18 @@ end
 
 if o.confined
     % EXTRACT ROTLETS AND STOKESLETS
-    xi = zeros(2,nbd-1);
+    lambda = zeros(2,nbd-1);
     for k = 1:nbd-1
-       xi(:,k) = Xn(2*N*nv+2*Nbd*nbd+3*nv+1+2*(k-1):2*N*nv+2*Nbd*nbd+3*nv+2*k); 
+       lambda(:,k) = Xn(2*N*nv+2*Nbd*nbd+3*nv+1+2*(k-1):2*N*nv+2*Nbd*nbd+3*nv+2*k); 
     end
 
-    lambda=zeros(1,nbd-1);
+    xi=zeros(1,nbd-1);
     for k=1:nbd-1
-        lambda(k) = Xn(2*N*nv+2*Nbd*nbd+3*nv+2*(nbd-1)+k);
+        xi(k) = Xn(2*N*nv+2*Nbd*nbd+3*nv+2*(nbd-1)+k);
     end    
 else
-    xi = zeros(2,1);
-    lambda = 0;
+    lambda = zeros(2,1);
+    xi = 0;
 end
 
 % END FORMATTING UNKNOWN VECTOR
@@ -460,7 +460,7 @@ if (o.confined && nbd > 1)
     % START TARGETS == FIBRES
     fsr = 0;
     for k = 2:nbd % loop over all walls, except outer wall
-        fsr = fsr + o.RSlets(geom.X, walls.center(:,k), xi(:,k-1), lambda(k-1));
+        fsr = fsr + o.RSlets(geom.X, walls.center(:,k), lambda(:,k-1), xi(k-1));
     end 
     
     % END TARGETS == FIBRES
@@ -468,14 +468,14 @@ if (o.confined && nbd > 1)
     % START TARGETS == WALLS
     wsr = 0;
     for k = 2:nbd % loop over all walls, except outer wall
-        wsr = wsr + o.RSlets(walls.X, walls.center(:,k), xi(:,k-1), lambda(k-1));
+        wsr = wsr + o.RSlets(walls.X, walls.center(:,k), lambda(:,k-1), xi(k-1));
     end   
     
     % END TARGETS == WALLS
     % END SOURCE == ROTLETS
     
     % EVALUATE ROTLET AND STOKESLET EQUATIONS
-    z = o.letsIntegrals([xi;lambda], etaW, walls);
+    z = o.letsIntegrals([lambda;xi], etaW, walls);
     valStokeslets = z(1:2*(nbd-1));
     valRotlets = z(2*(nbd-1)+1:end);
 else
@@ -543,43 +543,51 @@ end
 
 Pz = z;
 
-% Apply exact inverse for self fibre-fibre blocks
-% for k = 1:nv
-%    istart = (k-1)*2*N + 1;
-%    iend = istart + 2*N - 1;
-%    
-%    zblock = o.precoF.U(:,:,k)\(o.precoF.L(:,:,k)\z(istart:iend));
-%    Pz(istart:iend) = zblock;
-% end
-
-% if (o.confined)
-%     % Apply exact inverse for self wall-wall blocks
-%     for k = 1:nbd
-%         istart = 2*N*nv + (k-1)*2*Nbd + 1;
-%         iend = istart + 2*Nbd - 1;
-%         
-%         zblock = o.precoW.U(:,:,k)\(o.precoW.L(:,:,k)\z(istart:iend));
-%         Pz(istart:iend) = zblock;
-%     end
-%     
-% end
-
+% APPLY FIBRE-FIBRE PRECONDITIONER
 for k = 1:nv
-  istart1 = (k-1)*2*N + 1;
-  iend1 = istart1 + 2*N - 1;
-  istart2 = 2*N*nv + 2*Nbd*nbd + (k-1)*2 + 1;
-  iend2 = istart2 + 1;
-  istart3 = 2*N*nv + 2*Nbd*nbd + nv*2 + (k-1) + 1;
-  iend3 = istart3;
-  zblock = o.precoF.U(:,:,k)\...
-      (o.precoF.L(:,:,k)\...
-      [z(istart1:iend1);z(istart2:iend2);z(istart3:iend3)]);
+  etaStart = (k-1)*2*N + 1;
+  endEnd = etaStart + 2*N - 1;
+  uStart = 2*N*nv + 2*Nbd*nbd + (k-1)*2 + 1;
+  uEnd = uStart + 1;
+  omegaStart = 2*N*nv + 2*Nbd*nbd + nv*2 + (k-1) + 1;
+  omegaEnd = omegaStart;
+  zblock = o.precoF.U(:,:,k)\(o.precoF.L(:,:,k)\...
+      [z(etaStart:endEnd);z(uStart:uEnd);z(omegaStart:omegaEnd)]);
 
-  Pz(istart1:iend1) = zblock(1:2*N);
-  Pz(istart2:iend2) = zblock(2*N+1:2*N+2);
-  Pz(istart3:iend3) = zblock(2*N+3:2*N+3);
+  Pz(etaStart:endEnd) = zblock(1:2*N);
+  Pz(uStart:uEnd) = zblock(2*N+1:2*N+2);
+  Pz(omegaStart:omegaEnd) = zblock(2*N+3:2*N+3);
 end
 
+% APPLY WALL-WALL PRECONDITIONER
+for k = 1:nbd
+    
+    if k == 1 %No stokeslets or rotlets
+       xiStart = 2*N*nv +  1;
+       xiEnd = xiStart + 2*Nbd - 1;
+       
+       zblock = o.precoW.U(1:2*Nbd,1:2*Nbd,1)\(o.precoW.L(1:2*Nbd,1:2*Nbd,1)\...
+                            z(xiStart:xiEnd));
+       Pz(xiStart:xiEnd) = zblock;
+       
+    else
+        xiStart = 2*N*nv + 1 * 2*(k-1)*Nbd;
+        xiEnd = xiStart + 2*Nbd - 1;
+        
+        stokesletStart = 2*N*nv+2*Nbd*nbd+3*nv+1 + 2*(k-2);
+        stokesletEnd = stokesletStart + 1;
+        rotletStart = 2*N*nv+2*Nbd*nbd+3*nv+2*(nbd-1)+1;
+        rotletEnd = rotletStart;
+        
+        zblock = o.precoW.U(:,:,k)\(o.precoW.L(:,:,k)\...
+                [z(xiStart:xiEnd);z(stokesletStart:stokesletEnd);...
+                z(rotletStart:rotletEnd)]);
+
+        Pz(xiStart:xiEnd) = zblock(1:2*Nbd);
+        Pz(stokesletStart:stokesletEnd) = zblock(2*Nbd+1:2*Nbd+2);
+        Pz(rotletStart:rotletEnd) = zblock(2*Nbd+3:2*Nbd+3);
+    end
+end
 
 end % preconditioner
 
@@ -664,11 +672,15 @@ if options.confined
         case 'constant'
             vInf = [ones(N,nv);zeros(N,nv)];
 
+        case 'circle'
+            vInf = [-y(:,1); x(:,1)];
+            
         case 'couette'
             %[-y,x]==>clockwise
-            vInf = 1*[-y(:,1)+mean(y(:,1));x(:,1)-mean(x(:,1))];
+            %vInf = 1*[-y(:,1)+mean(y(:,1));x(:,1)-mean(x(:,1))];
+            vInf = zeros(2*N,1);
             %[y,-x]==>counter clockwise
-            vInf = [vInf; 4*[y(:,2)+mean(y(:,2)); -x(:,2)-mean(x(:,2))]];
+            vInf = [vInf; [-y(:,2)+mean(y(:,2)); x(:,2)-mean(x(:,2))]];
 
         otherwise
             vInf = [zeros(N,nv);zeros(N,nv)];
