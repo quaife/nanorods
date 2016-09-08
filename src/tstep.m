@@ -142,8 +142,8 @@ if o.usePreco
                 col_stokes2 = [r(:,2).*r(:,1)./rho2; -0.5*log(rho2) + r(:,2).*r(:,2)./rho2]/(4*pi);
                 col_rot = [r(:,2)./rho2; -r(:,1)./rho2];
                 
-                int_stokes = sa(:,k)';
-                int_rot = [(y(:,k).*sa(:,k))', -(x(:,k).*sa(:,k))'];
+                int_stokes = 2*pi*sa(:,k)'/Nbd;
+                int_rot = 2*pi*[(y(:,k).*sa(:,k))', -(x(:,k).*sa(:,k))']/Nbd;
                 
                 [o.precoW.L(:,:,k),o.precoW.U(:,:,k)] =...
                     lu([-1/2*eye(2*Nbd)+o.Dw(:,:,k), col_stokes1, col_stokes2, col_rot;...
@@ -235,7 +235,10 @@ end
 
 % SOLVE SYSTEM USING GMRES
 maxit = 2*N*nv;% should be a lot lower than this
-%o.rhs  = [ones(2*nv*N,1);2*ones(2*Nbd*nbd,1);3*ones(2*nv,1);4*ones(nv,1);5*ones(2*(nbd-1),1);6*ones(nbd-1,1)];
+% o.rhs  = [ones(2*nv*N,1);2*ones(2*Nbd*nbd,1);3*ones(2*nv,1);4*ones(nv,1);5*ones(2*(nbd-1),1);6*ones(nbd-1,1)];
+% 
+% clf;
+% semilogy(abs(o.timeMatVec(o.preconditionerBD(o.rhs), geom, walls)-o.rhs), '.');
 
 if o.usePreco
   [Xn,iflag,res,I] = gmres(@(X) o.timeMatVec(X,geom,walls),o.rhs,[],o.gmresTol,...
@@ -466,7 +469,7 @@ if (o.confined && nbd > 1)
     % END TARGETS == FIBRES
     
     % START TARGETS == WALLS
-    wsr = 0;
+    wsr = zeros(2*Nbd,nbd);
     for k = 2:nbd % loop over all walls, except outer wall
         wsr = wsr + o.RSlets(walls.X, walls.center(:,k), lambda(:,k-1), xi(k-1));
     end   
@@ -475,14 +478,11 @@ if (o.confined && nbd > 1)
     % END SOURCE == ROTLETS
     
     % EVALUATE ROTLET AND STOKESLET EQUATIONS
-    z = o.letsIntegrals([lambda;xi], etaW, walls);
-    valStokeslets = z(1:2*(nbd-1));
-    valRotlets = z(2*(nbd-1)+1:end);
+    valLets = o.letsIntegrals([lambda;xi], etaW, walls);
 else
     fsr = 0;
     wsr = 0;
-    valRotlets = [];
-    valStokeslets = [];
+    valLets = [];
 end
 % EVALUATE VELOCITY ON FIBERS
 valFibers = valFibers + ffdlp + fwdlp + fsr;
@@ -517,7 +517,7 @@ for k = 1:nv
 end
 
 % CONSTRUCT OUTPUT VECTOR
-Tx = [valFibers(:); valWalls(:); -valForce(:);-valTorque(:);valRotlets(:);valStokeslets(:)];
+Tx = [valFibers(:); valWalls(:); -valForce(:);-valTorque(:);valLets(:)];
 
 if o.profile
     o.om.writeMessage(['Matvec assembly completed in ', num2str(toc(tMatvec)), ' seconds']);
@@ -571,12 +571,12 @@ for k = 1:nbd
        Pz(xiStart:xiEnd) = zblock;
        
     else
-        xiStart = 2*N*nv + 1 * 2*(k-1)*Nbd;
+        xiStart = 2*N*nv + 2*(k-1)*Nbd + 1;
         xiEnd = xiStart + 2*Nbd - 1;
         
-        stokesletStart = 2*N*nv+2*Nbd*nbd+3*nv+1 + 2*(k-2);
+        stokesletStart = 2*N*nv+2*Nbd*nbd+3*nv+2*(k-2)+1;
         stokesletEnd = stokesletStart + 1;
-        rotletStart = 2*N*nv+2*Nbd*nbd+3*nv+2*(nbd-1)+1;
+        rotletStart = 2*N*nv+2*Nbd*nbd+3*nv+2*(nbd-1)+(k-1);
         rotletEnd = rotletStart;
         
         zblock = o.precoW.U(:,:,k)\(o.precoW.L(:,:,k)\...
@@ -714,9 +714,98 @@ function M = build_matrix(o, geom, walls)
     M = zeros(Ntotal);
     
     for k = 1:Ntotal
-       M(:,k) = o.timeMatVec(I(:,k),geom,walls) + 0.5*I(:,k);
+       M(:,k) = o.timeMatVec(I(:,k),geom,walls);
     end    
 end % build_matrix
+
+function M = build_preconditioner_matrix(o, geom, walls)
+
+    [N,nv] = size(geom.X);
+    [Nbd,nbd] = size(walls.X);
+    
+    N = N/2;
+    Nbd = Nbd/2;
+    
+    Ntotal = 2*N*nv + 2*Nbd*nbd + 3*nv + 3*(nbd-1);
+    
+    M = zeros(Ntotal,Ntotal);
+    
+    % fibre-fibre
+    for k = 1:nv
+        start_row = 1+(k-1)*2*N;
+       M(start_row:start_row+2*N-1,start_row:start_row+2*N-1) =  -1/2*eye(2*N)+o.Df(:,:,k);
+    end
+    
+    % wall-wall
+    for k = 1:nbd
+       start_row = 2*N*nv+1+(k-1)*2*Nbd;
+       M(start_row:start_row+2*Nbd-1,start_row:start_row+2*Nbd-1) = -1/2*eye(2*Nbd)+o.Dw(:,:,k)+o.N0w(:,:,k);    
+    end
+    
+    % u and omega    
+    for k = 1:nv
+        
+       start_row = 2*N*nv+2*Nbd*nbd+2*(k-1)+1;
+       start_col = 2*N*(k-1)+1;
+       
+       M(start_row:start_row+1,start_col:start_col+2*N-1) = ...
+                [[-geom.sa(:,k)'*2*pi/N, zeros(1,N)];...
+                [zeros(1,N), -geom.sa(:,k)'*2*pi/N]];
+       
+       start_row = 2*N*nv+2*Nbd*nbd+2*nv+k;
+       M(start_row,start_col:start_col+2*N-1) = ...
+                 [(-geom.X(end/2+1:end,k)'+geom.center(2,k)).*geom.sa(:,k)'*2*pi/N ...
+                    (geom.X(1:end/2,k)'-geom.center(1,k)).*geom.sa(:,k)'*2*pi/N];
+        
+       start_row = 2*N*(k-1)+1;
+       start_col = 2*N*nv+2*Nbd*nbd+2*(k-1)+1;
+       
+       M(start_row:start_row+2*N-1,start_col:start_col+1) = ...
+                    [[-ones(N,1);zeros(N,1)] ...
+                    [zeros(N,1);-ones(N,1)]];
+       
+        start_col = 2*N*nv + 2*Nbd*nbd+2*nv+k;
+        M(start_row:start_row+2*N-1,start_col) = ...
+                [geom.X(end/2+1:end,k)-geom.center(2,k); -geom.X(1:end/2,k)+geom.center(1,k)];
+    end
+    
+    
+    % stokeslets and rotlets
+    oc = curve;
+    sa = walls.sa;
+    [x,y] = oc.getXY(walls.X);
+    [cx,cy] = oc.getXY(walls.center);
+    
+    for k = 1:nbd-1
+        r = [x(:,k+1) - cx(k+1), y(:,k+1) - cy(k+1)];
+        rho2 = (x(:,k+1) - cx(k+1)).^2 + (y(:,k+1) - cy(k+1)).^2;
+        
+        col_stokes1 = [-0.5*log(rho2) + r(:,1).*r(:,1)./rho2; r(:,2).*r(:,1)./rho2]/(4*pi);
+        col_stokes2 = [r(:,2).*r(:,1)./rho2; -0.5*log(rho2) + r(:,2).*r(:,2)./rho2]/(4*pi);
+        col_rot = [r(:,2)./rho2; -r(:,1)./rho2];
+        
+        int_stokes = 2*pi*sa(:,k+1)'/Nbd;
+        int_rot = 2*pi*[(y(:,k+1).*sa(:,k+1))', -(x(:,k+1).*sa(:,k+1))']/Nbd;
+        
+        start_row = 2*N*nv+2*Nbd*nbd+3*nv+1;
+        start_col = 2*N*nv+2*Nbd*k+1;
+        
+        M(start_row:start_row+2,start_col:start_col+2*Nbd-1) = ...
+                    [int_stokes, zeros(1,Nbd);...
+                    zeros(1,Nbd), int_stokes;...
+                    int_rot];
+        
+        start_col = 2*N*nv+2*Nbd*nbd+3*nv+(k-1)+1;
+        M(start_row:start_row+2,start_col:start_col+2) = -2*pi*eye(3);
+        
+        start_row =  2*N*nv+2*Nbd*k+1;
+        start_col = 2*N*nv+2*Nbd*nbd+3*nv+1 +3*(k-1);
+        
+        M(start_row:start_row+2*Nbd-1,start_col:start_col+2) = [col_stokes1, col_stokes2, col_rot];
+    end
+    
+end % build_preconditioner_matrix
+
 end % methods
 
 end % classdef
