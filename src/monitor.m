@@ -47,6 +47,7 @@ o.welcomeMessage();
 %% start new data file if needed
 if (o.saveData && ~o.append)
 
+    o.clearFiles();
     etaW = zeros(2*prams.Nbd, prams.nbd);
     etaF = zeros(2*prams.N, prams.nv);
     
@@ -68,14 +69,10 @@ function clearFiles(o)
 % nothing from previous runs
 
 fid1 = fopen(o.dataFile,'w');
-fid2 = fopen(o.densityFile,'w');
-fid3 = fopen(o.logFile,'w');
-fid4 = fopen(o.geomFile,'w');
+fid2 = fopen(o.logFile,'w');
 
 fclose(fid1);
 fclose(fid2);
-fclose(fid3);
-fclose(fid4);
 
 end % clearFiles
 

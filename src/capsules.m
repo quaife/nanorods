@@ -69,7 +69,7 @@ end
 end % capsules: constructor
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function [Xnew, xc, tau, add] = add_fibre(o, rmin, rmax, prams)
+function [Xnew, xc, tau, add] = add_fibre(o, rmin, rmax, prams, k)
     max_attempts = 1000;
         
     attempt = 0;
@@ -114,10 +114,10 @@ function [Xnew, xc, tau, add] = add_fibre(o, rmin, rmax, prams)
             Xnew = [x_square*cos(tau) - y_square*sin(tau) + xc(1);
                     x_square*sin(tau) + y_square*cos(tau) + xc(2)];
             
-            disp('inserted fibre');
+            disp(['inserted fibre ', num2str(k)]);
             break;
         else
-            disp('failed to insert fibre, trying again');
+            disp(['failed to insert fibre ', num2str(k), '(attempt ', num2str(attempt), '), trying again']);
         end
     end
     
@@ -130,14 +130,14 @@ end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function [xc, tau] = fill_couette(o, rmin, rmax, nv, prams)
    
-    rng(12345);
+    %rng(12345);
 
     xc = zeros(2,nv);
     tau =zeros(1,nv);
     
     for i = 1:nv
        
-        [Xnew, xc(:,i),tau(i), add] = o.add_fibre(rmin, rmax, prams); 
+        [Xnew, xc(:,i),tau(i), add] = o.add_fibre(rmin, rmax, prams,i); 
        
        if add
            o.X(:,end+1) = Xnew;
@@ -646,10 +646,193 @@ end
 end
 % collision
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function X = getXY(o)
     X = o.X;
 end % getXY
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+function press = pressure(geom,f,stokeslets,pressTar,fmm,LP)
+% press = pressure(vesicle,f,RS,pressTar,fmm,LP) computes the pressure
+% due to vesicle at the locations pressTar with near-singular
+% integration with traction jump f and Rotlets stored in RS.  LP is
+% either SLP or DLP and tells this routine if it needs to evaluate the
+% pressure due to the single-layer potential or the double-layer
+% potential.  Note that vesicle may correspond to solid walls rather
+% than vesicles
+
+N = geom.N; % points per vesicle
+nv = geom.nv; % number of vesicles
+Nup = N*ceil(sqrt(N));
+op = poten(N);
+Ntar = pressTar.N;
+% number of target points where we want to compute the pressure
+% and stress
+
+[~,NearV2T] = geom.getZone(pressTar,2);
+% build near-singular integration structure for vesicle
+% to pressure target points
+%InOutFlag = find(vesicle.sortPts(pressTar.X,fmm,NearV2T) == 1);
+%figure(1); clf; hold on
+%plot(vesicle.X(1:end/2,:),vesicle.X(end/2+1:end,:),'r');
+%oc = curve;
+%[xx,yy] = oc.getXY(pressTar.X);
+%plot(xx,yy,'b.');
+%plot(xx(InOutFlag),yy(InOutFlag),'k.');
+% DEBUG: MAKE SURE POINTS INSIDE AND OUTSIDE ARE LABELLED CORRECTLY
+
+%fprintf('PRESSURE\n')
+if strcmp(LP,'SLP')
+  PdiagIn = op.pressSLmatrix(geom);
+  PdiagOut = PdiagIn;
+  % use odd-even integration to evaluate pressure due to
+  % each vesicle independent of the others on its boundary
+  for k = 1:nv
+    PdiagOut(1:N,1:N,k) = PdiagOut(1:N,1:N,k) + ...
+        1/2*diag(geom.xt(N+1:2*N,k));
+    PdiagOut(1:N,N+1:2*N,k) = PdiagOut(1:N,N+1:2*N,k) + ...
+        1/2*diag(-geom.xt(1:N,k));
+    PdiagIn(1:N,1:N,k) = PdiagIn(1:N,1:N,k) - ...
+        1/2*diag(geom.xt(N+1:2*N,k));
+    PdiagIn(1:N,N+1:2*N,k) = PdiagIn(1:N,N+1:2*N,k) - ...
+        1/2*diag(-geom.xt(1:N,k));
+  end
+  % Jump term that comes from pressure of single-layer potential is the
+  % dot product of the traction jump with the normal vector multiplied
+  % by 1/2
+  Pdiag = @(X) op.exactPressureSLdiag(geom,[PdiagOut;PdiagIn],X);
+  % nearSingInt assumes that input and output are vector-valued Take
+  % adavntage of the fact that nearSingInt only works with
+  % vector-valued densities by passing in two different jumps---one for
+  % the limit from the inside and one from the outside.
+
+  if ~fmm
+    kernel = @op.exactPressSL;
+  else
+    kernel = @op.exactPressSLfmm;
+  end
+  kernelDirect = @op.exactPressSL;
+elseif strcmp(LP,'DLP')
+  oc = curve;
+  PdiagIn = op.pressDLmatrix(geom);
+  PdiagOut = PdiagIn;
+  Deriv = fft1.D1(N);
+  % spectral differentiation matrix
+  for k = 1:nv
+    [tanx,tany] = oc.getXY(geom.xt(:,k));
+    % tangent vector
+    sa = geom.sa(:,k);
+    % Jacobian
+
+    jump = -[diag(tanx./sa) diag(tany./sa)] * ...
+        [Deriv zeros(N); zeros(N) Deriv];
+    PdiagIn(:,:,k) = PdiagIn(:,:,k) - jump;
+    PdiagOut(:,:,k) = PdiagOut(:,:,k) + jump;
+    % add in the jump term.  Jump term is negative because target
+    % points are interior to the solid walls
+  end
+  % Jump term that comes from pressure of double-layer potential
+  % is the dot product of the tangential derivative of the traction 
+  % jump with the tangent.  Assuming that all the pressure target
+  % points are inside the physical domain so there is no use to
+  % consider the limiting value from the other side
+  Pdiag = @(X) op.exactPressureDLdiag(geom,[PdiagOut;PdiagIn],X);
+  % nearSingInt assumes that input and output are vector-valued Take
+  % adavntage of the fact that nearSingInt only works with
+  % vector-valued densities by passing in two different jumps---one for
+  % the limit from the inside and one from the outside.
+
+  kernel = @op.exactPressDL;
+  kernelDirect = @op.exactPressDL;
+end
+
+
+Xup = [interpft(geom.X(1:N,:),Nup);...
+       interpft(geom.X(N+1:2*N,:),Nup)];
+
+geomUp = capsules([],Xup);
+Dup = op.stokesDLmatrix(geomUp);
+
+pressT = op.nearSingInt(geom,f,Pdiag,Dup,...
+    NearV2T,kernel,kernelDirect,pressTar,false,false);
+
+% compute the pressure of the single- or double-layer 
+% potential using near-singular integration.  First row 
+% corresponds to using the limiting value for the pressure 
+% exterior of the vesicle and the second row corresponds to 
+% using the limiting value for the pressure interior of the 
+% vesicle
+press = pressT(1:Ntar);
+%press(InOutFlag) = pressT(Ntar+InOutFlag);
+% At the interior points, take the second row
+
+nwalls = length(stokeslets)/2; % number of inner walls
+
+if nwalls > 0
+  for k = 1:nwalls
+    cx = geom.center(1,k);
+    cy = geom.center(2,k);
+    % center of interior solid wall k
+    xi1 = stokeslets(2*(k-1)+1);
+    xi2 = stokeslets(2*(k-1)+2);
+    % first and second components of the stokeslet on 
+    % interior solid wall k 
+    [x,y] = oc.getXY(pressTar.X);
+    rx = x - cx;
+    ry = y - cy;
+    press = press +  2./(rx.^2 + ry.^2).*(rx*xi1 + ry*xi2);
+    % add in pressure of stokeslet term
+    % rotlet has a vanishing pressure gradient
+  end
+end
+
+end % pressure
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+function InOut = sortPts(vesicle,Xtar,fmm,NearV2T)
+% InOut = sortPts(vesicle,Xtar,fmm,nearV2T) determines if the set of
+% points in Xtar are inside or outside of a vesicle configuration
+
+density = [ones(vesicle.N,vesicle.nv);...
+           zeros(vesicle.N,vesicle.nv)];
+% density function that is used to check if a point is inside or
+% outside
+
+tracers = capsules(Xtar,[],[],0,0,0);
+if nargin == 3 
+  [~,NearV2T] = vesicle.getZone(tracers,2);
+end
+
+op = poten(vesicle.N);
+if ~fmm
+  kernel = @op.exactLaplaceDL;
+else
+  kernel = @op.exactLaplaceDLfmm;
+end
+% kernel for Laplace's double layer potential
+
+DLP = @(X) zeros(2*size(X,1),size(X,2));
+% can cheat here because we know that the double-layer potential
+% applied to the constant density function will always return zero
+
+kernelDirect = kernel;
+InOut = op.nearSingInt(vesicle,density,DLP,...
+    NearV2T,kernel,kernelDirect,tracers,false,false);
+
+InOut = InOut(1:end/2);
+% only care about the first half as we are working with laplace as
+% opposed to the vector-valued stokes layer potentials
+
+thresh = 1e-4;
+InOut(InOut > thresh) = 1;
+InOut(InOut <= thresh) = 0;
+% for points inside a vesicle, but close to its boundary, we will be
+% interpolating the function [0;1;1;1;1...] close to the initial
+% point.  Therefore, the value returned by the DLP will be some value
+% between 0 and 1, but it can be quite close to 0.  So, we threshold
+
+end % sortPts
 
 end % methods
 

@@ -12,6 +12,8 @@ U
 omega
 etaF
 etaW
+rotlets
+stokeslets
 
 EPS;
 OUTPUTPATH_GIFS;
@@ -36,6 +38,8 @@ o.U = U;
 o.omega = omega;
 o.etaF = etaF;
 o.etaW = etaW;
+o.rotlets = rot;
+o.stokeslets = stokes;
 
 o.EPS = 0.1;
 o.OUTPUTPATH_GIFS = '../output/gifs/';
@@ -211,7 +215,7 @@ surf(X,Y,V);
 view(2)
 
 shading interp
-hold on 
+hold on
 
 o.plot_fibres(iT, xmin, xmax, ymin, ymax);
 
@@ -222,7 +226,54 @@ o.plot_fibres(iT, xmin, xmax, ymin, ymax);
 title(sprintf('V at t = %6.3f', o.times(iT)));
 
 end % post : plot_fluid
-  
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+function [X,Y,p] = plot_pressure(o,iT)
+
+M = 50;
+N = 500;
+r = linspace(5, 10, M);
+theta = linspace(0,2*pi,N);
+
+[R, T] = meshgrid(r, theta);
+
+X = R.*cos(T);
+Y = R.*sin(T);
+geomTar = capsules([],[X(:);Y(:)]);
+
+oc = curve;
+geom = capsules(o.prams, o.xc(:,:,iT), o.tau(iT,:));
+xWalls = oc.createWalls(o.prams.Nbd, o.options);
+
+walls = capsules(o.prams,xWalls);
+
+p = geom.pressure(o.etaF(:,:,iT), [], geomTar, true, 'DLP');
+p = p + walls.pressure(o.etaW(:,:,iT), o.stokeslets(:,:,iT), geomTar, true, 'DLP');
+p = reshape(p,N,M);
+
+for i = 1:N
+    for j = 1:M
+    
+        if any(sum((o.xc(:,:,iT) - repmat([X(i,j);Y(i,j)], 1, geom.nv)).^2) < (max(o.prams.widths/2))^2)
+            p(i,j) = 0;
+        end
+    end
+end
+
+surf(X,Y,p);
+view(2);
+shading interp
+hold on
+
+[x, y] = oc.getXY(geom.X);
+[n,m] = size([x;x(1,:)]);
+fill3([x;x(1,:)],[y;y(1,:)],100*ones(n,m),'k');
+
+colorbar
+%caxis([-5,5]);
+axis equal
+
+end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function [] = plot_walls(o,iT)
     
