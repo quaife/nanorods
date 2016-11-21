@@ -101,10 +101,10 @@ function [] = plot_fluid(o, iT, xmin, xmax, ymin, ymax, epsilon)
 % plots the Stokes double layer potential over a meshgrid X, Y. The DLP will
 % only be evaluated if it is at least epsilon away from all fibers.
 %
-% TO DO : add different types od background flow, right now only
+% TO DO : add different types of background flow, right now only
 % extensional
 
-theta = (0:o.N-1)'*2*pi/o.N;
+%theta = (0:o.N-1)'*2*pi/o.N;
 
 % for k = 1:o.nv
 %    f(1:o.N,k) = 0*sin(theta);
@@ -179,17 +179,16 @@ geom = capsules(o.prams, o.xc(:,:,iT), o.tau(iT,:));
 %     end
 % end
 
-Utmp =  o.evaluateDLP(geom, o.eta(:,:,iT), X(:), Y(:));
+Utmp =  o.evaluateDLP(geom, o.etaF(:,:,iT), X(:), Y(:));
 
 Ufluid = reshape(Utmp(1:end/2), M, M);
 V = reshape(Utmp(end/2+1:end), M, M);
-Ufluid = Ufluid + X;
-V = V - Y;
+Ufluid = Ufluid + 5*Y; %add in background flow
 
 % U = Utmp(1:end/2);
 % V = Utmp(end/2+1:end);
 
-quiver(X, Y, Ufluid, V, 4);
+quiver(X, Y, Ufluid, V, 1);
 
 %surf(X,Y,U);
 % plot(X, U, '-o','linewidth', 2);
@@ -207,23 +206,23 @@ o.plot_fibres(iT, xmin, xmax, ymin, ymax);
 
 title(sprintf('U at t = %6.3f', o.times(iT)));
 
-figure(2);
-hold on
-surf(X,Y,V);
-
-% plot(X, V, '-o','linewidth', 2);
-view(2)
-
-shading interp
-hold on
-
-o.plot_fibres(iT, xmin, xmax, ymin, ymax);
-
-% xlim([xmin, xmax]);
-% ylim([ymin, ymax]);
-%axis equal
-
-title(sprintf('V at t = %6.3f', o.times(iT)));
+% figure(2);
+% hold on
+% surf(X,Y,V);
+% 
+% % plot(X, V, '-o','linewidth', 2);
+% view(2)
+% 
+% shading interp
+% hold on
+% 
+% o.plot_fibres(iT, xmin, xmax, ymin, ymax);
+% 
+% % xlim([xmin, xmax]);
+% % ylim([ymin, ymax]);
+% %axis equal
+% 
+% title(sprintf('V at t = %6.3f', o.times(iT)));
 
 end % post : plot_fluid
 
@@ -308,21 +307,21 @@ end
 % ymin = min(min(o.centres_y(1:itmax,:))) - max(o.lengths);
 % ymax = max(max(o.centres_y(1:itmax,:))) + max(o.lengths);
 %         
-for i = 1:stride:itmax
+for i = 2:stride:itmax
     
     clf;
     
-    o.plot_walls(i);
+    %o.plot_walls(i);
     hold on
-%     xmin = min(min(o.centres_x(i,:))) - max(o.lengths);
-%     xmax = max(max(o.centres_x(i,:))) + max(o.lengths);        
-%     ymin = min(min(o.centres_y(i,:))) - max(o.lengths);
-%     ymax = max(max(o.centres_y(i,:))) + max(o.lengths);
+%     xmin = min(min(o.xc(1,:,i))) - max(o.prams.lengths);
+%     xmax = max(max(o.xc(1,:,i))) + max(o.prams.lengths);        
+%     ymin = min(min(o.xc(2,:,i))) - max(o.prams.lengths);
+%     ymax = max(max(o.xc(2,:,i))) + max(o.prams.lengths);
      
-    xmin = -10;
-    xmax = 10;        
-    ymin = -10;
-    ymax = 10;
+    xmin = -1;
+    xmax = 1;        
+    ymin = -0.6;
+    ymax = 0.6;
 
            
 %     ymin = o.centres_y(i,2)+0.5 - 1e-4;
@@ -346,7 +345,7 @@ for i = 1:stride:itmax
     
     [imind, cm] = rgb2ind(im,256);
     
-    if i == 1;
+    if i == 2;
         
         imwrite(imind, cm, [o.OUTPUTPATH_GIFS,  gname], 'gif', ...
                 'Loopcount',inf, 'DelayTime', 0);
@@ -578,7 +577,7 @@ pot = poten(geom.N);
 
 D = pot.stokesDLmatrix(geom);
 DLP = @(X) pot.exactStokesDLdiag(geom,D,X) - 1/2*X;
-u = pot.nearSingInt(geom, eta, DLP,...
+u = pot.nearSingInt(geom, eta, DLP,[],...
     NearStruct, @pot.exactStokesDL, @pot.exactStokesDL, geomTar,false,false);
 
 end % post : evaluateDLP

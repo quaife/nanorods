@@ -7,15 +7,20 @@ ttotal = tic;
     
 
 geom = capsules(prams, xc, tau);
-walls = capsules(prams, xWalls);
 
-% [xc_added, tau_added] = geom.fill_couette(5, 10, 66, prams);
+if (options.confined)
+    walls = capsules(prams, xWalls);
+else
+    walls = [];
+end
+
+% [xc_added, tau_added] = geom.fill_couette(5, 10, 86, prams);
 % xc = [xc, xc_added];
 % tau = [tau, tau_added];
 
-prams.nv = length(tau);
-prams.legnths = prams.lengths(1)*ones(1,prams.nv);
-prams.widths = prams.widths(1)*ones(1,prams.nv);
+% prams.nv = length(tau);
+% prams.legnths = prams.lengths(1)*ones(1,prams.nv);
+% prams.widths = prams.widths(1)*ones(1,prams.nv);
 
 om = monitor(options, prams, xc, tau);
 tt = tstep(options, prams, om, geom, walls, tau);
@@ -59,7 +64,8 @@ while time < prams.T
     
     geom = capsules(prams, xc, tau);
     
-    [densityF,densityW,Up,wp,stokes,rot,iter,flag,res] = tt.timeStep(geom, tau, walls);
+    [densityF,densityW,Up,wp,stokes,rot,iter,flag,res] = tt.timeStep(geom, tau, ...
+                            walls, options, prams);
     
     % update centres and angles
     if (iT == 1 || options.tstep_order == 1) % use forward Euler
@@ -68,7 +74,7 @@ while time < prams.T
         tau = tau + tt.dt*wp;
         
         if (options.tstep_order == 2)
-            Up_m1 =  Up;
+            Up_m1 = Up;
             wp_m1 = wp;
         end
         
@@ -76,7 +82,7 @@ while time < prams.T
             xc = xc + (3/2)*tt.dt*Up - (1/2)*tt.dt*Up_m1;
             tau = tau + (3/2)*tt.dt*wp - (1/2)*tt.dt*wp_m1;
             
-            Up_m1 =  Up;
+            Up_m1 = Up;
             wp_m1 = wp;            
         end
     end

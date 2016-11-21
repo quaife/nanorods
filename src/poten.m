@@ -27,9 +27,11 @@ function o = poten(N, om)
 o.interpMat = o.lagrangeInterp;
 % load in the interpolation matrix which is precomputed with 7
 % interpolation points
+if nargin == 2
+    o.om = om;
+    o.profile = om.profile;
+end
 
-o.om = om;
-o.profile = om.profile;
 o.N = N;
 
 end % poten: constructor
@@ -113,7 +115,7 @@ if tEqualS % sources == targets
     else
       for k = 1:nvSou
         K = [(1:k-1) (k+1:nvSou)];
-        [~,farField(:,k)] = kernelDirect(geomUp,fup,Dup,Xtar(:,k),K, []);
+        [~,farField(:,k)] = kernelDirect(geomUp,fup,Dup,Xtar(:,k),K);
       end
       % This is a huge savings if we are using a direct method rather
       % than the fmm to evaluate the layer potential.  The speedup is
@@ -453,7 +455,7 @@ if (nargin == 4 && geom.nv > 1)
   for k = 1:geom.nv
     K = [(1:k-1) (k+1:geom.nv)];
     [x,y] = oc.getXY(geom.X(:,K));
-    [nx,ny] = oc.getXY(normal(:,K));
+    [nx,ny] = oc.getXYperp(geom.xt(:,K));
     [denx,deny] = oc.getXY(den(:,K));
     for j=1:geom.N
       diffxy = [geom.X(j,k) - x ; geom.X(j+geom.N,k) - y];
@@ -607,7 +609,7 @@ end
 end % exactStokesDLfmm
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function [laplaceDLP,laplaceDLPtar] = exactLaplaceDL(o,vesicle,f,Xtar,K1)
+function [laplaceDLP,laplaceDLPtar] = exactLaplaceDL(o,vesicle,f, D, Xtar,K1)
 % pot = exactLaplaceDL(vesicle,f,Xtar,K1) computes the double-layer
 % laplace potential due to f around all vesicles except itself.  Also
 % can pass a set of target points Xtar and a collection of vesicles K1
@@ -858,12 +860,293 @@ end
 
 end % exactStokesN0diag
 
-end % methods
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+function [pressSLP,pressSLPtar] = exactPressSL(o,vesicle,f,...
+    pressTrap,Xtar,K1)
+% [pressSLP,pressSLPtar] = exactPressSL(vesicle,f,pressTrap,Xtar,K1)
+% computes the pressure due to all vesicles contained in vesicle and
+% indexed over K1.  Evaluates it at Xtar Everything but Xtar is in the
+% 2*N x nv format Xtar is in the 2*Ntar x ncol format
+
+oc = curve;
+[x,y] = oc.getXY(vesicle.X);
+% vesicle position
+
+if nargin == 6
+  Ntar = size(Xtar,1)/2;
+  ncol = size(Xtar,2);
+  pressSLPtar = zeros(Ntar,ncol);
+else
+  K1 = [];
+  pressSLPtar = [];
+  ncol = 0;
+  Ntar = 0;
+  % if nargin ~= 5, user does not need the layer potential at arbitrary
+  % points
+end
+
+den = f.*[vesicle.sa;vesicle.sa]*2*pi/vesicle.N;
+
+for k2 = 1:ncol % loop over columns of target points
+  for j = 1:Ntar % loop over rows of target points
+    dis2 = (Xtar(j,k2) - x(:,K1)).^2 + (Xtar(j+Ntar,k2) - y(:,K1)).^2;
+    diffxy = [Xtar(j,k2) - x(:,K1) ; Xtar(j+Ntar,k2) - y(:,K1)];
+    % distance squared and difference of source and target location
+
+    val = (diffxy(1:vesicle.N,:).*den(1:vesicle.N,K1) + ...
+        diffxy(vesicle.N+1:2*vesicle.N,:).* ...
+        den(vesicle.N+1:2*vesicle.N,K1))./dis2;
+    % \frac{(r \dot f){\rho^{2}} term
+
+    pressSLPtar(j,k2) = sum(val(:)); 
+  end % j
+end % k2
+% pressure coming from the single-layer potential for Stokes flow
+
+pressSLP = zeros(vesicle.N,vesicle.nv);
+% TODO: NOT SURE IF WE WILL EVER NEED THIS BUT SHOULD PUT IT
+% IN NONETHELESS
+
+pressSLPtar = [pressSLPtar;pressSLPtar]*1/2/pi;
+% near-singular integration needs vector-valued functions
+% also need to multiply by 1/(2*pi) as per the pressure of the
+% single-layer potential
+
+end % exactPressSL
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+function [pressSLP,pressSLPtar] = exactPressSLfmm(o,vesicle,f,Xtar,K1)
+% [pressSLP,pressSLPtar] = exactPressSLfmm(vesicle,f,Xtar,K1) computes
+% the pressure due to all vesicles contained in vesicle and indexed
+% over K1 using the FMM.  Evaluates it at Xtar Everything but Xtar is
+% in the 2*N x nv format Xtar is in the 2*Ntar x ncol format
+
+oc = curve;
+[x1,y1] = oc.getXY(vesicle.X(:,K1));
+% source points
+[x2,y2] = oc.getXY(Xtar);
+% target points
+[den1,den2] = oc.getXY(den(:,K1));
+% source charges
+
+den = f.*[vesicle.sa;vesicle.sa]*2*pi/vesicle.N;
+
+if nargin == 6
+  Ntar = size(Xtar,1)/2;
+  ncol = size(Xtar,2);
+  pressSLPtar = zeros(Ntar,ncol);
+else
+  K1 = [];
+  pressSLPtar = [];
+  ncol = 0;
+  Ntar = 0;
+  % if nargin ~= 6, user does not need the layer potential at arbitrary
+  % points
+end
+
+x = [x1(:); x2(:)];
+y = [y1(:); y2(:)];
+% stack the sources and targets
+den1 = [den1(:);zeros(Ntar*ncol,1)];
+den2 = [den2(:);zeros(Ntar*ncol,1)];
+% charge of zero at the target locations
+[~,rfield,~] = fmm_laplace(den1,x,y,1);
+[~,~,cfield] = fmm_laplace(den2,x,y,1);
+
+pressSLPtar = zeros(Ntar,ncol);
+for k = 1:ncol
+  is = vesicle.N*numel(K1) + (k-1)*Ntar + 1;
+  ie = is + Ntar - 1;
+  pressSLPtar(1:Ntar,k) = rfield(is:ie) + cfield(is:ie);
+end
+
+pressSLP = zeros(vesicle.N,vesicle.nv);
+% TODO: NOT SURE IF WE WILL EVER NEED THIS BUT SHOULD PUT IT
+% IN NONETHELESS
+
+pressSLPtar = [pressSLPtar;pressSLPtar]*1/2/pi;
+% near-singular integration needs vector-valued functions
+% also need to multiply by 1/(2*pi) as per the pressure of the
+% single-layer potential
+
+end % exactPressSLfmm
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+function [pressDLP,pressDLPtar] = exactPressDL(o,vesicle,f,...
+    pressTrap,Xtar,K1)
+% [pressDLP,pressDLPtar] = exactPressDL(vesicle,f,pressTrap,Xtar,K1)
+% computes the pressure due to all vesicles contained in vesicle and
+% indexed over K1.  Evaluates it at Xtar Everything but Xtar is in the
+% 2*N x nv format Xtar is in the 2*Ntar x ncol format
+
+den = f.*[vesicle.sa;vesicle.sa]*2*pi/vesicle.N;
+oc = curve;
+[x,y] = oc.getXY(vesicle.X);
+[denx,deny] = oc.getXY(den);
+nx = vesicle.xt(vesicle.N+1:2*vesicle.N,:);
+ny = -vesicle.xt(1:vesicle.N,:);
+
+
+if nargin == 6
+  Ntar = size(Xtar,1)/2;
+  ncol = size(Xtar,2);
+  pressDLPtar = zeros(Ntar,ncol);
+else
+  K1 = [];
+  pressDLPtar = [];
+  ncol = 0;
+  Ntar = 0;
+  % if nargin ~= 6, user does not need the layer potential at arbitrary
+  % points
+end
+
+for k2 = 1:ncol % loop over columns of target points
+  for j = 1:Ntar % loop over rows of target points
+    dis2 = (Xtar(j,k2) - x(:,K1)).^2 + (Xtar(j+Ntar,k2) - y(:,K1)).^2;
+    diffxy = [Xtar(j,k2) - x(:,K1) ; Xtar(j+Ntar,k2) - y(:,K1)];
+    % distance squared and difference of source and target location
+    rdotn = diffxy(1:vesicle.N,:).*nx(:,K1) + ...
+        diffxy(vesicle.N+1:2*vesicle.N,:).*ny(1:vesicle.N,K1); 
+  
+    val = (nx(:,K1) - 2*rdotn./dis2.*...
+        diffxy(1:vesicle.N,:))./dis2 .* denx(:,K1);
+    val = val + (ny(:,K1) - 2*rdotn./dis2.*...
+        diffxy(vesicle.N+1:2*vesicle.N,:))./dis2 .* deny(:,K1);
+
+    pressDLPtar(j,k2) = sum(val(:)); 
+  end % j
+end % k2
+% pressure coming from the double-layer potential for Stokes flow
+
+pressDLP = zeros(vesicle.N,vesicle.nv);
+% TODO: NOT SURE IF WE WILL EVER NEED THIS BUT SHOULD PUT IT
+% IN NONETHELESS
+
+pressDLPtar = -[pressDLPtar;pressDLPtar]*1/pi;
+% near-singular integration needs vector-valued functions also need to
+% multiply by 1/(2*pi) as per the pressure of the single-layer
+% potential
+
+end % exactPressDL
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+function P = pressDLmatrix(o,vesicle)
+% P = pressDLmatrix(vesicle), generates the matrix that returns the
+% pressure given the traction jump.  Matrix has dimensions (N,2*N,nv)
+% where N is the number of points per curve and nv is the number of
+% curves in X.  Matrix is not square since traction jump is
+% vector-valued whereas the pressure is a scalar-valued function
+
+oc = curve;
+[x,y] = oc.getXY(vesicle.X);
+nx = vesicle.xt(vesicle.N+1:2*vesicle.N,:);
+ny = -vesicle.xt(1:vesicle.N,:);
+% Normal vector
+
+P = zeros(vesicle.N,2*vesicle.N,vesicle.nv);
+% initialize double-layer potential to zero
+for k=1:vesicle.nv  % Loop over curves
+  index1 = (1:2:vesicle.N)'; % odd-indexed source points
+  for j=2:2:vesicle.N % Loop over targets
+    rho2 = (x(j,k) - x(index1,k)).^2 + (y(j,k) - y(index1,k)).^2;
+    % distance squared
+    rx = x(j,k) - x(index1,k);
+    ry = y(j,k) - y(index1,k);
+    rdotn = rx.*nx(index1,k) + ry.*ny(index1,k);
+
+    coeff = (-nx(index1,k)./rho2 + 2*rdotn./rho2.^2.*rx) .* ...
+        vesicle.sa(index1,k)/pi;
+    P(j,index1,k) = 4*pi/vesicle.N*coeff;
+    % part that multiplies x-component of traction jump
+    % need factor of 4 instead of 2 because we are only using
+    % half the terms in the quadrature
+    P(j,j,k) = P(j,j,k) - sum(coeff)*4*pi/vesicle.N;
+    % need to subtract off the input at the target location
+    % so that the singularity is only 1/r instead of 1/r^2
+    coeff = (-ny(index1,k)./rho2 + 2*rdotn./rho2.^2.*ry) .* ...
+        vesicle.sa(index1,k)/pi;
+    P(j,vesicle.N+index1,k) = 4*pi/vesicle.N*coeff;
+    % part that multiplies y-component of traction jump
+    % need factor of 4 instead of 2 because we are only using
+    % half the terms in the quadrature
+    P(j,vesicle.N+j,k) = P(j,vesicle.N+j,k) - ...
+        sum(coeff)*4*pi/vesicle.N;
+    % need to subtract off the input at the target location
+    % so that the singularity is only 1/r instead of 1/r^2
+  end % j
+
+  index1 = (2:2:vesicle.N)'; % even-indexed source points
+  for j=1:2:vesicle.N % Loop over targets
+    rho2 = (x(j,k) - x(index1,k)).^2 + (y(j,k) - y(index1,k)).^2;
+    % distance squared
+    rx = x(j,k) - x(index1,k);
+    ry = y(j,k) - y(index1,k);
+    rdotn = rx.*nx(index1,k) + ry.*ny(index1,k);
+    % dot product of r with normal
+
+    coeff = (-nx(index1,k)./rho2 + 2*rdotn./rho2.^2.*rx) .* ...
+        vesicle.sa(index1,k)/pi;
+    P(j,index1,k) = 4*pi/vesicle.N*coeff;
+    % part that multiplies x-component of traction jump
+    % need factor of 4 instead of 2 because we are only using
+    % half the terms in the quadrature
+    P(j,j,k) = P(j,j,k) - sum(coeff)*4*pi/vesicle.N;
+    % need to subtract off the input at the target location
+    % so that the singularity is only 1/r instead of 1/r^2
+
+    coeff = (-ny(index1,k)./rho2 + 2*rdotn./rho2.^2.*ry) .* ...
+        vesicle.sa(index1,k)/pi;
+    P(j,vesicle.N+index1,k) = 4*pi/vesicle.N*coeff;
+    % part that multiplies y-component of traction jump
+    % need factor of 4 instead of 2 because we are only using
+    % half the terms in the quadrature
+    P(j,vesicle.N+j,k) = P(j,vesicle.N+j,k) - ...
+        sum(coeff)*4*pi/vesicle.N;
+    % need to subtract off the input at the target location
+    % so that the singularity is only 1/r instead of 1/r^2
+  end % j
+end % k
+
+
+end % pressDLmatrix
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+function pressure = exactPressureSLdiag(o,vesicle,P,f)
+% pressure = exactPressureSLdiag(vesicle,P,f) computes the diagonal
+% term of the pressure of the single-layer potental due to f around
+% each vesicle.  Source and target points are the same.  For now, we
+% just pass the matrix for the layer potential and loop over the
+% vesicles
+
+pressure = zeros(size(f));
+for k = 1:vesicle.nv
+  pressure(:,k) = P(:,:,k) * f(:,k);
+end
+
+end % exactPressureSLdiag
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+function pressure = exactPressureDLdiag(o,vesicle,P,f)
+% pressure = exactPressureDLdiag(vesicle,P,f) computes the diagonal
+% term of the pressure of the double-layer potental due to f around
+% each vesicle.  Source and target points are the same.  For now, we
+% just pass the matrix for the layer potential and loop over the
+% vesicles
+
+pressure = zeros(size(f));
+for k = 1:vesicle.nv
+  pressure(:,k) = P(:,:,k) * f(:,k);
+end
+
+end % exactPressureDLdiag
+
+end % methods
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 methods(Static)
 
+    
 function LP = lagrangeInterp(o)
 % interpMap = lagrangeInterp builds the Lagrange interpolation
 % matrix that takes seven function values equally distributed

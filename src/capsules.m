@@ -626,7 +626,7 @@ if inear
   % always zero, so don't have to build the DLP matrix for
   % self-interactions
 
-  Fdlp = op.nearSingInt(geom,f,DLP,[], near,kernel,kernel,geom,true,false);
+  Fdlp = op.nearSingInt(geom,f,DLP,[],near,kernel,kernel,geom,true,false);
 else
   Fdlp = kernel(vesicle,f);
 end
