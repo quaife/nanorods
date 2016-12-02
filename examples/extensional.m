@@ -28,4 +28,16 @@ tau = [pi/2,pi/2];
 Xfinal = rigid2D(options, prams, xc, tau);
 
 pp = post(['../output/data/',options.fileBase, '.mat']);
-pp.animated_gif('extensional', 'gif', 1, [], 'fibres');
+
+gif_options.file_name = 'extensional';
+gif_options.file_type = 'gif';
+gif_options.plot_fluid = false;
+gif_options.xmin = 'auto:all';
+gif_options.xmax = 'auto:all';
+gif_options.ymin = 'auto:all';
+gif_options.ymax = 'auto:all';
+gif_options.axis = true;
+gif_options.itmax = prams.m;
+gif_options.stride = 1;
+    
+pp.animated_gif(gif_options);
