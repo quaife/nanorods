@@ -163,18 +163,38 @@ function writeData(o, t_c, xc_c, tau_c, U_c, omega_c, stokes_c, rot_c, etaF_c, e
 load(o.dataFile);
 
 t = [t, t_c];
+
+% variables solved at t_(k+1)
 xc(:,:,end+1) = xc_c;
 tau = [tau; tau_c];
-U(:,:,end+1) = U_c;
-omega = [omega;omega_c];
-etaF(:,:,end+1) = etaF_c;
 
-if o.options.confined
-    etaW(:,:,end+1) = etaW_c;
 
-    if o.prams.nbd > 1
-        stokes(:,:,end+1) = stokes_c;
-        rot(:,end+1) = rot_c;
+% variables solved at time level t_k
+if (length(t) > 2)
+    U(:,:,end+1) = U_c;
+    omega = [omega;omega_c];
+    etaF(:,:,end+1) = etaF_c;
+
+    if o.options.confined
+        etaW(:,:,end+1) = etaW_c;
+
+        if o.prams.nbd > 1
+            stokes(:,:,end+1) = stokes_c;
+            rot(:,end+1) = rot_c;
+        end
+    end
+else
+    U(:,:,1) = U_c;
+    omega = omega_c;
+    etaF(:,:,1) = etaF_c;
+
+    if o.options.confined
+        etaW(:,:,1) = etaW_c;
+
+        if o.prams.nbd > 1
+            stokes(:,:,1) = stokes_c;
+            rot(:,1) = rot_c;
+        end
     end
 end
 
