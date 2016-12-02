@@ -168,7 +168,7 @@ if options.confined
     o.rhs = [zeros(2*N*nv,1); rhs; zeros(3*nv,1);zeros(3*(nbd-1),1)];
 else
     rhs = o.farField(geom.X);
-    o.rhs = [-rhs; zeros(2*Nbd*nbd,1); zeros(3*nv,1)];
+    o.rhs = [-rhs(:); zeros(2*Nbd*nbd,1); zeros(3*nv,1)];
 end
 
 end % constructor: tstep
@@ -189,7 +189,7 @@ if ~o.confined % update RHS
     nbd = prams.nbd;
     
     rhs = o.farField(geom.X);
-    o.rhs = [-rhs; zeros(2*Nbd*nbd,1); zeros(3*nv,1)];
+    o.rhs = [-rhs(:); zeros(2*Nbd*nbd,1); zeros(3*nv,1)];
 end
 
 % CREATE NEAR SINGULAR INTEGRATION STRUCTURES
@@ -433,7 +433,7 @@ if o.inear
   ffdlp = potFibers.nearSingInt(geom, etaF, DLP, o.Dupf, o.nearStructff ,kernel,...
         kernelDirect, geom, true, false);
 else
-  ffdlp = kernel(geom, etaFibers);
+  ffdlp = kernel(geom, etaF, o.Df);
 end
 % END OF TARGET == FIBRES
 
@@ -761,6 +761,7 @@ function M = build_matrix(o, geom, walls)
     end    
 end % build_matrix
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function M = build_preconditioner_matrix(o, geom, walls)
 
     [N,nv] = size(geom.X);
