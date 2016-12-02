@@ -258,57 +258,82 @@ function [] = plot_walls(o,iT)
     plot(ptsTrack(:,1),ptsTrack(:,2), 'b.', 'MarkerSize', 20); 
 end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function [] = animated_gif(o, gname, ftype, stride, itmax, type)
+function [] = animated_gif(o, gif_options)
     
 h = figure();
 set(h,'Units','normalized');
 set(h,'Position',[0 0 1 1]);
-    
-    
-if isempty(itmax)
-    itmax = length(o.times)-1;
+
+% get axis limits
+if strcmp(gif_options.xmin, 'auto:all')
+    xmin = min(min(o.centres_x(1:itmax,:))) - max(o.lengths);
+else
+    if ~strcmp(gif_options.xmin, 'auto:frame')
+        xmin = gif_options.xmin;
+    end
 end
 
-% xmin = min(min(o.centres_x(1:itmax,:))) - max(o.lengths);
-% xmax = max(max(o.centres_x(1:itmax,:))) + max(o.lengths);
-% 
-% ymin = min(min(o.centres_y(1:itmax,:))) - max(o.lengths);
-% ymax = max(max(o.centres_y(1:itmax,:))) + max(o.lengths);
-%         
-for i = 1:stride:itmax
+if strcmp(gif_options.xmax, 'auto:all')
+    xmax = max(max(o.centres_x(1:itmax,:))) + max(o.lengths);
+else
+    if ~strcmp(gif_options.xmax, 'auto:frame')
+        xmax = gif_options.xmax;
+    end
+end
+
+if strcmp(gif_options.ymin, 'auto:all')
+    ymin = min(min(o.centres_x(1:itmax,:))) - max(o.lengths);
+else
+    if ~strcmp(gif_options.ymin, 'auto:frame')
+        ymin = gif_options.ymin;
+    end
+end
+
+if strcmp(gif_options.ymax, 'auto:all')
+    ymax = min(min(o.centres_x(1:itmax,:))) - max(o.lengths);
+else
+    if ~strcmp(gif_options.ymax, 'auto:frame')
+        ymax = gif_options.ymax;
+    end
+end
+   
+% loop over all time steps
+for i = 1:gif_options.stride:gif_options.itmax
     
     clf;
     
-    %o.plot_walls(i);
+    if o.options.confined
+        o.plot_walls(i);
+    end
     hold on
-%     xmin = min(min(o.xc(1,:,i))) - max(o.prams.lengths);
-%     xmax = max(max(o.xc(1,:,i))) + max(o.prams.lengths);        
-%     ymin = min(min(o.xc(2,:,i))) - max(o.prams.lengths);
-%     ymax = max(max(o.xc(2,:,i))) + max(o.prams.lengths);
-     
-    xmin = -1;
-    xmax = 11;        
-    ymin = -2;
-    ymax = 2;
-
-           
-%     ymin = o.centres_y(i,2)+0.5 - 1e-4;
-%     ymax = o.centres_y(i,1)-0.5 + 1e-4;
-%     xmin = ymin;
-%     xmax = ymax;
     
-    switch type
-        case 'fibres'           
-            o.plot_fibres(i, xmin, xmax, ymin, ymax);
-            
-        case 'fluid'
-           o.plot_fluid(i, xmin, xmax, ymin, ymax, o.EPS); 
+    if ~gif_options.axis 
+        axis off
+    end
+    
+    if strcmp(gif_options.xmin, 'auto:frame')
+        xmin = min(min(o.xc(1,:,i))) - max(o.prams.lengths);
+    end
+    
+    if strcmp(gif_options.xmin, 'auto:frame')
+        xmax = max(max(o.xc(1,:,i))) + max(o.prams.lengths);    
+    end
+    
+    if strcmp(gif_options.xmin, 'auto:frame')
+        ymin = min(min(o.xc(2,:,i))) - max(o.prams.lengths);
+    end
+    
+    if strcmp(gif_options.xmin, 'auto:frame')
+        ymax = max(max(o.xc(2,:,i))) + max(o.prams.lengths);
+    end
+    
+    if gif_options.plot_fluid
+         o.plot_fluid(i, xmin, xmax, ymin, ymax, o.EPS); 
+    else
+        o.plot_fibres(i, xmin, xmax, ymin, ymax);
     end
     
     drawnow;
-    %pause(1);
-    %     xlabel('$x$', 'interpreter', 'latex');
-    %     ylabel('$y$', 'interpreter', 'latex');
     
     frame = getframe(h);
     im = frame2im(frame);
@@ -317,25 +342,26 @@ for i = 1:stride:itmax
     
     % output as sequence of files
     
-    if strcmp(ftype, 'tikz')
+    if strcmp(gif_options.file_type, 'tikz')
         % output as tex files
-        addpath('matlab2tikz/src');
+        addpath('../src/matlab2tikz/src');
         
         if i == 1
-            mkdir([o.OUTPUTPATH_GIFS, gname]);
+            mkdir([o.OUTPUTPATH_GIFS, gif_options.file_name]);
         end
         
-        matlab2tikz([o.OUTPUTPATH_GIFS, gname, '/', gname, '-', sprintf('%03d', i), '.tikz'], ...
+        matlab2tikz([o.OUTPUTPATH_GIFS, gif_options.file_name, '/', gif_options.file_name, '-', sprintf('%03d', i), '.tikz'], ...
             'height', '10cm', 'width', '12cm', 'standalone', true);
-    else if strcmp(ftype, 'gif')
+        
+    else if strcmp(gif_options.file_type, 'gif')
             if i == 1;
                 
-                imwrite(imind, cm, [o.OUTPUTPATH_GIFS,  gname, '.gif'], 'gif', ...
+                imwrite(imind, cm, [o.OUTPUTPATH_GIFS,  gif_options.file_name, '.gif'], 'gif', ...
                     'Loopcount',inf, 'DelayTime', 0);
                 
             else
                 
-                imwrite(imind, cm, [o.OUTPUTPATH_GIFS,  gname, '.gif'], 'gif',...
+                imwrite(imind, cm, [o.OUTPUTPATH_GIFS,  gif_options.file_name, '.gif'], 'gif',...
                     'WriteMode','append', 'DelayTime',0);               
                 
             end
