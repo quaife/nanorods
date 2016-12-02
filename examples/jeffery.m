@@ -14,7 +14,6 @@ if 1
     prams.T = pi*(prams.lengths/prams.widths + prams.widths/prams.lengths)/abs(g);
     prams.m = 100; % number of time steps
     prams.order = 2;
-    prams.tracker_fnc = @(t) [20*cos(t),20*sin(t);5*cos(t),5*sin(t)];
 
     options.farField = 'shear';
     options.saveData = true;
@@ -55,8 +54,19 @@ if 1
 
     addpath('../tests/matlab2tikz/src');
     matlab2tikz('jeffery.tex', 'height', '10cm', 'width', '12cm');
+
+    gif_options.file_name = 'jeffery_orbit';
+    gif_options.file_type = 'gif';
+    gif_options.plot_fluid = true;
+    gif_options.xmin = -3;
+    gif_options.xmax = 3;
+    gif_options.ymin = -3;
+    gif_options.ymax = 3;
+    gif_options.axis = true;
+    gif_options.itmax = prams.m;
+    gif_options.stride = 1;
     
-    pp.animated_gif('jeffery_orbit', 'tikz', 1, [], 'fluid')
+    pp.animated_gif(gif_options)
 end
 
 %% convergence study
