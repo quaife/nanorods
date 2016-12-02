@@ -1,56 +1,47 @@
-%close all
-profile off
+close all
 
-prams.N = 96; % points per body
-prams.nv = 50; % number of bodies
-prams.T = 10; % time horizon
-prams.m = 100; % number of time steps
-prams.lengths = 4.5*ones(1, prams.nv);
-prams.widths = 1*ones(1,prams.nv);
-prams.order = 4;
+%% create animated gif and plots
+
+prams.N = 128; % points per body
+prams.Nbd = 0; %points on solid wall
+
+g = -5;%shear rate
+
+prams.nv = 8; % number of bodies
+prams.nbd = 0; %number of walls
+prams.lengths = ones(1,prams.nv);
+prams.widths = 0.25*ones(1,prams.nv);
+prams.T = 10*pi*(prams.lengths/prams.widths + prams.widths/prams.lengths)/abs(g);
+prams.m = 800; % number of time steps
+prams.order = 6;
+prams.tracker_fnc = @(t) [20*cos(t),20*sin(t);5*cos(t),5*sin(t)];
 
 options.farField = 'shear';
 options.saveData = true;
-options.fileBase = 'shear_periodic';
+options.fileBase = 'shear8';
 options.append = false;
 options.inear = true;
-options.usePreco = true;
+options.usePreco = false;
 options.ifmm = true;
 options.verbose = true;
-options.profile = true;
+options.profile = false;
 options.tstep_order = 2;
-options.n_cores_matlab = 2;
+options.confined = false;
 
 [options,prams] = initRigid2D(options,prams);
+xWalls = [];
 
-rng(123456); % set random seed
+xc = [linspace(0,10,prams.nv);zeros(1,prams.nv)];
+tau  = pi/2*ones(1,prams.nv);
 
-%% staggerd grid
-rown = 5;
-coln = 5;
+Xfinal = rigid2D(options, prams, xc, tau, xWalls);
 
-x1 = linspace(-1.1*max(prams.lengths)*(rown - 1)/2, 1.1*max(prams.lengths)*(rown - 1)/2, rown);
-y1 = x1;
+pp = post(['../output/data/',options.fileBase, '.mat']);
 
-[X1, Y1] = meshgrid(x1,y1);
-X2 = X1 + (x1(2) - x1(1))/2;
-Y2 = Y1 - (y1(2) - y1(1))/2;
+a = prams.widths/2;
+b = prams.lengths/2;
+tau_exact = @(t) atan((b/a)*tan(a*b*g*t/(a^2+b^2)));
+omega_exact = @(t) g/(a^2+b^2)*(b^2*cos(tau_exact(t)).^2 + a^2*sin(tau_exact(t)).^2);
 
-coeffr = 0;
-xc = [[X1(:)', X2(:)'] + coeffr*(1 - 2*rand(1,prams.nv)); ...
-    [Y1(:)', Y2(:)'] + coeffr*(1 - 2*rand(1,prams.nv))];
-tau = pi/2*ones(1,prams.nv) + 2*coeffr*(1-2*rand(1,prams.nv));
-    
-Xfinal = rigid2DPeriodic(options, prams, xc, tau, min(xc(1,:)), max(xc(1,:)), min(xc(2,:)), max(xc(2,:)), (x1(2)-x1(1))/2);
-
-pp = post(['../output/data/',options.fileBase, '.dat'], ...
-    ['../output/data/',options.fileBase,'_density.dat']);
-% 
-% for k = 7:-1:1
-%pp.plot_fibres(105, -15, 15, -15, 15)
-% pause
-% end
-pp.animated_gif('testVerySmall.gif', 10, [], 'fibres')
-%pp.animated_gif('extenstional_fluid_second_order.gif', 1, [], 'fluid')
-%stats = pp.calculate_stats(1:prams.nv);
+pp.animated_gif('shear_8_fibers', 'tikz', 4, [], 'fibres')
 
