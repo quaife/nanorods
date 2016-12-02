@@ -18,7 +18,7 @@ prams.tracker_fnc = @(t) [20*cos(t),20*sin(t);5*cos(t),5*sin(t)];
 
 options.farField = 'shear';
 options.saveData = true;
-options.fileBase = 'shear8';
+options.fileBase = 'shear';
 options.append = false;
 options.inear = true;
 options.usePreco = false;
