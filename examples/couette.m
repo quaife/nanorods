@@ -31,7 +31,7 @@ oc = curve;
 xWalls = oc.createWalls(prams.Nbd, options);
 
 % add particles on uniform grid
-N = 33;
+N = 9;
 x = linspace(-10,10,N);
 y = linspace(-10,10,N);
 
@@ -61,5 +61,17 @@ disp(['nv = ', num2str(prams.nv), ', volume fraction = ' num2str(vol_frac)]);
 Xfinal = rigid2D(options, prams, xc, tau, xWalls);
 
 pp = post(['../output/data/',options.fileBase, '.mat']);
-pp.animated_gif('circles_collision', 'tikz', 1, [], 'fibres')
+
+gif_options.file_name = 'couette';
+gif_options.file_type = 'tikz';
+gif_options.plot_fluid = false;
+gif_options.xmin = -10.5;
+gif_options.xmax = 10.5;
+gif_options.ymin = -10.5;
+gif_options.ymax = 10.5;
+gif_options.axis = false;
+gif_options.itmax = prams.m;
+gif_options.stride = 1;
+
+pp.animated_gif(gif_options);
 
