@@ -28,4 +28,4 @@ tau = [pi/2,pi/2];
 Xfinal = rigid2D(options, prams, xc, tau);
 
 pp = post(['../output/data/',options.fileBase, '.mat']);
-pp.animated_gif('circle128', 'gif', 1, [], 'fibres');
+pp.animated_gif('extensional', 'gif', 1, [], 'fibres');
