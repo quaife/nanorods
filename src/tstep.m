@@ -733,7 +733,7 @@ else
         case 'shear'
             vInf = [5*X(end/2+1:end,:);zeros(N,nv)];
 
-        case 'extenstional'
+        case 'extensional'
             vInf = [X(1:end/2,:);-X(end/2+1:end,:)];
 
         otherwise
