@@ -132,63 +132,31 @@ M = 30;
 
 [X, Y] = meshgrid(linspace(xmin, xmax, M), linspace(ymin, ymax, M));
 
-[nx, ny] = size(X);
-Ufluid = zeros(nx,ny,2);
 
 
 
 geom = capsules(o.prams, o.xc(:,:,iT), o.tau(iT,:));
+targetPts.nv = 1;
+targetPts.N = M*M;
+targetPts.X = [X(:), Y(:)];
 
-% for i = 1:nx
-%     for j = 1:ny
-%         
-%         nearFiber = false;
-%         
-%         %check if point is far enough away from each fiber
-%         for k = 1:geom.nv
-%             Xcap = geom.X(1:geom.N, k);
-%             Ycap = geom.X(geom.N + 1:end, k);
-%             
-%             %add and subtract epsilon from each coordinate, there has to be
-%             %a better way to do this
-%             XcapRight = Xcap + epsilon;
-%             XcapLeft = Xcap - epsilon;
-%             YcapTop = Ycap + epsilon;
-%             YcapBottom = Ycap - epsilon;
-%             
-%             if (inpolygon(X(i,j), Y(i,j), XcapRight, Ycap) ...
-%                     || inpolygon(X(i,j), Y(i,j), XcapLeft, Ycap) ...
-%                     || inpolygon(X(i,j), Y(i,j), Xcap, YcapTop)...
-%                     || inpolygon(X(i,j), Y(i,j), Xcap, YcapBottom)...
-%                     || inpolygon(X(i,j), Y(i,j), XcapRight, YcapTop)...
-%                     || inpolygon(X(i,j), Y(i,j), XcapRight, YcapBottom) ...
-%                     || inpolygon(X(i,j), Y(i,j), XcapLeft, YcapTop) ...
-%                     || inpolygon(X(i,j), Y(i,j), XcapLeft, YcapBottom))
-%                 nearFiber = true;
-%             end           
-%         end
-%         
-%         if ~nearFiber
-%            % Utmp =  o.evaluateDLP(geom, o.eta(:,:,iT), X(i,j), Y(i,j));
-%             Utmp =  o.evaluateDLP(geom, o.eta(:,:), X(i,j), Y(i,j));
-%             %U(i,j,:) = [Utmp(1) + X(i,j); Utmp(3) - Y(i,j)];
-%             U(i,j,:) = [Utmp(1); Utmp(3)]; 
-%         else
-%             U(i,j,:) = nan;
-%         end        
-%     end
-% end
+
 
 Utmp =  o.evaluateDLP(geom, o.etaF(:,:,iT), X(:), Y(:));
+%[~, nearOther] = geom.getZone(targetPts, 2);
 
-Ufluid = reshape(Utmp(1:end/2), M, M);
+% J = find(nearOther.zone{1}(:,2)==1);
+% Utmp(J) = 0;
+% Utmp(J+length(Utmp)/2) = 0;
+
+U = reshape(Utmp(1:end/2), M, M);
 V = reshape(Utmp(end/2+1:end), M, M);
-Ufluid = Ufluid + 5*Y; %add in background flow
+U = U + 5*Y; %add in background flow
 
 % U = Utmp(1:end/2);
 % V = Utmp(end/2+1:end);
 
-quiver(X, Y, Ufluid, V, 1);
+quiver(X, Y, U, V, 1);
 
 %surf(X,Y,U);
 % plot(X, U, '-o','linewidth', 2);
@@ -204,7 +172,7 @@ o.plot_fibres(iT, xmin, xmax, ymin, ymax);
 % ylim([ymin, ymax]);
 %axis equal
 
-title(sprintf('U at t = %6.3f', o.times(iT)));
+title(sprintf('t = %6.3f', o.times(iT)));
 
 % figure(2);
 % hold on
@@ -290,7 +258,7 @@ function [] = plot_walls(o,iT)
     plot(ptsTrack(:,1),ptsTrack(:,2), 'b.', 'MarkerSize', 20); 
 end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function [] = animated_gif(o, gname, stride, itmax, type)
+function [] = animated_gif(o, gname, ftype, stride, itmax, type)
     
 h = figure();
 set(h,'Units','normalized');
@@ -298,7 +266,7 @@ set(h,'Position',[0 0 1 1]);
     
     
 if isempty(itmax)
-    itmax = length(o.times);
+    itmax = length(o.times)-1;
 end
 
 % xmin = min(min(o.centres_x(1:itmax,:))) - max(o.lengths);
@@ -307,7 +275,7 @@ end
 % ymin = min(min(o.centres_y(1:itmax,:))) - max(o.lengths);
 % ymax = max(max(o.centres_y(1:itmax,:))) + max(o.lengths);
 %         
-for i = 2:stride:itmax
+for i = 1:stride:itmax
     
     clf;
     
@@ -319,9 +287,9 @@ for i = 2:stride:itmax
 %     ymax = max(max(o.xc(2,:,i))) + max(o.prams.lengths);
      
     xmin = -1;
-    xmax = 1;        
-    ymin = -0.6;
-    ymax = 0.6;
+    xmax = 11;        
+    ymin = -2;
+    ymax = 2;
 
            
 %     ymin = o.centres_y(i,2)+0.5 - 1e-4;
@@ -339,21 +307,39 @@ for i = 2:stride:itmax
     
     drawnow;
     %pause(1);
+    %     xlabel('$x$', 'interpreter', 'latex');
+    %     ylabel('$y$', 'interpreter', 'latex');
     
     frame = getframe(h);
     im = frame2im(frame);
     
     [imind, cm] = rgb2ind(im,256);
     
-    if i == 2;
+    % output as sequence of files
+    
+    if strcmp(ftype, 'tikz')
+        % output as tex files
+        addpath('matlab2tikz/src');
         
-        imwrite(imind, cm, [o.OUTPUTPATH_GIFS,  gname], 'gif', ...
-                'Loopcount',inf, 'DelayTime', 0);
+        if i == 1
+            mkdir([o.OUTPUTPATH_GIFS, gname]);
+        end
         
-    else
-        
-        imwrite(imind, cm, [o.OUTPUTPATH_GIFS,  gname], 'gif',...
-                'WriteMode','append', 'DelayTime',0);
+        matlab2tikz([o.OUTPUTPATH_GIFS, gname, '/', gname, '-', sprintf('%03d', i), '.tikz'], ...
+            'height', '10cm', 'width', '12cm', 'standalone', true);
+    else if strcmp(ftype, 'gif')
+            if i == 1;
+                
+                imwrite(imind, cm, [o.OUTPUTPATH_GIFS,  gname, '.gif'], 'gif', ...
+                    'Loopcount',inf, 'DelayTime', 0);
+                
+            else
+                
+                imwrite(imind, cm, [o.OUTPUTPATH_GIFS,  gname, '.gif'], 'gif',...
+                    'WriteMode','append', 'DelayTime',0);               
+                
+            end
+        end
     end
 end
 

@@ -57,10 +57,8 @@ end
 % begin time loop
 while time < prams.T
     
-    tSingleStep = tic;
-    
-    time = time + tt.dt;
-    iT = iT + 1;
+    tSingleStep = tic;   
+
     
     geom = capsules(prams, xc, tau);
     
@@ -68,7 +66,7 @@ while time < prams.T
                             walls, options, prams);
     
     % update centres and angles
-    if (iT == 1 || options.tstep_order == 1) % use forward Euler
+    if (iT == 0 || options.tstep_order == 1) % use forward Euler
         
         xc = xc + tt.dt*Up;
         tau = tau + tt.dt*wp;
@@ -96,7 +94,10 @@ while time < prams.T
     end
     
     X = geom.getXY();
-
+    
+    time = time + tt.dt;
+    iT = iT + 1;
+    
     om.writeMessage(....
         ['Finished t=', num2str(time, '%3.3e'), ' in ' num2str(iter) ...
          ' iterations after ', num2str(toc(tSingleStep), '%2i'), ' seconds (residual ', ...
@@ -105,7 +106,7 @@ while time < prams.T
     if flag ~= 0
        om.writeMessage(['WARNING: GMRES flag = ', num2str(flag)]); 
     end
-    
+        
     om.writeData(time, xc, tau, Up, wp, stokes, rot, densityF, densityW);   
 end
 
