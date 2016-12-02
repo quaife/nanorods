@@ -266,7 +266,7 @@ set(h,'Position',[0 0 1 1]);
 
 % get axis limits
 if strcmp(gif_options.xmin, 'auto:all')
-    xmin = min(min(o.centres_x(1:itmax,:))) - max(o.lengths);
+    xmin = min(min(o.xc(1,:,1:gif_options.itmax))) - max(o.prams.lengths);
 else
     if ~strcmp(gif_options.xmin, 'auto:frame')
         xmin = gif_options.xmin;
@@ -274,7 +274,7 @@ else
 end
 
 if strcmp(gif_options.xmax, 'auto:all')
-    xmax = max(max(o.centres_x(1:itmax,:))) + max(o.lengths);
+    xmax = max(max(o.xc(1,:,1:gif_options.itmax))) + max(o.prams.lengths);
 else
     if ~strcmp(gif_options.xmax, 'auto:frame')
         xmax = gif_options.xmax;
@@ -282,7 +282,7 @@ else
 end
 
 if strcmp(gif_options.ymin, 'auto:all')
-    ymin = min(min(o.centres_x(1:itmax,:))) - max(o.lengths);
+    ymin = min(min(o.xc(2,:,1:gif_options.itmax))) - max(o.prams.lengths);
 else
     if ~strcmp(gif_options.ymin, 'auto:frame')
         ymin = gif_options.ymin;
@@ -290,7 +290,7 @@ else
 end
 
 if strcmp(gif_options.ymax, 'auto:all')
-    ymax = min(min(o.centres_x(1:itmax,:))) - max(o.lengths);
+    ymax = max(max(o.xc(2,:,1:gif_options.itmax))) + max(o.prams.lengths);
 else
     if ~strcmp(gif_options.ymax, 'auto:frame')
         ymax = gif_options.ymax;
