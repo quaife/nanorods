@@ -620,15 +620,14 @@ else
     kernel = @op.exactLaplaceDL;
 end
 
+D = @(X) zeros(2*size(X,1),size(X,2));
+% know that the limiting value of the DLP of the density function is
+% always zero, so don't have to build the DLP matrix for
+% self-interactions
 if inear
-  DLP = @(X) zeros(2*size(X,1),size(X,2));
-  % know that the limiting value of the DLP of the density function is
-  % always zero, so don't have to build the DLP matrix for
-  % self-interactions
-
-  Fdlp = op.nearSingInt(geom,f,DLP,[],near,kernel,kernel,geom,true,false);
+  Fdlp = op.nearSingInt(geom,f,D,[],near,kernel,kernel,geom,true,false);
 else
-  Fdlp = kernel(vesicle,f);
+  Fdlp = kernel(geom,f,D);
 end
 
 Fdlp = Fdlp(1:geom.N,:);
