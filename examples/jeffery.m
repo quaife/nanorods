@@ -37,12 +37,31 @@ if 1
 
     pp = post(['../output/data/',options.fileBase, '.mat']);
 
+    % make animated gif
+    gif_options.file_name = 'jeffery_orbit';
+    gif_options.file_type = 'gif';
+    gif_options.plot_fluid = true;
+    gif_options.xmin = -2;
+    gif_options.xmax = 2;
+    gif_options.ymin = -1;
+    gif_options.ymax = 1;
+    gif_options.axis = true;
+    gif_options.itmax = prams.m;
+    gif_options.stride = 1;
+    gif_options.grid_pts = 50;
+    gif_options.velocity_grid_stride = 1;
+    gif_options.bg_flow = @(x,y) [5*y, zeros(length(y),1)];
+    gif_options.plot_pressure = false;
+    
+    pp.animated_gif(gif_options);
+    
+    % compare with exact solution
     a = prams.widths/2;
     b = prams.lengths/2;
     tau_exact = @(t) atan((b/a)*tan(a*b*g*t/(a^2+b^2)));
     omega_exact = @(t) g/(a^2+b^2)*(b^2*cos(tau_exact(t)).^2 + a^2*sin(tau_exact(t)).^2);
-
     
+    figure();
     fplot(@(t) tau_exact(t) + pi/2, [0, prams.T]);
     hold on
     fplot(@(t) omega_exact(t), [0,prams.T]);
@@ -54,19 +73,6 @@ if 1
 
     addpath('../tests/matlab2tikz/src');
     matlab2tikz('jeffery.tex', 'height', '10cm', 'width', '12cm');
-
-    gif_options.file_name = 'jeffery_orbit';
-    gif_options.file_type = 'gif';
-    gif_options.plot_fluid = true;
-    gif_options.xmin = -3;
-    gif_options.xmax = 3;
-    gif_options.ymin = -3;
-    gif_options.ymax = 3;
-    gif_options.axis = true;
-    gif_options.itmax = prams.m;
-    gif_options.stride = 1;
-    
-    pp.animated_gif(gif_options)
 end
 
 %% convergence study
