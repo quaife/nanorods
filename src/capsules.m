@@ -652,14 +652,11 @@ end
 % collision
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function press = pressure(geom,f,stokeslets,pressTar,fmm)
+function press = pressure(geom,f,stokeslets,pressTar)
 % press = pressure(vesicle,f,RS,pressTar,fmm,LP) computes the pressure
 % due to vesicle at the locations pressTar with near-singular
-% integration with traction jump f and Rotlets stored in RS.  LP is
-% either SLP or DLP and tells this routine if it needs to evaluate the
-% pressure due to the single-layer potential or the double-layer
-% potential.  Note that vesicle may correspond to solid walls rather
-% than vesicles
+% integration with traction jump f. Note that vesicle may correspond to 
+% solid walls rather than vesicles
 
 N = geom.N; % points per vesicle
 nv = geom.nv; % number of vesicles
@@ -757,9 +754,8 @@ end
 end % pressure
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function [stress1,stress2] = stressTensor(vesicle,f,...
-        RS,stressTar,fmm)
-% [stress1 stress2] = stressTensor(vesicle,f,RS,stressTar,fmm,LP)
+function [stress1,stress2] = stressTensor(vesicle,f,RS,stressTar,fmm)
+% [stress1 stress2] = stressTensor(vesicle,f,RS,stressTar,fmm)
 % computes the stress tensor due to vesicle at the locations stressTar
 % with or without near-singular integration with traction jump f.
 % Returns in two components.  stress1 is the stress tensor applied to
@@ -787,8 +783,7 @@ ny = -tanx;
 [~,NearV2T] = vesicle.getZone(stressTar,2);
 % build near-singular integration structure for vesicle
 % to pressure target points
-InOutFlag = find(vesicle.sortPts(stressTar.X,fmm,NearV2T) == 1);
-    
+
     
 [S1diagIn,S2diagIn] = op.stressDLmatrix(vesicle);
 % use odd-even integration to evaluate stress due to
@@ -870,41 +865,20 @@ kernel2 = @op.exactStressDL2;
 % Have built all single- or double-layer potentials on boundary so that
 % we can compute diagonal value to use near-singular integration
 
-if numel(InOutFlag) > 0
-    %    fprintf('Stress1 Inside\n')
-    stress1 = op.nearSingInt(vesicle,f,S1diagInFn,...
-        NearV2T,kernel1,kernel1,stressTar,false,false);
-else
-    stress1 = zeros(2*Ntar,1);
-end
-if Ntar - numel(InOutFlag) > 0
 %    fprintf('Stress1 Outside\n')
-  stressT = op.nearSingInt(vesicle,f,S1diagOutFn,...
-      NearV2T,kernel1,kernel1,stressTar,false,false);
-  stress1(InOutFlag) = stressT(InOutFlag);
-  stress1(Ntar+InOutFlag) = stressT(Ntar+InOutFlag);
+stress1 = op.nearSingInt(vesicle,f,S1diagOutFn,[], NearV2T,kernel1,kernel1,...
+    stressTar,false,false);
   % correct stress at exterior points
-end
-% Use near-singular integration to compute first component of
-% the stress due to the single-layer potential
 
-if numel(InOutFlag) > 0
-%    fprintf('Stress2 Inside\n')
-  stress2 = op.nearSingInt(vesicle,f,S2diagInFn,...
-      NearV2T,kernel2,kernel2,stressTar,false,false);
-else
-  stress2 = zeros(2*Ntar,1);
-end
-if Ntar - numel(InOutFlag) > 0
-%    fprintf('Stress2 Outside\n')
-  stressT = op.nearSingInt(vesicle,f,S2diagOutFn,...
-      NearV2T,kernel2,kernel2,stressTar,false,false);
-  stress2(InOutFlag) = stressT(InOutFlag);
-  stress2(Ntar+InOutFlag) = stressT(Ntar+InOutFlag);
-  % correct stress at exterior points
-end
+% Use near-singular integration to compute first component of
+% the stress due to the double-layer potential
+
+stress2 = op.nearSingInt(vesicle,f,S2diagOutFn,[], NearV2T,kernel2,...
+        kernel2,stressTar,false,false);
+% correct stress at exterior points
+
 % Use near-singular integration to compute second component of
-% the stress due to the single-layer potential
+% the stress due to the double-layer potential
 
 if ~isempty(RS)
   for k = 2:vesicle.nv
@@ -924,32 +898,30 @@ if ~isempty(RS)
     stress1(1:Ntar) = stress1(1:Ntar) - 4*xi*rx.*ry./rho4;
     % add in (1,1) component of stress due to Rotlet
     stress1(1+Ntar:2*Ntar) = stress1(1+Ntar:2*Ntar) + ...
-        2*xi*(rx.^2 - ry.^2)./rho4;
+                    2*xi*(rx.^2 - ry.^2)./rho4;
     % add in (1,2) component of stress due to Rotlet
-    stress2(1:Ntar) = stress2(1:Ntar) + ...
-        2*xi*(rx.^2 - ry.^2)./rho4;
+    stress2(1:Ntar) = stress2(1:Ntar) + 2*xi*(rx.^2 - ry.^2)./rho4;
     % add in (2,1) component of stress due to Rotlet
-    stress2(1+Ntar:2*Ntar) = stress2(1+Ntar:2*Ntar) + ...
-        4*xi*rx.*ry./rho4;
+    stress2(1+Ntar:2*Ntar) = stress2(1+Ntar:2*Ntar) + 4*xi*rx.*ry./rho4;
     % add in (2,2) component of stress due to Rotlet
 
 
     stress1(1:Ntar) = stress1(1:Ntar) + ...
-        2*(rx*xi1 + ry*xi2).*(-rx.^2 + ry.^2)./rho4;
+                2*(rx*xi1 + ry*xi2).*(-rx.^2 + ry.^2)./rho4;
     stress1(1:Ntar) = stress1(1:Ntar) - ...
-        2*(rx*xi1 + ry*xi2)./(rx.^2+ry.^2);
+                2*(rx*xi1 + ry*xi2)./(rx.^2+ry.^2);
     % add in (1,1) component of stress due to Stokeslet
     % need to add in -1*pressure term as well
     stress1(1+Ntar:2*Ntar) = stress1(1+Ntar:2*Ntar) - ...
-        4*rx.*ry.*(rx*xi1 + ry*xi2)./rho4;
+                4*rx.*ry.*(rx*xi1 + ry*xi2)./rho4;
     % add in (1,2) component of stress due to Stokeslet
     stress2(1:Ntar) = stress2(1:Ntar) - ...
-        4*rx.*ry.*(rx*xi1 + ry*xi2)./rho4;
+                4*rx.*ry.*(rx*xi1 + ry*xi2)./rho4;
     % add in (1,2) component of stress due to Stokeslet
     stress2(1+Ntar:2*Ntar) = stress1(1+Ntar:2*Ntar) + ...
-        2*(rx*xi1 + ry*xi2).*(rx.^2 - ry.^2)./rho4;
+                2*(rx*xi1 + ry*xi2).*(rx.^2 - ry.^2)./rho4;
     stress2(1+Ntar:2*Ntar) = stress2(1+Ntar:2*Ntar) - ...
-        2*(rx*xi1 + ry*xi2)./(rx.^2+ry.^2);
+                2*(rx*xi1 + ry*xi2)./(rx.^2+ry.^2);
     % add in (2,2) component of stress due to Stokeslet
     % need to add in -1*pressure term as well
   end
