@@ -345,16 +345,376 @@ end % k
 
 end % stokesDLmatrix
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% END OF ROUTINES THAT BUILD LAYER-POTENTIAL MATRICIES
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+function N0 = stokesN0matrix(o,wall)
+% N0 = stokesN0matrix(vesicle) generates the the integral operator with 
+% kernel normal(x) \otimes normal(y) which removes the rank one defficiency 
+% of the double-layer potential.  Need this operator for solid walls
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+oc = curve;
+[x,y] = oc.getXY(wall.X); % Vesicle positions
+
+normal = [wall.xt(wall.N+1:2*wall.N,:);...
+         -wall.xt(1:wall.N,:)]; % Normal vector
+normal = normal(:,ones(2*wall.N,1));
+
+sa = [wall.sa(:,1);wall.sa(:,1)];
+sa = sa(:,ones(2*wall.N,1));
+N0 = zeros(2*wall.N,2*wall.N,wall.nv);
+N0(:,:,1) = normal.*normal'.*sa'*2*pi/wall.N;
+% Use N0 if solving (-1/2 + DLP)\eta = f where f has no flux through
+% the boundary.  By solving (-1/2 + DLP + N0)\eta = f, we guarantee
+% that \eta also has no flux through the boundary.  This is not
+% required, but it means we're enforcing one addition condition on eta
+% which removes the rank one kernel.  DLP is the double-layer potential
+% for stokes equation
+
+end % stokesN0matrix
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+function P = pressDLmatrix(o,vesicle)
+% P = pressDLmatrix(vesicle), generates the matrix that returns the
+% pressure given the traction jump.  Matrix has dimensions (N,2*N,nv)
+% where N is the number of points per curve and nv is the number of
+% curves in X.  Matrix is not square since traction jump is
+% vector-valued whereas the pressure is a scalar-valued function
+
+oc = curve;
+[x,y] = oc.getXY(vesicle.X);
+nx = vesicle.xt(vesicle.N+1:2*vesicle.N,:);
+ny = -vesicle.xt(1:vesicle.N,:);
+% Normal vector
+
+P = zeros(vesicle.N,2*vesicle.N,vesicle.nv);
+% initialize double-layer potential to zero
+for k=1:vesicle.nv  % Loop over curves
+  index1 = (1:2:vesicle.N)'; % odd-indexed source points
+  for j=2:2:vesicle.N % Loop over targets
+    rho2 = (x(j,k) - x(index1,k)).^2 + (y(j,k) - y(index1,k)).^2;
+    % distance squared
+    rx = x(j,k) - x(index1,k);
+    ry = y(j,k) - y(index1,k);
+    rdotn = rx.*nx(index1,k) + ry.*ny(index1,k);
+
+    coeff = (-nx(index1,k)./rho2 + 2*rdotn./rho2.^2.*rx) .* ...
+        vesicle.sa(index1,k)/pi;
+    P(j,index1,k) = 4*pi/vesicle.N*coeff;
+    % part that multiplies x-component of traction jump
+    % need factor of 4 instead of 2 because we are only using
+    % half the terms in the quadrature
+    P(j,j,k) = P(j,j,k) - sum(coeff)*4*pi/vesicle.N;
+    % need to subtract off the input at the target location
+    % so that the singularity is only 1/r instead of 1/r^2
+    coeff = (-ny(index1,k)./rho2 + 2*rdotn./rho2.^2.*ry) .* ...
+        vesicle.sa(index1,k)/pi;
+    P(j,vesicle.N+index1,k) = 4*pi/vesicle.N*coeff;
+    % part that multiplies y-component of traction jump
+    % need factor of 4 instead of 2 because we are only using
+    % half the terms in the quadrature
+    P(j,vesicle.N+j,k) = P(j,vesicle.N+j,k) - ...
+        sum(coeff)*4*pi/vesicle.N;
+    % need to subtract off the input at the target location
+    % so that the singularity is only 1/r instead of 1/r^2
+  end % j
+
+  index1 = (2:2:vesicle.N)'; % even-indexed source points
+  for j=1:2:vesicle.N % Loop over targets
+    rho2 = (x(j,k) - x(index1,k)).^2 + (y(j,k) - y(index1,k)).^2;
+    % distance squared
+    rx = x(j,k) - x(index1,k);
+    ry = y(j,k) - y(index1,k);
+    rdotn = rx.*nx(index1,k) + ry.*ny(index1,k);
+    % dot product of r with normal
+
+    coeff = (-nx(index1,k)./rho2 + 2*rdotn./rho2.^2.*rx) .* ...
+        vesicle.sa(index1,k)/pi;
+    P(j,index1,k) = 4*pi/vesicle.N*coeff;
+    % part that multiplies x-component of traction jump
+    % need factor of 4 instead of 2 because we are only using
+    % half the terms in the quadrature
+    P(j,j,k) = P(j,j,k) - sum(coeff)*4*pi/vesicle.N;
+    % need to subtract off the input at the target location
+    % so that the singularity is only 1/r instead of 1/r^2
+
+    coeff = (-ny(index1,k)./rho2 + 2*rdotn./rho2.^2.*ry) .* ...
+        vesicle.sa(index1,k)/pi;
+    P(j,vesicle.N+index1,k) = 4*pi/vesicle.N*coeff;
+    % part that multiplies y-component of traction jump
+    % need factor of 4 instead of 2 because we are only using
+    % half the terms in the quadrature
+    P(j,vesicle.N+j,k) = P(j,vesicle.N+j,k) - ...
+        sum(coeff)*4*pi/vesicle.N;
+    % need to subtract off the input at the target location
+    % so that the singularity is only 1/r instead of 1/r^2
+  end % j
+end % k
+
+
+end % pressDLmatrix
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+function [D1,D2] = stressDLmatrix(o,vesicle)
+% [D1,D2] = stressDLmatrix(vesicle), generates the matrix that returns
+% the stress tensor due to the double-layer potential applied to [1;0] 
+% (D1) and to [0;1] (D2) given the traction jump.  Matricies have 
+% dimensions (2*N,2*N,nv) where N is the number of points per curve 
+% and nv is the number of curves in X.  Matrix is square since traction 
+% jump is vector-valued and so is the stress
+
+normal = [vesicle.xt(vesicle.N+1:2*vesicle.N,:);...
+          -vesicle.xt(1:vesicle.N,:)]; % Normal vector
+oc = curve;
+[x,y] = oc.getXY(vesicle.X);
+% Vesicle positions
+
+D1 = zeros(2*vesicle.N,2*vesicle.N,vesicle.nv);
+D2 = zeros(2*vesicle.N,2*vesicle.N,vesicle.nv);
+% initialize double-layer potential to zero
+for k=1:vesicle.nv  % Loop over curves
+  index1 = (1:2:vesicle.N)'; % odd-indexed source points
+  for j=2:2:vesicle.N % Loop over targets
+    rx = x(j,k) - x(index1,k);
+    ry = y(j,k) - y(index1,k);
+    rho2 = rx.^2 + ry.^2;
+    % distance squared
+    nx = normal(index1,k);
+    ny = normal(index1+vesicle.N,k);
+    % normal vector
+    rdotn = rx.*nx + ry.*ny;
+    % dot product of r with normal
+
+    coeff = 1./rho2.*nx - ...
+        8*rx.*rdotn./rho2.^3.*rx.^2 + ...
+        rdotn./rho2.^2.*(2*rx) + ...
+        1./rho2.^2.*(2*rx.^2.*nx);
+    coeff = coeff/pi.*vesicle.sa(index1,k);
+    D1(j,index1,k) = 4*pi/vesicle.N*coeff;
+    % part of first component of stress1 that multiplies first 
+    % component of traction jump
+    D1(j,j,k) = D1(j,j,k) - sum(coeff)*4*pi/vesicle.N;
+    % need to subtract off the input at the target location
+    % so that the singularity is only 1/r instead of 1/r^2
+
+    coeff = 1./rho2.*ny - ...
+        8*rx.*rdotn./rho2.^3.*rx.*ry + ...
+        1./rho2.^2.*(2*rx.*ry.*nx);
+    coeff = coeff/pi.*vesicle.sa(index1,k);
+    D1(j,index1+vesicle.N,k) = 4*pi/vesicle.N*coeff;
+    % part of first component of stress1 that multiplies second
+    % component of traction jump
+    D1(j,vesicle.N+j,k) = D1(j,vesicle.N+j,k) - ...
+        sum(coeff)*4*pi/vesicle.N;
+    % need to subtract off the input at the target location
+    % so that the singularity is only 1/r instead of 1/r^2
+
+    coeff = -8*rx.*rdotn./rho2.^3.*rx.*ry + ...
+        rdotn./rho2.^2.*ry + ...
+        1./rho2.^2.*(rx.^2.*ny+rx.*ry.*nx);
+    coeff = coeff/pi.*vesicle.sa(index1,k);
+    D1(j+vesicle.N,index1,k) = 4*pi/vesicle.N*coeff;
+    % part of second component of stress1 that multiplies first 
+    % component of traction jump
+    D1(vesicle.N+j,j,k) = D1(vesicle.N+j,j,k) - ...
+        sum(coeff)*4*pi/vesicle.N;
+    % need to subtract off the input at the target location
+    % so that the singularity is only 1/r instead of 1/r^2
+
+    coeff = -8*rx.*rdotn./rho2.^3.*ry.^2 + ...
+        rdotn./rho2.^2.*rx + ...
+        1./rho2.^2.*(rx.*ry.*ny+ry.^2.*nx);
+    coeff = coeff/pi.*vesicle.sa(index1,k);
+    D1(j+vesicle.N,index1+vesicle.N,k) = 4*pi/vesicle.N*coeff;
+    % part of second component of stress1 that multiplies second 
+    % component of traction jump
+    % Have built the stress tensor applied to [1;0] at half the points
+    D1(vesicle.N+j,vesicle.N+j,k) = ...
+        D1(vesicle.N+j,vesicle.N+j,k) - ...
+        sum(coeff)*4*pi/vesicle.N;
+    % need to subtract off the input at the target location
+    % so that the singularity is only 1/r instead of 1/r^2
+
+
+    coeff = -8*ry.*rdotn./rho2.^3.*rx.^2 + ...
+        rdotn./rho2.^2.*ry + ...
+        1./rho2.^2.*(rx.^2.*ny+rx.*ry.*nx);
+    coeff = coeff/pi.*vesicle.sa(index1,k);
+    D2(j,index1,k) = 4*pi/vesicle.N*coeff;
+    % part of first component of stress1 that multiplies first 
+    % component of traction jump
+    D2(j,j,k) = D2(j,j,k) - sum(coeff)*4*pi/vesicle.N;
+    % need to subtract off the input at the target location
+    % so that the singularity is only 1/r instead of 1/r^2
+
+    coeff = -8*ry.*rdotn./rho2.^3.*rx.*ry + ...
+        rdotn./rho2.^2.*rx + ...
+        1./rho2.^2.*(rx.*ry.*ny+ry.^2.*nx);
+    coeff = coeff/pi.*vesicle.sa(index1,k);
+    D2(j,index1+vesicle.N,k) = 4*pi/vesicle.N*coeff;
+    % part of first component of stress1 that multiplies second
+    % component of traction jump
+    D2(j,vesicle.N+j,k) = D2(j,vesicle.N+j,k) - ...
+        sum(coeff)*4*pi/vesicle.N;
+    % need to subtract off the input at the target location
+    % so that the singularity is only 1/r instead of 1/r^2
+
+    coeff = 1./rho2.*nx - ...
+        8*ry.*rdotn./rho2.^3.*rx.*ry + ...
+        1./rho2.^2.*(2*rx.*ry.*ny);
+    coeff = coeff/pi.*vesicle.sa(index1,k);
+    D2(j+vesicle.N,index1,k) = 4*pi/vesicle.N*coeff;
+    % part of second component of stress1 that multiplies first 
+    % component of traction jump
+    D2(vesicle.N+j,j,k) = D2(vesicle.N+j,j,k) - ...
+        sum(coeff)*4*pi/vesicle.N;
+    % need to subtract off the input at the target location
+    % so that the singularity is only 1/r instead of 1/r^2
+
+    coeff = 1./rho2.*ny - ...
+        8*ry.*rdotn./rho2.^3.*ry.^2 + ...
+        rdotn./rho2.^2.*(2*ry) + ...
+        1./rho2.^2.*(2*ry.^2.*ny);
+    coeff = coeff/pi.*vesicle.sa(index1,k);
+    D2(j+vesicle.N,index1+vesicle.N,k) = 4*pi/vesicle.N*coeff;
+    % part of second component of stress1 that multiplies second 
+    % component of traction jump
+    D2(vesicle.N+j,vesicle.N+j,k) = ...
+        D2(vesicle.N+j,vesicle.N+j,k) - ...
+        sum(coeff)*4*pi/vesicle.N;
+    % need to subtract off the input at the target location
+    % so that the singularity is only 1/r instead of 1/r^2
+    % Have built the stress tensor applied to [0;1] at half the points
+
+
+    % need factors of 4 instead of 2 because we are only using
+    % half the terms in the quadrature
+  end % j
+
+  index1 = (2:2:vesicle.N)'; % even-indexed source points
+  for j=1:2:vesicle.N % Loop over targets
+    rx = x(j,k) - x(index1,k);
+    ry = y(j,k) - y(index1,k);
+    rho2 = rx.^2 + ry.^2;
+    % distance squared
+    nx = normal(index1,k);
+    ny = normal(index1+vesicle.N,k);
+    % normal vector
+    rdotn = rx.*nx + ry.*ny;
+    % dot product of r with normal
+
+    coeff = 1./rho2.*nx - ...
+        8*rx.*rdotn./rho2.^3.*rx.^2 + ...
+        rdotn./rho2.^2.*(2*rx) + ...
+        1./rho2.^2.*(2*rx.^2.*nx);
+    coeff = coeff/pi.*vesicle.sa(index1,k);
+    D1(j,index1,k) = 4*pi/vesicle.N*coeff;
+    % part of first component of stress1 that multiplies first 
+    % component of traction jump
+    D1(j,j,k) = D1(j,j,k) - sum(coeff)*4*pi/vesicle.N;
+
+    coeff = 1./rho2.*ny - ...
+        8*rx.*rdotn./rho2.^3.*rx.*ry + ...
+        1./rho2.^2.*(2*rx.*ry.*nx);
+    coeff = coeff/pi.*vesicle.sa(index1,k);
+    D1(j,index1+vesicle.N,k) = 4*pi/vesicle.N*coeff;
+    % part of first component of stress1 that multiplies second
+    % component of traction jump
+    D1(j,vesicle.N+j,k) = D1(j,vesicle.N+j,k) - ...
+        sum(coeff)*4*pi/vesicle.N;
+
+    coeff = -8*rx.*rdotn./rho2.^3.*rx.*ry + ...
+        rdotn./rho2.^2.*ry + ...
+        1./rho2.^2.*(rx.^2.*ny+rx.*ry.*nx);
+    coeff = coeff/pi.*vesicle.sa(index1,k);
+    D1(j+vesicle.N,index1,k) = 4*pi/vesicle.N*coeff;
+    % part of second component of stress1 that multiplies first 
+    % component of traction jump
+    D1(vesicle.N+j,j,k) = D1(vesicle.N+j,j,k) - ...
+        sum(coeff)*4*pi/vesicle.N;
+
+    coeff = -8*rx.*rdotn./rho2.^3.*ry.^2 + ...
+        rdotn./rho2.^2.*rx + ...
+        1./rho2.^2.*(rx.*ry.*ny+ry.^2.*nx);
+    coeff = coeff/pi.*vesicle.sa(index1,k);
+    D1(j+vesicle.N,index1+vesicle.N,k) = 4*pi/vesicle.N*coeff;
+    % part of second component of stress1 that multiplies second 
+    % component of traction jump
+    D1(vesicle.N+j,vesicle.N+j,k) = ...
+        D1(vesicle.N+j,vesicle.N+j,k) - ...
+        sum(coeff)*4*pi/vesicle.N;
+    % need to subtract off the input at the target location
+    % so that the singularity is only 1/r instead of 1/r^2
+    % Have built the stress tensor applied to [0;1] at half the points
+    % Have built the stress tensor applied to [1;0] at the other 
+    % half of the points
+
+
+    coeff = -8*ry.*rdotn./rho2.^3.*rx.^2 + ...
+        rdotn./rho2.^2.*ry + ...
+        1./rho2.^2.*(rx.^2.*ny+rx.*ry.*nx);
+    coeff = coeff/pi.*vesicle.sa(index1,k);
+    D2(j,index1,k) = 4*pi/vesicle.N*coeff;
+    % part of first component of stress1 that multiplies first 
+    % component of traction jump
+    D2(j,j,k) = D2(j,j,k) - sum(coeff)*4*pi/vesicle.N;
+    % need to subtract off the input at the target location
+    % so that the singularity is only 1/r instead of 1/r^2
+
+    coeff = -8*ry.*rdotn./rho2.^3.*rx.*ry + ...
+        rdotn./rho2.^2.*rx + ...
+        1./rho2.^2.*(rx.*ry.*ny+ry.^2.*nx);
+    coeff = coeff/pi.*vesicle.sa(index1,k);
+    D2(j,index1+vesicle.N,k) = 4*pi/vesicle.N*coeff;
+    % part of first component of stress1 that multiplies second
+    % component of traction jump
+    D2(j,vesicle.N+j,k) = D2(j,vesicle.N+j,k) - ...
+        sum(coeff)*4*pi/vesicle.N;
+    % need to subtract off the input at the target location
+    % so that the singularity is only 1/r instead of 1/r^2
+
+    coeff = 1./rho2.*nx - ...
+        8*ry.*rdotn./rho2.^3.*rx.*ry + ...
+        1./rho2.^2.*(2*rx.*ry.*ny);
+    coeff = coeff/pi.*vesicle.sa(index1,k);
+    D2(j+vesicle.N,index1,k) = 4*pi/vesicle.N*coeff;
+    % part of second component of stress1 that multiplies first 
+    % component of traction jump
+    D2(vesicle.N+j,j,k) = D2(vesicle.N+j,j,k) - ...
+        sum(coeff)*4*pi/vesicle.N;
+    % need to subtract off the input at the target location
+    % so that the singularity is only 1/r instead of 1/r^2
+
+    coeff = 1./rho2.*ny - ...
+        8*ry.*rdotn./rho2.^3.*ry.^2 + ...
+        rdotn./rho2.^2.*(2*ry) + ...
+        1./rho2.^2.*(2*ry.^2.*ny);
+    coeff = coeff/pi.*vesicle.sa(index1,k);
+    D2(j+vesicle.N,index1+vesicle.N,k) = 4*pi/vesicle.N*coeff;
+    % part of second component of stress1 that multiplies second 
+    % component of traction jump
+    D2(vesicle.N+j,vesicle.N+j,k) = ...
+        D2(vesicle.N+j,vesicle.N+j,k) - ...
+        sum(coeff)*4*pi/vesicle.N;
+    % need to subtract off the input at the target location
+    % so that the singularity is only 1/r instead of 1/r^2
+    % Have built the stress tensor applied to [0;1] at the other 
+    % half of the points
+
+    % need factors of 4 instead of 2 because we are only using
+    % half the terms in the quadrature
+  end % j
+end % k
+
+end % stressDLmatrix
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% END OF ROUTINES THAT BUILD LAYER-POTENTIAL MATRICIES
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % START OF ROUTINES THAT EVALUATE LAYER-POTENTIALS
 % WHEN SOURCES == TARGETS
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function DLP = exactStokesDLdiag(o,geom,D,f)
 % DLP = exactStokesDLdiag(geom,f,K) computes the diagonal term of
 % the double-layer potential due to f around all geoms.  Source and
@@ -375,18 +735,72 @@ end
 
 end % exactStokesDLdiag
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+function N0 = exactStokesN0diag(o,wall,N0,f)
+% DLP = exactStokesN0diag(vesicle,f) computes the diagonal term of the
+% modification of the double-layer potential due to f around outermost
+% vesicle.  Source and target points are the same.  This uses trapezoid
+% rule
+if isempty(N0)
+  N = size(f,1)/2;
+  oc = curve;
+  [fx,fy] = oc.getXY(f(:,1));
+  fx = fx.*wall.sa(:,1);
+  fy = fy.*wall.sa(:,1);
+  [tx,ty] = oc.getXY(wall.xt(:,1));
+  % tangent vector
+  const = sum(ty.*fx - tx.*fy)*2*pi/N;
+  % function to be integrated is dot product of normal with density
+  % function
+  N0 = zeros(2*N,1);
+  N0 = const*[ty;-tx];
+else
+  N0 = N0(:,:,1)*f(:,1);
+end
+
+end % exactStokesN0diag
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+function pressure = exactPressureDLdiag(o,vesicle,P,f)
+% pressure = exactPressureDLdiag(vesicle,P,f) computes the diagonal
+% term of the pressure of the double-layer potental due to f around
+% each vesicle.  Source and target points are the same.  For now, we
+% just pass the matrix for the layer potential and loop over the
+% vesicles
+
+pressure = zeros(size(f));
+for k = 1:vesicle.nv
+  pressure(:,k) = P(:,:,k) * f(:,k);
+end
+
+end % exactPressureDLdiag
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+function stress = exactStressDLdiag(o,vesicle,S,f)
+% stress = exactStressSLdiag(vesicle,S,f) computes the diagonal term of
+% the stress of the double-layer potental due to f around each
+% vesicle.  Source and target points are the same.  For now, we just
+% pass the matrix for the layer potential and loop over the vesicles
+
+stress = zeros(size(f));
+for k = 1:vesicle.nv
+  stress(:,k) = S(:,:,k) * f(:,k);
+end
+
+end % exactStressDLdiag
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % END OF ROUTINES THAT EVALUATE LAYER-POTENTIALS
 % WHEN SOURCES == TARGETS
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % START OF ROUTINES THAT EVALUATE LAYER-POTENTIALS
 % WHEN SOURCES ~= TARGETS.  CAN COMPUTE LAYER POTENTIAL ON EACH
 % VESICLE DUE TO ALL OTHER VESICLES (ex. stokesSLP) AND CAN
 % COMPUTE LAYER POTENTIAL DUE TO VESICLES INDEXED IN K1 AT 
 % TARGET POINTS Xtar
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function [stokesDLP,stokesDLPtar] = exactStokesDL(o, geom, f, D, Xtar,K1)
 % [stokesDLP,stokesDLPtar] = exactStokesDL(geom,f,Xtar,K1) computes the
 % double-layer potential due to f around all parts of the geometry
@@ -486,7 +900,7 @@ end
 
 end % exactStokesDL
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function [stokesDLP,stokesDLPtar] = exactStokesDLfmm(o,geom,f, D, Xtar,K)
 % [stokesDLP,stokeDLPtar] = exactStokesDLfmm(geom,f,Xtar,K) uses the
 % FMM to compute the double-layer potential due to all geoms except
@@ -519,7 +933,8 @@ else
   vel = stokesDLPfmm(dip1(:),dip2(:),x(:),y(:));  
   
   if o.profile
-      o.om.writeMessage(['FMM for all points took ', num2str(toc(tfmmTotal)), ' seconds']);
+      o.om.writeMessage(['FMM for all points took ', ...
+                    num2str(toc(tfmmTotal)), ' seconds']);
   end
   
   u = -imag(vel);
@@ -554,7 +969,8 @@ else
   end
   
   if o.profile
-      o.om.writeMessage(['Direct summation for self interactions took ', num2str(toc(tfmmLoop)), ' seconds']);
+      o.om.writeMessage(['Direct summation for self interactions took ', ...
+                    num2str(toc(tfmmLoop)), ' seconds']);
   end
   
   
@@ -608,8 +1024,9 @@ end
 
 end % exactStokesDLfmm
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function [laplaceDLP,laplaceDLPtar] = exactLaplaceDL(o,vesicle,f, D, Xtar,K1)
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+function [laplaceDLP,laplaceDLPtar] =...
+                        exactLaplaceDL(o,vesicle,f, D, Xtar,K1)
 % pot = exactLaplaceDL(vesicle,f,Xtar,K1) computes the double-layer
 % laplace potential due to f around all vesicles except itself.  Also
 % can pass a set of target points Xtar and a collection of vesicles K1
@@ -721,7 +1138,7 @@ end % nargin == 3
 
 end % exactLaplaceDL
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function [laplaceDLP,laplaceDLPtar] = ...
     exactLaplaceDLfmm(o,vesicle,f,D,Xtar,K)
 % [laplaceDLP,laplaceDLPtar] = exactLaplaceDLfmm(vesicle,f,Xtar,K) uses
@@ -804,64 +1221,16 @@ end
 
 end % exactLaplaceDLfmm
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % END OF ROUTINES THAT EVALUATE LAYER-POTENTIALS
 % WHEN SOURCES ~= TARGETS
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function N0 = stokesN0matrix(o,wall)
-% N0 = stokesN0matrix(vesicle) generates the the integral operator with kernel
-% normal(x) \otimes normal(y) which removes the rank one defficiency of the
-% double-layer potential.  Need this operator for solid walls
-
-oc = curve;
-[x,y] = oc.getXY(wall.X); % Vesicle positions
-
-normal = [wall.xt(wall.N+1:2*wall.N,:);...
-         -wall.xt(1:wall.N,:)]; % Normal vector
-normal = normal(:,ones(2*wall.N,1));
-
-sa = [wall.sa(:,1);wall.sa(:,1)];
-sa = sa(:,ones(2*wall.N,1));
-N0 = zeros(2*wall.N,2*wall.N,wall.nv);
-N0(:,:,1) = normal.*normal'.*sa'*2*pi/wall.N;
-% Use N0 if solving (-1/2 + DLP)\eta = f where f has no flux through
-% the boundary.  By solving (-1/2 + DLP + N0)\eta = f, we guarantee
-% that \eta also has no flux through the boundary.  This is not
-% required, but it means we're enforcing one addition condition on eta
-% which removes the rank one kernel.  DLP is the double-layer potential
-% for stokes equation
-
-end % stokesN0matrix
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function N0 = exactStokesN0diag(o,wall,N0,f)
-% DLP = exactStokesN0diag(vesicle,f) computes the diagonal term of the
-% modification of the double-layer potential due to f around outermost
-% vesicle.  Source and target points are the same.  This uses trapezoid
-% rule
-if isempty(N0)
-  N = size(f,1)/2;
-  oc = curve;
-  [fx,fy] = oc.getXY(f(:,1));
-  fx = fx.*wall.sa(:,1);
-  fy = fy.*wall.sa(:,1);
-  [tx,ty] = oc.getXY(wall.xt(:,1));
-  % tangent vector
-  const = sum(ty.*fx - tx.*fy)*2*pi/N;
-  % function to be integrated is dot product of normal with density
-  % function
-  N0 = zeros(2*N,1);
-  N0 = const*[ty;-tx];
-else
-  N0 = N0(:,:,1)*f(:,1);
-end
-
-end % exactStokesN0diag
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function [pressDLP,pressDLPtar] = exactPressDL(o,vesicle,f,...
     pressTrap,Xtar,K1)
 % [pressDLP,pressDLPtar] = exactPressDL(vesicle,f,pressTrap,Xtar,K1)
@@ -920,119 +1289,172 @@ pressDLPtar = -[pressDLPtar;pressDLPtar]*1/pi;
 end % exactPressDL
 
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function P = pressDLmatrix(o,vesicle)
-% P = pressDLmatrix(vesicle), generates the matrix that returns the
-% pressure given the traction jump.  Matrix has dimensions (N,2*N,nv)
-% where N is the number of points per curve and nv is the number of
-% curves in X.  Matrix is not square since traction jump is
-% vector-valued whereas the pressure is a scalar-valued function
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+function [stressDLP,stressDLPtar] = exactStressDL1(o,vesicle,f,...
+    stressTrap,Xtar,K1)
+% [stressDLP,stressDLPtar] = exactStressDL1(vesicle,f,Xtar,K1) computes
+% the stress due to the double-layer potential of all vesicles
+% contained in vesicle and indexed over K1.  Only computes the stress
+% applied to the direction [1;0].  Evaluates it at Xtar Everything but
+% Xtar is in the 2*N x nv format Xtar is in the 2*Ntar x ncol format
 
 oc = curve;
 [x,y] = oc.getXY(vesicle.X);
+% Vesicle positions
 nx = vesicle.xt(vesicle.N+1:2*vesicle.N,:);
 ny = -vesicle.xt(1:vesicle.N,:);
-% Normal vector
+% normal componenets
 
-P = zeros(vesicle.N,2*vesicle.N,vesicle.nv);
-% initialize double-layer potential to zero
-for k=1:vesicle.nv  % Loop over curves
-  index1 = (1:2:vesicle.N)'; % odd-indexed source points
-  for j=2:2:vesicle.N % Loop over targets
-    rho2 = (x(j,k) - x(index1,k)).^2 + (y(j,k) - y(index1,k)).^2;
-    % distance squared
-    rx = x(j,k) - x(index1,k);
-    ry = y(j,k) - y(index1,k);
-    rdotn = rx.*nx(index1,k) + ry.*ny(index1,k);
-
-    coeff = (-nx(index1,k)./rho2 + 2*rdotn./rho2.^2.*rx) .* ...
-        vesicle.sa(index1,k)/pi;
-    P(j,index1,k) = 4*pi/vesicle.N*coeff;
-    % part that multiplies x-component of traction jump
-    % need factor of 4 instead of 2 because we are only using
-    % half the terms in the quadrature
-    P(j,j,k) = P(j,j,k) - sum(coeff)*4*pi/vesicle.N;
-    % need to subtract off the input at the target location
-    % so that the singularity is only 1/r instead of 1/r^2
-    coeff = (-ny(index1,k)./rho2 + 2*rdotn./rho2.^2.*ry) .* ...
-        vesicle.sa(index1,k)/pi;
-    P(j,vesicle.N+index1,k) = 4*pi/vesicle.N*coeff;
-    % part that multiplies y-component of traction jump
-    % need factor of 4 instead of 2 because we are only using
-    % half the terms in the quadrature
-    P(j,vesicle.N+j,k) = P(j,vesicle.N+j,k) - ...
-        sum(coeff)*4*pi/vesicle.N;
-    % need to subtract off the input at the target location
-    % so that the singularity is only 1/r instead of 1/r^2
-  end % j
-
-  index1 = (2:2:vesicle.N)'; % even-indexed source points
-  for j=1:2:vesicle.N % Loop over targets
-    rho2 = (x(j,k) - x(index1,k)).^2 + (y(j,k) - y(index1,k)).^2;
-    % distance squared
-    rx = x(j,k) - x(index1,k);
-    ry = y(j,k) - y(index1,k);
-    rdotn = rx.*nx(index1,k) + ry.*ny(index1,k);
-    % dot product of r with normal
-
-    coeff = (-nx(index1,k)./rho2 + 2*rdotn./rho2.^2.*rx) .* ...
-        vesicle.sa(index1,k)/pi;
-    P(j,index1,k) = 4*pi/vesicle.N*coeff;
-    % part that multiplies x-component of traction jump
-    % need factor of 4 instead of 2 because we are only using
-    % half the terms in the quadrature
-    P(j,j,k) = P(j,j,k) - sum(coeff)*4*pi/vesicle.N;
-    % need to subtract off the input at the target location
-    % so that the singularity is only 1/r instead of 1/r^2
-
-    coeff = (-ny(index1,k)./rho2 + 2*rdotn./rho2.^2.*ry) .* ...
-        vesicle.sa(index1,k)/pi;
-    P(j,vesicle.N+index1,k) = 4*pi/vesicle.N*coeff;
-    % part that multiplies y-component of traction jump
-    % need factor of 4 instead of 2 because we are only using
-    % half the terms in the quadrature
-    P(j,vesicle.N+j,k) = P(j,vesicle.N+j,k) - ...
-        sum(coeff)*4*pi/vesicle.N;
-    % need to subtract off the input at the target location
-    % so that the singularity is only 1/r instead of 1/r^2
-  end % j
-end % k
-
-
-end % pressDLmatrix
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function pressure = exactPressureSLdiag(o,vesicle,P,f)
-% pressure = exactPressureSLdiag(vesicle,P,f) computes the diagonal
-% term of the pressure of the single-layer potental due to f around
-% each vesicle.  Source and target points are the same.  For now, we
-% just pass the matrix for the layer potential and loop over the
-% vesicles
-
-pressure = zeros(size(f));
-for k = 1:vesicle.nv
-  pressure(:,k) = P(:,:,k) * f(:,k);
+if nargin == 6
+  Ntar = size(Xtar,1)/2;
+  ncol = size(Xtar,2);
+  stressDLPtar = zeros(2*Ntar,ncol);
+else
+  K1 = [];
+  stressDLPtar = [];
+  ncol = 0;
+  Ntar = 0;
+  % if nargin ~= 6, user does not need the layer potential at arbitrary points
 end
 
-end % exactPressureSLdiag
+[fx,fy] = oc.getXY(f);
+% first and second components of the density function
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function pressure = exactPressureDLdiag(o,vesicle,P,f)
-% pressure = exactPressureDLdiag(vesicle,P,f) computes the diagonal
-% term of the pressure of the double-layer potental due to f around
-% each vesicle.  Source and target points are the same.  For now, we
-% just pass the matrix for the layer potential and loop over the
-% vesicles
+for k2 = 1:ncol % loop over columns of target points
+  for j = 1:Ntar % loop over rows of target points
+    dis2 = (Xtar(j,k2) - x(:,K1)).^2 + (Xtar(j+Ntar,k2) - y(:,K1)).^2;
+    diffxy = [Xtar(j,k2) - x(:,K1) ; Xtar(j+Ntar,k2) - y(:,K1)];
+    % distance squared and difference of source and target location
+    [rx,ry] = oc.getXY(diffxy);
 
-pressure = zeros(size(f));
-for k = 1:vesicle.nv
-  pressure(:,k) = P(:,:,k) * f(:,k);
+    rdotf = rx.*fx(:,K1) + ry.*fy(:,K1);
+    % dot product of r and f
+    fdotn = fx(:,K1).*nx(:,K1) + fy(:,K1).*ny(:,K1);
+    % dot product of f and n
+    rdotn = rx.*nx(:,K1) + ry.*ny(:,K1);
+    % dot product of r and n
+
+    val = (fdotn./dis2 - ...
+        8./dis2.^3.*rdotn.*rdotf.*rx.*rx + ...
+        rdotn./dis2.^2.*(2*rx.*fx(:,K1)) + ...
+        rdotf./dis2.^2.*(2*rx.*nx(:,K1))).*vesicle.sa(:,K1);
+    % first component of the stress of the double-layer potential
+    % applied to [1;0]
+
+    stressDLPtar(j,k2) = sum(val(:)); 
+    % scale by arclength
+    stressDLPtar(j,k2) = stressDLPtar(j,k2)*2*pi/vesicle.N;
+    % d\theta term
+
+    val = (-8./dis2.^3.*rdotn.*rdotf.*rx.*ry + ...
+        rdotn./dis2.^2.*(rx.*fy(:,K1) + ry.*fx(:,K1)) + ...
+        rdotf./dis2.^2.*(rx.*ny(:,K1) + ry.*nx(:,K1))).*...
+        vesicle.sa(:,K1);
+    % second component of the stress of the double-layer potential
+    % applied to [1;0]
+
+    stressDLPtar(j+Ntar,k2) = sum(val(:)); 
+    % scale by arclength
+    stressDLPtar(j+Ntar,k2) = stressDLPtar(j+Ntar,k2)*2*pi/vesicle.N;
+    % d\theta term
+
+  end % j
+end % k2
+% stress coming from the single-layer potential for Stokes flow
+
+stressDLP = zeros(2*vesicle.N,vesicle.nv);
+% TODO: NOT SURE IF WE WILL EVER NEED THIS BUT SHOULD PUT IT
+% IN NONETHELESS
+
+stressDLPtar = stressDLPtar/pi;
+% 1/pi is the constant in front of the stress of the double-layer 
+% potential
+
+end % exactStressDL1
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+function [stressDLP,stressDLPtar] = exactStressDL2(o,vesicle,f,...
+    stressTrap,Xtar,K1)
+% [stressDLP,stressDLPtar] = exactStressDL2(vesicle,f,Xtar,K1) computes
+% the stress due to the double-layer potential of all vesicles
+% contained in vesicle and indexed over K1.  Only computes the stress
+% applied to the direction [0;1].  Evaluates it at Xtar Everything but
+% Xtar is in the 2*N x nv format Xtar is in the 2*Ntar x ncol format
+
+oc = curve;
+[x,y] = oc.getXY(vesicle.X);
+% Vesicle positions
+nx = vesicle.xt(vesicle.N+1:2*vesicle.N,:);
+ny = -vesicle.xt(1:vesicle.N,:);
+% normal componenets
+
+if nargin == 6
+  Ntar = size(Xtar,1)/2;
+  ncol = size(Xtar,2);
+  stressDLPtar = zeros(2*Ntar,ncol);
+else
+  K1 = [];
+  stressDLPtar = [];
+  ncol = 0;
+  Ntar = 0;
+  % if nargin ~= 6, user does not need the layer potential at arbitrary points
 end
 
-end % exactPressureDLdiag
+[fx,fy] = oc.getXY(f);
+% first and second components of the density function
 
+for k2 = 1:ncol % loop over columns of target points
+  for j = 1:Ntar % loop over rows of target points
+    dis2 = (Xtar(j,k2) - x(:,K1)).^2 + (Xtar(j+Ntar,k2) - y(:,K1)).^2;
+    diffxy = [Xtar(j,k2) - x(:,K1) ; Xtar(j+Ntar,k2) - y(:,K1)];
+    % distance squared and difference of source and target location
+    [rx,ry] = oc.getXY(diffxy);
+
+    rdotf = rx.*fx(:,K1) + ry.*fy(:,K1);
+    % dot product of r and f
+    fdotn = fx(:,K1).*nx(:,K1) + fy(:,K1).*ny(:,K1);
+    % dot product of f and n
+    rdotn = rx.*nx(:,K1) + ry.*ny(:,K1);
+    % dot product of r and n
+
+    val = (-8./dis2.^3.*rdotn.*rdotf.*ry.*rx + ...
+        rdotn./dis2.^2.*(rx.*fy(:,K1) + ry.*fx(:,K1)) + ...
+        rdotf./dis2.^2.*(rx.*ny(:,K1) + ry.*nx(:,K1))).*...
+        vesicle.sa(:,K1);
+    % second component of the stress of the double-layer potential
+    % applied to [0;1]
+
+    stressDLPtar(j,k2) = sum(val(:)); 
+    stressDLPtar(j,k2) = stressDLPtar(j,k2)*2*pi/vesicle.N;
+    % d\theta term
+
+    val = (fdotn./dis2 - ...
+        8./dis2.^3.*rdotn.*rdotf.*ry.*ry + ...
+        rdotn./dis2.^2.*(2*ry.*fy(:,K1)) + ...
+        rdotf./dis2.^2.*(2*ry.*ny(:,K1))).*...
+        vesicle.sa(:,K1);
+    % first component of the stress of the double-layer potential
+    % applied to [0;1]
+
+    stressDLPtar(j+Ntar,k2) = sum(val(:)); 
+    stressDLPtar(j+Ntar,k2) = stressDLPtar(j+Ntar,k2)*2*pi/vesicle.N;
+    % d\theta term
+  end % j
+end % k2
+% stress coming from the single-layer potential for Stokes flow
+
+stressDLP = zeros(2*vesicle.N,vesicle.nv);
+% TODO: NOT SURE IF WE WILL EVER NEED THIS BUT SHOULD PUT IT
+% IN NONETHELESS
+
+stressDLPtar = stressDLPtar/pi;
+% 1/pi is the constant in front of the stress of the double-layer 
+% potential
+
+end % exactStressDL2
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 end % methods
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 methods(Static)
 
     
