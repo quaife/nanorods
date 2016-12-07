@@ -152,6 +152,12 @@ function [xc, tau] = fill_couette(o, rmin, rmax, nv, prams)
     end
 end
 
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+function X = getXY(o)
+    X = o.X;
+end % getXY
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function [NearSelf,NearOther] = getZone(bd1,bd2,relate)
 % [NearSelf,NearOther] = getZone(bd1,bd2,relate) constructs
@@ -646,12 +652,6 @@ end
 % collision
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function X = getXY(o)
-    X = o.X;
-end % getXY
-
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function press = pressure(geom,f,stokeslets,pressTar,fmm,LP)
 % press = pressure(vesicle,f,RS,pressTar,fmm,LP) computes the pressure
 % due to vesicle at the locations pressTar with near-singular
@@ -789,6 +789,276 @@ end
 end % pressure
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+function [stress1,stress2] = stressTensor(vesicle,f,...
+    RS,stressTar,fmm,LP)
+% [stress1 stress2] = stressTensor(vesicle,f,RS,stressTar,fmm,LP)
+% computes the stress tensor due to vesicle at the locations stressTar
+% with or without near-singular integration with traction jump f.
+% Returns in two components.  stress1 is the stress tensor applied to
+% [1;0] and stress2 is the stress tensor applied to [0;1].  LP is
+% either SLP or DLP and tells this routine if it needs to evaluate the
+% stress due to the single-layer potential or the double-layer
+% potential.  Note that vesicle may correspond to solid walls rather
+% than vesicles.  If doing solid walls, there is a stress due to the
+% rotlet and stokeslet terms that needs to be added in
+
+N = vesicle.N; % points per vesicle
+nv = vesicle.nv; % number of vesicles
+op = poten(N);
+Ntar = stressTar.N*stressTar.nv;
+% number of points where we want to evaluate the stress
+
+tangent = vesicle.xt;
+oc = curve;
+[tanx,tany] = oc.getXY(tangent);
+nx = tany;
+ny = -tanx;
+% decompose tangent and normal vectors into their x and y
+% coordinates
+
+[~,NearV2T] = vesicle.getZone(stressTar,2);
+% build near-singular integration structure for vesicle
+% to pressure target points
+InOutFlag = find(vesicle.sortPts(stressTar.X,fmm,NearV2T) == 1);
+
+if strcmp(LP,'SLP')
+  [S1diagIn,S2diagIn] = op.stressSLmatrix(vesicle);
+  % use odd-even integration to evaluate stress due to
+  % each vesicle independent of the others on its boundary
+  % S1diagIn is the matrix that takes the traction jump and returns
+  % the stress tensor applied to [1;0] evaluated on the boundary of
+  % the vesicle
+  % S2diagIn is the matrix that takes the traction jump and returns
+  % the stress tensor applied to [0;1] evaluated on the boundary of
+  % the vesicle
+  S1diagOut = S1diagIn;
+  S2diagOut = S2diagIn;
+  % Use a second copy for the jump from the outside
+  for k = 1:nv
+    jump = +0.5*nx(:,k) + tanx(:,k).^2.*tany(:,k);
+    S1diagIn(1:N,1:N,k) = S1diagIn(1:N,1:N,k) + diag(jump);
+    S1diagOut(1:N,1:N,k) = S1diagOut(1:N,1:N,k) - diag(jump);
+    % add in (1,1) jump component to stress applied to [1;0] 
+
+    jump = +0.5*ny(:,k) + tanx(:,k).*tany(:,k).^2;
+    S1diagIn(N+1:2*N,1:N,k) = S1diagIn(N+1:2*N,1:N,k) + diag(jump);
+    S1diagOut(N+1:2*N,1:N,k) = S1diagOut(N+1:2*N,1:N,k) - diag(jump);
+    % add in (2,1) jump component to stress applied to [1;0] 
+
+    jump = +0.5*(tany(:,k).^2 - tanx(:,k).^2).*tanx(:,k);
+    S1diagIn(1:N,N+1:2*N,k) = S1diagIn(1:N,N+1:2*N,k) + diag(jump);
+    S1diagOut(1:N,N+1:2*N,k) = S1diagOut(1:N,N+1:2*N,k) - diag(jump);
+    % add in (1,2) jump component to stress applied to [1;0] 
+
+    jump = +0.5*(tany(:,k).^2 - tanx(:,k).^2).*tany(:,k);
+    S1diagIn(N+1:2*N,N+1:2*N,k) = ...
+        S1diagIn(N+1:2*N,N+1:2*N,k) + diag(jump);
+    S1diagOut(N+1:2*N,N+1:2*N,k) = ...
+        S1diagOut(N+1:2*N,N+1:2*N,k) - diag(jump);
+    % add in (2,2) jump component to stress applied to [1;0] 
+
+    jump = +0.5*(tany(:,k).^2 - tanx(:,k).^2).*tanx(:,k);
+    S2diagIn(1:N,1:N,k) = S2diagIn(1:N,1:N,k) + diag(jump);
+    S2diagOut(1:N,1:N,k) = S2diagOut(1:N,1:N,k) - diag(jump);
+    % add in (1,1) jump component to stress applied to [0;1] 
+
+    jump = +0.5*(tany(:,k).^2 - tanx(:,k).^2).*tany(:,k);
+    S2diagIn(N+1:2*N,1:N,k) = S2diagIn(N+1:2*N,1:N,k) + diag(jump);
+    S2diagOut(N+1:2*N,1:N,k) = S2diagOut(N+1:2*N,1:N,k) - diag(jump);
+    % add in (2,1) jump component to stress applied to [0;1] 
+
+    jump = +0.5*nx(:,k) - tanx(:,k).^2.*tany(:,k);
+    S2diagIn(1:N,N+1:2*N,k) = S2diagIn(1:N,N+1:2*N,k) + diag(jump);
+    S2diagOut(1:N,N+1:2*N,k) = S2diagOut(1:N,N+1:2*N,k) - diag(jump);
+    % add in (1,2) jump component to stress applied to [0;1] 
+
+    jump = +0.5*ny(:,k) - tanx(:,k).*tany(:,k).^2;
+    S2diagIn(N+1:2*N,N+1:2*N,k) = ...
+        S2diagIn(N+1:2*N,N+1:2*N,k) + diag(jump);
+    S2diagOut(N+1:2*N,N+1:2*N,k) = ...
+        S2diagOut(N+1:2*N,N+1:2*N,k) - diag(jump);
+    % add in (2,2) jump component to stress applied to [0;1] 
+  end
+  % Jump term that comes from stress of single-layer potential
+  % is the 
+  S1diagInFn = @(X) op.exactStressSLdiag(vesicle,S1diagIn,X);
+  S2diagInFn = @(X) op.exactStressSLdiag(vesicle,S2diagIn,X);
+  S1diagOutFn = @(X) op.exactStressSLdiag(vesicle,S1diagOut,X);
+  S2diagOutFn = @(X) op.exactStressSLdiag(vesicle,S2diagOut,X);
+  % nearSingInt assumes that input and output are vector-valued
+  kernel1 = @op.exactStressSL1;
+  kernel2 = @op.exactStressSL2;
+
+elseif strcmp(LP,'DLP')
+  [S1diagIn,S2diagIn] = op.stressDLmatrix(vesicle);
+  % use odd-even integration to evaluate stress due to
+  % each vesicle independent of the others on its boundary
+  % S1diagIn is the matrix that takes the traction jump and returns
+  % the stress tensor applied to [1;0] evaluated on the boundary of
+  % the vesicle
+  % S2diagIn is the matrix that takes the traction jump and returns
+  % the stress tensor applied to [0;1] evaluated on the boundary of
+  % the vesicle
+
+  S1diagOut = S1diagIn;
+  S2diagOut = S2diagIn;
+  % Use a second copy for the jump from the outside
+  Deriv = fft1.D1(N);
+  % Fourier differentiation matrix
+
+  for k = 1:nv
+    [tanx,tany] = oc.getXY(vesicle.xt(:,k));
+    % tangent vector
+    sa = vesicle.sa(:,k);
+    % Jacobian
+
+    jump = diag(1./sa.*(1+tanx.^2-tany.^2).*tanx)*Deriv;
+    S1diagIn(1:N,1:N,k) = S1diagIn(1:N,1:N,k) - jump;
+    S1diagOut(1:N,1:N,k) = S1diagOut(1:N,1:N,k) + jump;
+    % add in (1,1) jump component to stress applied to [1;0] 
+
+    jump = diag(1./sa.*(1+tanx.^2-tany.^2).*tany)*Deriv;
+    S1diagIn(1:N,N+1:2*N,k) = S1diagIn(1:N,N+1:2*N,k) - jump;
+    S1diagOut(1:N,N+1:2*N,k) = S1diagOut(1:N,N+1:2*N,k) + jump;
+    % add in (1,2) jump component to stress applied to [1;0] 
+
+    jump = diag(1./sa.*(2*tanx.*tany).*tanx)*Deriv;
+    S1diagIn(N+1:2*N,1:N,k) = S1diagIn(N+1:2*N,1:N,k) - jump;
+    S1diagOut(N+1:2*N,1:N,k) = S1diagOut(N+1:2*N,1:N,k) + jump;
+    % add in (2,1) jump component to stress applied to [1;0] 
+
+    jump = diag(1./sa.*(2*tanx.*tany).*tany)*Deriv;
+    S1diagIn(N+1:2*N,N+1:2*N,k) = ...
+        S1diagIn(N+1:2*N,N+1:2*N,k) - jump;
+    S1diagOut(N+1:2*N,N+1:2*N,k) = ...
+        S1diagOut(N+1:2*N,N+1:2*N,k) + jump;
+    % add in (2,2) jump component to stress applied to [1;0] 
+
+
+    jump = diag(1./sa.*(2*tanx.*tany).*tanx)*Deriv;
+    S2diagIn(1:N,1:N,k) = S2diagIn(1:N,1:N,k) - jump;
+    S2diagOut(1:N,1:N,k) = S2diagOut(1:N,1:N,k) + jump;
+    % add in (1,1) jump component to stress applied to [0;1] 
+
+    jump = diag(1./sa.*(2*tanx.*tany).*tany)*Deriv;
+    S2diagIn(1:N,N+1:2*N,k) = S2diagIn(1:N,N+1:2*N,k) - jump;
+    S2diagOut(1:N,N+1:2*N,k) = S2diagOut(1:N,N+1:2*N,k) + jump;
+    % add in (1,2) jump component to stress applied to [0;1] 
+
+    jump = diag(1./sa.*(1-tanx.^2+tany.^2).*tanx)*Deriv;
+    S2diagIn(N+1:2*N,1:N,k) = S2diagIn(N+1:2*N,1:N,k) - jump;
+    S2diagOut(N+1:2*N,1:N,k) = S2diagOut(N+1:2*N,1:N,k) + jump;
+    % add in (2,1) jump component to stress applied to [0;1] 
+
+    jump = diag(1./sa.*(1-tanx.^2+tany.^2).*tany)*Deriv;
+    S2diagIn(N+1:2*N,N+1:2*N,k) = ...
+        S2diagIn(N+1:2*N,N+1:2*N,k) - jump;
+    S2diagOut(N+1:2*N,N+1:2*N,k) = ...
+        S2diagOut(N+1:2*N,N+1:2*N,k) + jump;
+    % add in (2,2) jump component to stress applied to [0;1] 
+  end
+  % Jump term that comes from stress of double-layer potential
+  S1diagInFn = @(X) op.exactStressDLdiag(vesicle,S1diagIn,X);
+  S2diagInFn = @(X) op.exactStressDLdiag(vesicle,S2diagIn,X);
+  S1diagOutFn = @(X) op.exactStressDLdiag(vesicle,S1diagOut,X);
+  S2diagOutFn = @(X) op.exactStressDLdiag(vesicle,S2diagOut,X);
+  % nearSingInt assumes that input and output are vector-valued
+
+  kernel1 = @op.exactStressDL1;
+  kernel2 = @op.exactStressDL2;
+end
+% Have built all single- or double-layer potentials on boundary so that
+% we can compute diagonal value to use near-singular integration
+
+if numel(InOutFlag) > 0
+%    fprintf('Stress1 Inside\n')
+ stress1 = op.nearSingInt(vesicle,f,S1diagInFn,...
+      NearV2T,kernel1,kernel1,stressTar,false,false);
+else
+  stress1 = zeros(2*Ntar,1);
+end
+if Ntar - numel(InOutFlag) > 0
+%    fprintf('Stress1 Outside\n')
+  stressT = op.nearSingInt(vesicle,f,S1diagOutFn,...
+      NearV2T,kernel1,kernel1,stressTar,false,false);
+  stress1(InOutFlag) = stressT(InOutFlag);
+  stress1(Ntar+InOutFlag) = stressT(Ntar+InOutFlag);
+  % correct stress at exterior points
+end
+% Use near-singular integration to compute first component of
+% the stress due to the single-layer potential
+
+if numel(InOutFlag) > 0
+%    fprintf('Stress2 Inside\n')
+  stress2 = op.nearSingInt(vesicle,f,S2diagInFn,...
+      NearV2T,kernel2,kernel2,stressTar,false,false);
+else
+  stress2 = zeros(2*Ntar,1);
+end
+if Ntar - numel(InOutFlag) > 0
+%    fprintf('Stress2 Outside\n')
+  stressT = op.nearSingInt(vesicle,f,S2diagOutFn,...
+      NearV2T,kernel2,kernel2,stressTar,false,false);
+  stress2(InOutFlag) = stressT(InOutFlag);
+  stress2(Ntar+InOutFlag) = stressT(Ntar+InOutFlag);
+  % correct stress at exterior points
+end
+% Use near-singular integration to compute second component of
+% the stress due to the single-layer potential
+
+if ~isempty(RS)
+  for k = 2:vesicle.nv
+    cx = vesicle.center(1,k);
+    cy = vesicle.center(2,k);
+    % center of interior solid wall k
+    xi = RS(3*(k-2) + 3,k);
+    % rotlet on interior solid wall k
+    xi1 = RS(3*(k-2) + 1,k);
+    xi2 = RS(3*(k-2) + 2,k);
+    % first and second components of the stokeslet on 
+    % interior solid wall k 
+    [x,y] = oc.getXY(stressTar.X);
+    rx = x - cx;
+    ry = y - cy;
+    rho4 = (rx.^2 + ry.^2).^2;
+    stress1(1:Ntar) = stress1(1:Ntar) - 4*xi*rx.*ry./rho4;
+    % add in (1,1) component of stress due to Rotlet
+    stress1(1+Ntar:2*Ntar) = stress1(1+Ntar:2*Ntar) + ...
+        2*xi*(rx.^2 - ry.^2)./rho4;
+    % add in (1,2) component of stress due to Rotlet
+    stress2(1:Ntar) = stress2(1:Ntar) + ...
+        2*xi*(rx.^2 - ry.^2)./rho4;
+    % add in (2,1) component of stress due to Rotlet
+    stress2(1+Ntar:2*Ntar) = stress2(1+Ntar:2*Ntar) + ...
+        4*xi*rx.*ry./rho4;
+    % add in (2,2) component of stress due to Rotlet
+
+
+    stress1(1:Ntar) = stress1(1:Ntar) + ...
+        2*(rx*xi1 + ry*xi2).*(-rx.^2 + ry.^2)./rho4;
+    stress1(1:Ntar) = stress1(1:Ntar) - ...
+        2*(rx*xi1 + ry*xi2)./(rx.^2+ry.^2);
+    % add in (1,1) component of stress due to Stokeslet
+    % need to add in -1*pressure term as well
+    stress1(1+Ntar:2*Ntar) = stress1(1+Ntar:2*Ntar) - ...
+        4*rx.*ry.*(rx*xi1 + ry*xi2)./rho4;
+    % add in (1,2) component of stress due to Stokeslet
+    stress2(1:Ntar) = stress2(1:Ntar) - ...
+        4*rx.*ry.*(rx*xi1 + ry*xi2)./rho4;
+    % add in (1,2) component of stress due to Stokeslet
+    stress2(1+Ntar:2*Ntar) = stress1(1+Ntar:2*Ntar) + ...
+        2*(rx*xi1 + ry*xi2).*(rx.^2 - ry.^2)./rho4;
+    stress2(1+Ntar:2*Ntar) = stress2(1+Ntar:2*Ntar) - ...
+        2*(rx*xi1 + ry*xi2)./(rx.^2+ry.^2);
+    % add in (2,2) component of stress due to Stokeslet
+    % need to add in -1*pressure term as well
+  end
+end
+% Add in contributions due to Rotlets and Stokeslets
+
+end % stressTensor
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function InOut = sortPts(vesicle,Xtar,fmm,NearV2T)
 % InOut = sortPts(vesicle,Xtar,fmm,nearV2T) determines if the set of
 % points in Xtar are inside or outside of a vesicle configuration
@@ -798,7 +1068,7 @@ density = [ones(vesicle.N,vesicle.nv);...
 % density function that is used to check if a point is inside or
 % outside
 
-tracers = capsules(Xtar,[],[],0,0,0);
+tracers = capsules([], Xtar);
 if nargin == 3 
   [~,NearV2T] = vesicle.getZone(tracers,2);
 end
@@ -816,16 +1086,15 @@ DLP = @(X) zeros(2*size(X,1),size(X,2));
 % applied to the constant density function will always return zero
 
 kernelDirect = kernel;
-InOut = op.nearSingInt(vesicle,density,DLP,...
-    NearV2T,kernel,kernelDirect,tracers,false,false);
+InOut = op.nearSingInt(vesicle,density,DLP,[],NearV2T,kernel,kernelDirect,tracers,false,false);
 
 InOut = InOut(1:end/2);
 % only care about the first half as we are working with laplace as
 % opposed to the vector-valued stokes layer potentials
 
-thresh = 1e-4;
-InOut(InOut > thresh) = 1;
-InOut(InOut <= thresh) = 0;
+thresh = 1e-7;
+InOut(abs(InOut) > thresh) = 1;
+InOut(abs(InOut) <= thresh) = 0;
 % for points inside a vesicle, but close to its boundary, we will be
 % interpolating the function [0;1;1;1;1...] close to the initial
 % point.  Therefore, the value returned by the DLP will be some value
