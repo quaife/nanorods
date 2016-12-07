@@ -58,7 +58,7 @@ vol_frac = prams.nv*(prams.lengths(1)/2)^2/(10^2-5^2);
 disp(['nv = ', num2str(prams.nv), ', volume fraction = ' num2str(vol_frac)]);
 
 
-Xfinal = rigid2D(options, prams, xc, tau, xWalls);
+%Xfinal = rigid2D(options, prams, xc, tau, xWalls);
 
 pp = post(['../output/data/',options.fileBase, '.mat']);
 
@@ -72,6 +72,8 @@ gif_options.ymax = 10.5;
 gif_options.axis = false;
 gif_options.itmax = prams.m;
 gif_options.stride = 1;
+gif_options.plot_pressure = true;
+gif_options.grid_pts = 400;
 
 pp.animated_gif(gif_options);
 
