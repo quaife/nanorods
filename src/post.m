@@ -15,7 +15,6 @@ etaW
 rotlets
 stokeslets
 
-EPS;
 OUTPUTPATH_GIFS;
 
 end % properties
@@ -41,7 +40,6 @@ o.etaW = etaW;
 o.rotlets = rot;
 o.stokeslets = stokes;
 
-o.EPS = 0.1;
 o.OUTPUTPATH_GIFS = '../output/gifs/';
 
 end %post : constructor
@@ -97,148 +95,86 @@ function [] = plot_fibres(o, iT, xmin, xmax, ymin, ymax)
 end % post : plot_fibres
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function [] = plot_fluid(o, iT, xmin, xmax, ymin, ymax, epsilon)
-% plots the Stokes double layer potential over a meshgrid X, Y. The DLP will
-% only be evaluated if it is at least epsilon away from all fibers.
-%
-% TO DO : add different types of background flow, right now only
-% extensional
+function [] = plot_fluid(o, iT, xmin, xmax, ymin, ymax, M, stride, bg_flow)
+% plots the Stokes double layer potential over a meshgrid X, Y with M 
+% points in each direction. 
 
-%theta = (0:o.N-1)'*2*pi/o.N;
-
-% for k = 1:o.nv
-%    f(1:o.N,k) = 0*sin(theta);
-%    f(o.N+1:2*o.N,k) = cos(theta);
-% end
-
-% f(1:o.N,1) = exp(sin(theta));
-% f(o.N+1:2*o.N,1) = cos(theta);
-% 
-% % f(1:o.N,1) = ones(size(theta));
-% % f(o.N+1:2*o.N,1) = ones(size(theta));
-% 
-% f(1:o.N,2) = exp(sin(theta));
-% f(o.N+1:2*o.N,2) = exp(cos(theta));
-
-
-% o.eta = f(:,:);
-
-M = 30;
-% X = linspace(xmin, xmax, M);
-% Y = ymax*ones(size(X));
-% 
-% X = X(1:end-1);
-% Y = Y(1:end-1);
 
 [X, Y] = meshgrid(linspace(xmin, xmax, M), linspace(ymin, ymax, M));
 
-
-
-
 geom = capsules(o.prams, o.xc(:,:,iT), o.tau(iT,:));
-targetPts.nv = 1;
-targetPts.N = M*M;
-targetPts.X = [X(:), Y(:)];
-
-
-
 Utmp =  o.evaluateDLP(geom, o.etaF(:,:,iT), X(:), Y(:));
-%[~, nearOther] = geom.getZone(targetPts, 2);
 
-% J = find(nearOther.zone{1}(:,2)==1);
-% Utmp(J) = 0;
-% Utmp(J+length(Utmp)/2) = 0;
+% indentify points inside fiber
+inside = geom.sortPts([X(:);Y(:)],true);
 
+%add in background flow
+bg = bg_flow(X(:),Y(:));
+
+Utmp(1:end/2) = Utmp(1:end/2) + bg(:,1); 
+Utmp(end/2+1:end) = Utmp(end/2+1:end) + bg(:,2);
+Utmp(inside==1) = 0;
 U = reshape(Utmp(1:end/2), M, M);
 V = reshape(Utmp(end/2+1:end), M, M);
-U = U + 5*Y; %add in background flow
 
-% U = Utmp(1:end/2);
-% V = Utmp(end/2+1:end);
-
-quiver(X, Y, U, V, 1);
-
-%surf(X,Y,U);
-% plot(X, U, '-o','linewidth', 2);
-
-%view(2)
-
-%shading interp
-hold on 
-
-o.plot_fibres(iT, xmin, xmax, ymin, ymax);
-% 
-% xlim([xmin, xmax]);
-% ylim([ymin, ymax]);
-%axis equal
-
-title(sprintf('t = %6.3f', o.times(iT)));
-
-% figure(2);
-% hold on
-% surf(X,Y,V);
-% 
-% % plot(X, V, '-o','linewidth', 2);
-% view(2)
-% 
-% shading interp
-% hold on
-% 
-% o.plot_fibres(iT, xmin, xmax, ymin, ymax);
-% 
-% % xlim([xmin, xmax]);
-% % ylim([ymin, ymax]);
-% %axis equal
-% 
-% title(sprintf('V at t = %6.3f', o.times(iT)));
+quiver(X, Y, U, V, stride);
 
 end % post : plot_fluid
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function [X,Y,p] = plot_pressure(o,iT)
+function [X,Y,p] = plot_pressure(o,iT, xmin, xmax, ymin, ymax, M)
 
-M = 50;
-N = 500;
-r = linspace(5, 10, M);
-theta = linspace(0,2*pi,N);
 
-[R, T] = meshgrid(r, theta);
-
-X = R.*cos(T);
-Y = R.*sin(T);
+[X, Y] = meshgrid(linspace(xmin, xmax, M), linspace(ymin, ymax, M));
+    
 geomTar = capsules([],[X(:);Y(:)]);
 
 oc = curve;
 geom = capsules(o.prams, o.xc(:,:,iT), o.tau(iT,:));
-xWalls = oc.createWalls(o.prams.Nbd, o.options);
-
-walls = capsules(o.prams,xWalls);
-
 p = geom.pressure(o.etaF(:,:,iT), [], geomTar, true, 'DLP');
-p = p + walls.pressure(o.etaW(:,:,iT), o.stokeslets(:,:,iT), geomTar, true, 'DLP');
-p = reshape(p,N,M);
 
-for i = 1:N
-    for j = 1:M
+% indentify points inside fiber
+insideFibers = geom.sortPts([X(:);Y(:)],true);
+
+if o.options.confined
+    xWalls = oc.createWalls(o.prams.Nbd, o.options);
+
+    walls = capsules(o.prams,xWalls);
+    p = p + walls.pressure(o.etaW(:,:,iT), o.stokeslets(:,:,iT), geomTar, true, 'DLP');
+
+    wallOuter = capsules(o.prams, xWalls(:,1));
+    insideOuterWall = wallOuter.sortPts([X(:);Y(:)],true);
     
-        if any(sum((o.xc(:,:,iT) - repmat([X(i,j);Y(i,j)], 1, geom.nv)).^2) < (max(o.prams.widths/2))^2)
-            p(i,j) = 0;
-        end
+    % identify points outside outer wall
+    p(insideOuterWall==0) = NaN;    
+    
+    if o.prams.Nbd > 1
+        wallsInner = capsules(o.prams, xWalls(:,2:end));
+        
+        insideInnerWalls = wallsInner.sortPts([X(:);Y(:)],true);  
+        % identify points inside inner walls
+        p(insideInnerWalls==1) = NaN;
+        X(insideInnerWalls==1) = NaN;
+        Y(insideInnerWalls==1) = NaN;
     end
+    
+    X(insideOuterWall==0) = NaN;
+    Y(insideOuterWall==0) = NaN;
 end
+
+p(insideFibers==1) = NaN;
+X(insideFibers==1) = NaN;
+Y(insideFibers==1) = NaN;
+
+p = reshape(p,M,M);
 
 surf(X,Y,p);
 view(2);
 shading interp
 hold on
 
-[x, y] = oc.getXY(geom.X);
-[n,m] = size([x;x(1,:)]);
-fill3([x;x(1,:)],[y;y(1,:)],100*ones(n,m),'k');
-
 colorbar
-%caxis([-5,5]);
-axis equal
+caxis([-5,5]);
 
 end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -258,6 +194,7 @@ function [] = plot_walls(o,iT)
     plot(ptsTrack(:,1),ptsTrack(:,2), 'b.', 'MarkerSize', 20); 
 end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 function [] = animated_gif(o, gif_options)
     
 h = figure();
@@ -302,9 +239,6 @@ for i = 1:gif_options.stride:gif_options.itmax
     
     clf;
     
-    if o.options.confined
-        o.plot_walls(i);
-    end
     hold on
     
     if ~gif_options.axis 
@@ -326,12 +260,21 @@ for i = 1:gif_options.stride:gif_options.itmax
     if strcmp(gif_options.xmin, 'auto:frame')
         ymax = max(max(o.xc(2,:,i))) + max(o.prams.lengths);
     end
+      
+    if gif_options.plot_pressure
+        o.plot_pressure(i, xmin, xmax, ymin, ymax, gif_options.grid_pts);
+    end
     
     if gif_options.plot_fluid
-         o.plot_fluid(i, xmin, xmax, ymin, ymax, o.EPS); 
-    else
-        o.plot_fibres(i, xmin, xmax, ymin, ymax);
+         o.plot_fluid(i, xmin, xmax, ymin, ymax, gif_options.grid_pts, ...
+                        gif_options.velocity_grid_stride, gif_options.bg_flow); 
     end
+
+    if o.options.confined
+        o.plot_walls(i);
+    end
+    
+    o.plot_fibres(i, xmin, xmax, ymin, ymax);
     
     drawnow;
     
@@ -350,8 +293,8 @@ for i = 1:gif_options.stride:gif_options.itmax
             mkdir([o.OUTPUTPATH_GIFS, gif_options.file_name]);
         end
         
-        matlab2tikz([o.OUTPUTPATH_GIFS, gif_options.file_name, '/', gif_options.file_name, '-', sprintf('%03d', i), '.tikz'], ...
-            'height', '10cm', 'width', '12cm', 'standalone', true);
+        matlab2tikz([o.OUTPUTPATH_GIFS, gif_options.file_name, '/', gif_options.file_name, '-',...
+            sprintf('%03d', i), '.tikz'], 'height', '10cm', 'width', '12cm', 'standalone', true);
         
     else if strcmp(gif_options.file_type, 'gif')
             if i == 1;
