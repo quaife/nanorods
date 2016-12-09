@@ -14,6 +14,7 @@ etaF
 etaW
 rotlets
 stokeslets
+wall_c
 
 OUTPUTPATH_GIFS;
 
@@ -39,6 +40,7 @@ o.etaF = etaF;
 o.etaW = etaW;
 o.rotlets = rot;
 o.stokeslets = stokes;
+%o.wall_c = wall_c;
 
 o.OUTPUTPATH_GIFS = '../output/gifs/';
 
@@ -326,7 +328,26 @@ geomTar = capsules([],X);
 
 end % post : evaluateDLP
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+function pressure = evaluatePressure(o, iT, X, boundary_type)
+% evaluates the stress tensor at time step iT at target points X, given a 
+% boundary type, either 'fibers', or 'walls'
 
+switch boundary_type
+    case 'fibers'
+        geom = capsules(o.prams, o.xc(:,:,iT), o.tau(iT,:));
+        eta = o.etaF;
+        RS = [];
+        
+    case 'walls'
+        
+end
+
+geomTar = capsules([],X);
+
+pressure = geom.pressure(eta,RS,geomTar);
+
+end % post : evaluateDLP
 end %methods
 
 end %classdef
