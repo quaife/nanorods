@@ -545,8 +545,7 @@ end % getZone
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function [dist,nearestx,nearesty,theta] = ...
-    closestPnt(o,X,xTar,ytar,k,icp)
+function [dist,nearestx,nearesty,theta] = closestPnt(o,X,xTar,ytar,k,icp)
 % [dist,nearestx,nearesty,theta] = closestPnt(X,xTar,ytar,k,icp)
 % computes the closest point on boundary k to (xTar,ytar)
 % using a Lagrange interpolant.  icp is the index of the closest
