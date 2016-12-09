@@ -1295,7 +1295,7 @@ function [stressDLP,stressDLPtar] = exactStressDL1(o,vesicle,f,...
 % [stressDLP,stressDLPtar] = exactStressDL1(vesicle,f,Xtar,K1) computes
 % the stress due to the double-layer potential of all vesicles
 % contained in vesicle and indexed over K1.  Only computes the stress
-% applied to the direction [1;0].  Evaluates it at Xtar Everything but
+% applied to the direction [1;0].  Evaluates it at Xtar. Everything but
 % Xtar is in the 2*N x nv format Xtar is in the 2*Ntar x ncol format
 
 oc = curve;
