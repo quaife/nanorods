@@ -709,16 +709,13 @@ Pdiag = @(X) op.exactPressureDLdiag(geom,[PdiagOut;PdiagIn],X);
 kernel = @op.exactPressDL;
 kernelDirect = @op.exactPressDL;
 
-
-
-Xup = [interpft(geom.X(1:N,:),Nup);...
-    interpft(geom.X(N+1:2*N,:),Nup)];
+Xup = [interpft(geom.X(1:N,:),Nup); interpft(geom.X(N+1:2*N,:),Nup)];
 
 geomUp = capsules([],Xup);
 Dup = op.stokesDLmatrix(geomUp);
 
-pressT = op.nearSingInt(geom,f,Pdiag,Dup,...
-    NearV2T,kernel,kernelDirect,pressTar,false,false);
+pressT = op.nearSingInt(geom,f,Pdiag,Dup,NearV2T,kernel,kernelDirect,...
+                    pressTar,false,false);
 
 % compute the pressure of the single- or double-layer 
 % potential using near-singular integration.  First row 
@@ -753,7 +750,7 @@ end
 end % pressure
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function [stress1,stress2] = stressTensor(vesicle,f,RS,stressTar,fmm)
+function [stress1,stress2] = stressTensor(vesicle,f,RS,stressTar)
 % [stress1 stress2] = stressTensor(vesicle,f,RS,stressTar,fmm)
 % computes the stress tensor due to vesicle at the locations stressTar
 % with or without near-singular integration with traction jump f.
@@ -828,7 +825,6 @@ for k = 1:nv
         S1diagOut(N+1:2*N,N+1:2*N,k) + jump;
     % add in (2,2) jump component to stress applied to [1;0]
 
-
     jump = diag(1./sa.*(2*tanx.*tany).*tanx)*Deriv;
     S2diagIn(1:N,1:N,k) = S2diagIn(1:N,1:N,k) - jump;
     S2diagOut(1:N,1:N,k) = S2diagOut(1:N,1:N,k) + jump;
@@ -852,8 +848,6 @@ for k = 1:nv
     % add in (2,2) jump component to stress applied to [0;1]
 end
 % Jump term that comes from stress of double-layer potential
-S1diagInFn = @(X) op.exactStressDLdiag(vesicle,S1diagIn,X);
-S2diagInFn = @(X) op.exactStressDLdiag(vesicle,S2diagIn,X);
 S1diagOutFn = @(X) op.exactStressDLdiag(vesicle,S1diagOut,X);
 S2diagOutFn = @(X) op.exactStressDLdiag(vesicle,S2diagOut,X);
 % nearSingInt assumes that input and output are vector-valued
@@ -864,7 +858,6 @@ kernel2 = @op.exactStressDL2;
 % Have built all single- or double-layer potentials on boundary so that
 % we can compute diagonal value to use near-singular integration
 
-%    fprintf('Stress1 Outside\n')
 stress1 = op.nearSingInt(vesicle,f,S1diagOutFn,[], NearV2T,kernel1,kernel1,...
     stressTar,false,false);
   % correct stress at exterior points
@@ -872,8 +865,8 @@ stress1 = op.nearSingInt(vesicle,f,S1diagOutFn,[], NearV2T,kernel1,kernel1,...
 % Use near-singular integration to compute first component of
 % the stress due to the double-layer potential
 
-stress2 = op.nearSingInt(vesicle,f,S2diagOutFn,[], NearV2T,kernel2,...
-        kernel2,stressTar,false,false);
+stress2 = op.nearSingInt(vesicle,f,S2diagOutFn,[], NearV2T,kernel2,kernel2,...
+    stressTar,false,false);
 % correct stress at exterior points
 
 % Use near-singular integration to compute second component of
