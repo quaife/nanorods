@@ -801,7 +801,7 @@ end % exactStressDLdiag
 % COMPUTE LAYER POTENTIAL DUE TO VESICLES INDEXED IN K1 AT 
 % TARGET POINTS Xtar
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function [stokesDLP,stokesDLPtar] = exactStokesDL(o, geom, f, D, Xtar,K1)
+function [stokesDLP,stokesDLPtar] = exactStokesDL(~, geom, f, ~, Xtar,K1)
 % [stokesDLP,stokesDLPtar] = exactStokesDL(geom,f,Xtar,K1) computes the
 % double-layer potential due to f around all parts of the geometry
 % except itself.  Also can pass a set of target points Xtar and a
@@ -1026,7 +1026,7 @@ end % exactStokesDLfmm
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function [laplaceDLP,laplaceDLPtar] =...
-                        exactLaplaceDL(o,vesicle,f, D, Xtar,K1)
+                        exactLaplaceDL(~,vesicle,f, ~, Xtar,K1)
 % pot = exactLaplaceDL(vesicle,f,Xtar,K1) computes the double-layer
 % laplace potential due to f around all vesicles except itself.  Also
 % can pass a set of target points Xtar and a collection of vesicles K1
@@ -1140,7 +1140,7 @@ end % exactLaplaceDL
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function [laplaceDLP,laplaceDLPtar] = ...
-    exactLaplaceDLfmm(o,vesicle,f,D,Xtar,K)
+    exactLaplaceDLfmm(~,vesicle,f,~,Xtar,K)
 % [laplaceDLP,laplaceDLPtar] = exactLaplaceDLfmm(vesicle,f,Xtar,K) uses
 % the FMM to compute the double-layer potential due to all vesicles
 % except itself vesicle is a class of object capsules and f is the
@@ -1226,24 +1226,19 @@ end % exactLaplaceDLfmm
 % WHEN SOURCES ~= TARGETS
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-
-
-
-
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function [pressDLP,pressDLPtar] = exactPressDL(o,vesicle,f,...
-    pressTrap,Xtar,K1)
+function [pressDLP,pressDLPtar] = exactPressDL(~,fibers,f,~,Xtar,K1)
 % [pressDLP,pressDLPtar] = exactPressDL(vesicle,f,pressTrap,Xtar,K1)
 % computes the pressure due to all vesicles contained in vesicle and
 % indexed over K1.  Evaluates it at Xtar Everything but Xtar is in the
 % 2*N x nv format Xtar is in the 2*Ntar x ncol format
 
-den = f.*[vesicle.sa;vesicle.sa]*2*pi/vesicle.N;
+den = f.*[fibers.sa;fibers.sa]*2*pi/fibers.N;
 oc = curve;
-[x,y] = oc.getXY(vesicle.X);
+[x,y] = oc.getXY(fibers.X);
 [denx,deny] = oc.getXY(den);
-nx = vesicle.xt(vesicle.N+1:2*vesicle.N,:);
-ny = -vesicle.xt(1:vesicle.N,:);
+nx = fibers.xt(fibers.N+1:2*fibers.N,:);
+ny = -fibers.xt(1:fibers.N,:);
 
 
 if nargin == 6
@@ -1264,20 +1259,20 @@ for k2 = 1:ncol % loop over columns of target points
     dis2 = (Xtar(j,k2) - x(:,K1)).^2 + (Xtar(j+Ntar,k2) - y(:,K1)).^2;
     diffxy = [Xtar(j,k2) - x(:,K1) ; Xtar(j+Ntar,k2) - y(:,K1)];
     % distance squared and difference of source and target location
-    rdotn = diffxy(1:vesicle.N,:).*nx(:,K1) + ...
-        diffxy(vesicle.N+1:2*vesicle.N,:).*ny(1:vesicle.N,K1); 
+    rdotn = diffxy(1:fibers.N,:).*nx(:,K1) + ...
+        diffxy(fibers.N+1:2*fibers.N,:).*ny(1:fibers.N,K1); 
   
     val = (nx(:,K1) - 2*rdotn./dis2.*...
-        diffxy(1:vesicle.N,:))./dis2 .* denx(:,K1);
+                diffxy(1:fibers.N,:))./dis2 .* denx(:,K1);
     val = val + (ny(:,K1) - 2*rdotn./dis2.*...
-        diffxy(vesicle.N+1:2*vesicle.N,:))./dis2 .* deny(:,K1);
+                 diffxy(fibers.N+1:2*fibers.N,:))./dis2 .* deny(:,K1);
 
     pressDLPtar(j,k2) = sum(val(:)); 
   end % j
 end % k2
 % pressure coming from the double-layer potential for Stokes flow
 
-pressDLP = zeros(vesicle.N,vesicle.nv);
+pressDLP = zeros(fibers.N,fibers.nv);
 % TODO: NOT SURE IF WE WILL EVER NEED THIS BUT SHOULD PUT IT
 % IN NONETHELESS
 
@@ -1290,8 +1285,7 @@ end % exactPressDL
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function [stressDLP,stressDLPtar] = exactStressDL1(o,vesicle,f,...
-    stressTrap,Xtar,K1)
+function [stressDLP,stressDLPtar] = exactStressDL1(~,vesicle,f,~,Xtar,K1)
 % [stressDLP,stressDLPtar] = exactStressDL1(vesicle,f,Xtar,K1) computes
 % the stress due to the double-layer potential of all vesicles
 % contained in vesicle and indexed over K1.  Only computes the stress
@@ -1373,8 +1367,7 @@ stressDLPtar = stressDLPtar/pi;
 end % exactStressDL1
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function [stressDLP,stressDLPtar] = exactStressDL2(o,vesicle,f,...
-    stressTrap,Xtar,K1)
+function [stressDLP,stressDLPtar] = exactStressDL2(~,vesicle,f,~,Xtar,K1)
 % [stressDLP,stressDLPtar] = exactStressDL2(vesicle,f,Xtar,K1) computes
 % the stress due to the double-layer potential of all vesicles
 % contained in vesicle and indexed over K1.  Only computes the stress
@@ -1458,12 +1451,11 @@ end % methods
 methods(Static)
 
     
-function LP = lagrangeInterp(o)
+function LP = lagrangeInterp(~)
 % interpMap = lagrangeInterp builds the Lagrange interpolation
 % matrix that takes seven function values equally distributed
 % in [0,1] and returns the seven polynomial coefficients
 
-interpMat = zeros(7);
 LP(1,1) = 6.48e1;
 LP(1,2) = -3.888e2;
 LP(1,3) = 9.72e2;
