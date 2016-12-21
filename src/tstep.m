@@ -173,7 +173,8 @@ end
 
 end % constructor: tstep
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function [etaF,etaW,Up,wp,stokes,rot,iter,iflag,res] = timeStep(o,geom,tau,walls,options,prams)
+function [etaF,etaW,Up,wp,stokes,rot,iter,iflag,res] = ...
+                        timeStep(o,geom,tau,walls,options,prams)
 % [X,iter,iflag] = timeStep(Xstore) takes the current configuration
 % in Xstore (can be a three-dimensional array corresponding to  previous
 % time steps if doing multistep) and returns a new shape X, the number
