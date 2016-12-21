@@ -1,11 +1,18 @@
-function [Xfinal] = rigid2DAdaptive(options, prams, xc, tau)
-
-global Up wp density
+function [Xfinal] = rigid2DAdaptive(options, prams, xc, tau, xWalls)
 
 ttotal = tic;
 
-om = monitor(options, prams);
-tt = tstep(options, prams, om);
+geom = capsules(prams, xc, tau);
+
+if (options.confined)
+    walls = capsules(prams, xWalls);
+else
+    walls = [];
+end
+
+om = monitor(options, prams, xc, tau);
+tt = tstep(options, prams, om, geom, walls, tau);
+potF = poten(geom.N,om);
 
 if (om.profile)
     profile on;
@@ -15,7 +22,7 @@ end
 if options.append
     
     pp = post(['../output/data/',options.fileBase, '.dat'], ...
-    ['../output/data/',options.fileBase,'_density.dat']);
+        ['../output/data/',options.fileBase,'_density.dat']);
     
     time = pp.times(end);
     xc = [pp.centres_x(end,:); pp.centres_y(end,:)];
@@ -24,37 +31,50 @@ if options.append
     om.restartMessage();
     
 else
-    om.writeData(0, xc, tau, zeros(1,prams.nv), zeros(1,prams.nv), zeros(1,prams.nv));
+    
     time = 0;
 end
 
-
-
-options = odeset('RelTol', 1e-5, 'AbsTol', 1e-8, 'InitialStep', tt.dt, 'Stats', 'on');
-Xin = [xc(1,:)';xc(2,:)';tau'];
-
 while (time < prams.T)
     
-	tLoop = tic;
+    tSingleStep = tic;  
     
-    % call adaptive ODE solver
-    [tSteps, Xout] = ode45(@(t,y) compute_velocities(t, y, prams, tt, om),...
-                                        [time, time + tt.dt], Xin, options);
+    [xc, tau, dt, num_steps, rel_err, densityF, densityW, ...
+                stokes, rot, Up, wp, iter, flag, res] = adaptive_rk(prams.a, prams.b1, prams.b2, ...
+                                xc, tau, walls, tt, options, prams);
+   
     
-    Xin = Xout(end,:);
-    xc = [Xin(1:end/3);Xin(end/3+1:2*end/3)];
-    tau = Xin(2*end/3+1:end);
+    geom = capsules(prams, xc, tau);
     
+    tt = tstep(options, prams, om, geom, walls, tau);   
+    tt.dt = dt; 
     time = time + tt.dt;
     
     om.writeMessage(....
-        ['Finished full time step for t =', num2str(time, '%3.3e'), ' in ',...
-                num2str(toc(tLoop)), ' seconds']);
-         
-    om.writeMessage(['ODE solver used substeps: ', num2str(tSteps')]);
-
-    om.writeData(time, xc, tau, Up(1,:), Up(2,:), wp);
-    om.writeDensity(time, density);   
+        ['Finished time step for t =', num2str(time, '%3.3e'), ' in ',...
+        num2str(toc(tSingleStep)), ' seconds']);
+    
+    om.writeMessage(['Adaptive RK solver: res = ',num2str(rel_err), ...
+        ' , number of step halves = ', num2str(num_steps - 1)]);
+    
+%      % check for collisions
+%     [near,~] = geom.getZone(geom,1);
+%     icollision = geom.collision(near,options.ifmm, options.inear, potF, om);
+%     
+%     if (icollision)
+%         om.writeMessage('WARNING: COLLISION DETECTED');
+%     end
+    
+    om.writeMessage(....
+        ['Finished t=', num2str(time, '%3.3e'), ' in ' num2str(iter) ...
+         ' iterations after ', num2str(toc(tSingleStep), '%2i'), ' seconds (residual ', ...
+         num2str(res), ')']);
+    
+    if flag ~= 0
+       om.writeMessage(['WARNING: GMRES flag = ', num2str(flag)]); 
+    end
+        
+    om.writeData(time, xc, tau, Up, wp, stokes, rot, densityF, densityW); 
 end
 
 geom = capsules(prams, xc, tau);
@@ -62,39 +82,91 @@ Xfinal = geom.getXY();
 
 om.writeStars();
 om.writeMessage(....
-        ['Finished entire simulation in ', num2str(toc(ttotal)), ' seconds']);
+    ['Finished entire simulation in ', num2str(toc(ttotal)), ' seconds']);
 if (om.profile)
-   profsave(profile('info'), om.profileFile);
+    profsave(profile('info'), om.profileFile);
 end
 
 end %rigid2D
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function xdot = compute_velocities(t, y, prams, tt, om)
+function [xc_new, tau_new, dt, num_steps, rel_err, densityF, densityW, ...
+                stokes, rot, Up, wp, iter, flag, res] = adaptive_rk(a, b1, b2, ...
+                                xc, tau, walls, tt, options, prams)
 
-global Up wp density
+dt = tt.dt;
+rel_err = 2*prams.tol;
+num_steps = 0;
 
+while (rel_err > prams.tol && dt > prams.dt_min)
+    % compute lower order solution using b1
+    
+    k = zeros(length(xc(:))+length(tau),length(b1));
+    
+    for s = 1:length(b1)
+        
+        dTmp = k(:,1:s-1)*a(s,1:s-1)';
+        
+        dx = reshape(dTmp(1:2*prams.nv), prams.nv, 2);
+        dtau = dTmp(2*prams.nv+1:end);
+        
+        xc_k = xc + dt*dx';
+        tau_k = tau + dt*dtau';
+        k(:,s) = compute_velocities(xc_k, tau_k, walls, ...
+                                    tt, options, prams);
+                                
+        if s == 1
+            Up = [k(1:prams.nv,s)';k(prams.nv+1:2*prams.nv,s)'];
+            wp = k(2*prams.nv+1:end,s)';
+        end
+    end
+    
+    sol_low = [xc(1,:)';xc(2,:)';tau'] + dt*k*b1;
+    
+    % add in last stage to compute higher order solution
+    dTmp = k*a(end,:)';
+        
+    dx = reshape(dTmp(1:2*prams.nv), prams.nv, 2);
+    dtau = dTmp(2*prams.nv+1:end);
 
-tic;
-
-xtmp = y(1:end/3);
-ytmp = y(end/3 + 1 : 2*end/3);
-
-xc = [xtmp';ytmp'];
-tau = y(2*end/3 + 1: end)';
-
-geom = capsules(prams, xc, tau);
-[density,Up,wp,iter,flag, res] = tt.timeStep(geom);
-
-xdot = [Up(1,:)'; Up(2,:)'; wp'];
-
-om.writeMessage(....
-    ['Finished substep at t=', num2str(t, '%3.3e'), ' in ' num2str(iter) ...
-    ' iterations after ', num2str(toc, '%2i'), ' seconds (residual ', ...
-    num2str(res), ')']);
-
-if flag ~= 0
-    om.writeMessage(['WARNING: GMRES flag = ', num2str(flag)]);
+    xc_k = xc + dt*dx';
+    tau_k = tau + dt*dtau';
+        
+    [k(:,end+1),densityF, densityW, stokes, rot, iter, flag, res] = ...
+                compute_velocities(xc_k, tau_k, walls, tt, options, prams);
+    
+    sol_high = [xc(1,:)';xc(2,:)';tau'] + dt*k*b2;
+    
+    % compute difference, adjust step size if necessary
+    
+    rel_err = max(abs(sol_high - sol_low)./sol_high);
+    num_steps = num_steps + 1;
+    
+    if options.verbose
+        disp(['Relative error = ', num2str(rel_err)]);
+    end
+    
+    if (rel_err > prams.tol)
+        dt = dt/2;
+        if options.verbose
+        	disp(['Halving time step size, new dt = ', num2str(dt)]);
+        end
+    end
 end
 
+xc_new = [sol_high(1:prams.nv)';sol_high(prams.nv+1:2*prams.nv)'];
+tau_new = sol_high(2*prams.nv+1:end)';
+
+
+end %adaptive_rk
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+function [xdot, densityF, densityW, stokes, rot, iter, flag, res] = ...
+                    compute_velocities(xc, tau, walls, tt, options, prams)
+    
+    geom = capsules(prams, xc, tau);
+    [densityF,densityW,Up,wp,stokes,rot,iter,flag,res] = tt.timeStep(geom, tau, ...
+                            walls, options, prams);
+     
+     xdot = [Up(1,:)';Up(2,:)';wp'];
 end
