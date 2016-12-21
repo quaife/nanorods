@@ -78,7 +78,7 @@ geom = capsules(o.prams, o.xc(:,:,iT), o.tau(iT,:));
 Utmp =  o.evaluateDLP(geom, o.etaF(:,:,iT), [X(:), Y(:)]);
 
 % indentify points inside fiber
-inside = geom.sortPts([X(:);Y(:)],true);
+inside = geom.sortPts([X(:);Y(:)],o.options.ifmm);
 
 %add in background flow
 bg = bg_flow(X(:),Y(:));
@@ -324,7 +324,7 @@ end
 
 geomTar = capsules([],X);
 
-[stress1,stress2] = geom.stressTensor(eta,RS,geomTar,true);
+[stress1,stress2] = geom.stressTensor(eta,RS,geomTar);
 
 end % post : evaluateDLP
 
