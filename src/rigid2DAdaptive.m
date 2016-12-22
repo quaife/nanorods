@@ -57,13 +57,13 @@ while (time < prams.T)
     om.writeMessage(['Adaptive RK solver: res = ',num2str(rel_err), ...
         ' , number of step halves = ', num2str(num_steps - 1)]);
     
-%      % check for collisions
-%     [near,~] = geom.getZone(geom,1);
-%     icollision = geom.collision(near,options.ifmm, options.inear, potF, om);
-%     
-%     if (icollision)
-%         om.writeMessage('WARNING: COLLISION DETECTED');
-%     end
+      % check for collisions
+    [near,~] = geom.getZone(geom,1);
+    icollision = geom.collision(near,options.ifmm, options.inear, potF, om);
+     
+    if (icollision)
+         om.writeMessage('WARNING: COLLISION DETECTED');
+    end
     
     om.writeMessage(....
         ['Finished t=', num2str(time, '%3.3e'), ' in ' num2str(iter) ...
