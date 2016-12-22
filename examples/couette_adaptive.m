@@ -30,7 +30,7 @@ options.fileBase = 'couette';
 options.append = false;
 options.inear = true;
 options.usePreco = true;
-options.ifmm = false;
+options.ifmm = true;
 options.verbose = true;
 options.profile = false;
 options.tstep_order = 'adaptive';
@@ -42,7 +42,7 @@ oc = curve;
 xWalls = oc.createWalls(prams.Nbd, options);
 
 % add particles on uniform grid
-N = 6;
+N = 32;
 x = linspace(-10,10,N);
 y = linspace(-10,10,N);
 
