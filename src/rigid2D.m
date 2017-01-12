@@ -12,6 +12,8 @@ if (options.confined)
     walls = capsules(prams, xWalls);
 else
     walls = [];
+    prams.Nbd = 0;
+    prams.nbd = 0;
 end
 
 % [xc_added, tau_added] = geom.fill_couette(5, 10, 86, prams);
