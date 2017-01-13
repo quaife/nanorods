@@ -44,6 +44,18 @@ switch options.tstep_order
              -8/27, 2, -3544/2565, 1859/4104, -11/40, 0];
          b1 = [25/216; 0; 1408/2565; 2197/4104; -1/5];
          b2 = [16/135; 0; 6656/12825; 28561/56430; -9/50; 2/55];
+         
+    case 5 % Dormand-Prince
+        a = [0,0,0,0,0,0,0;
+            1/5,0,0,0,0,0,0;
+            3/40,9/40,0,0,0,0,0;
+            44/45,-56/15,32/9,0,0,0,0;
+            19372/6561,-25360/2187,64448/6561,-212/729,0,0,0;
+            9017/3168,-355/33,46732/5247,49/176,-5103/18656,0,0;
+            35/384,0,500/1113,125/192,-2187/6784,11/84,0];
+        b1 = [5179/57600;0;7571/16695;393/640;-92097/339200;187/2100;1/40];
+        b2 = [35/384;0;500/1113;125/192;-2187/6784;11/84];
+            
 end
 
 % read in existing file if necessary
@@ -98,11 +110,7 @@ while (time < prams.T)
          om.writeMessage(['Step completed, new dt = ', num2str(tt.dt)]);
     end
     
-    % print time step information
-    om.writeMessage(....
-        ['Finished time step for t =', num2str(time, '%3.3e'), ' in ',...
-        num2str(toc(tSingleStep)), ' seconds']);
-    
+    % print time step information    
     om.writeMessage(....
         ['Finished t=', num2str(time, '%3.3e'), ' in ' num2str(iter) ...
          ' iterations after ', num2str(toc(tSingleStep), '%2i'), ...
@@ -133,11 +141,14 @@ function [xc_new, tau_new, accept, rel_err, densityF, densityW, ...
     stokes, rot, Up, wp, iter, flag, res] = adaptive_rk(a, b1, ...
     b2, xc, tau, walls, tt, potF, om, options, prams)
 
+% b1 are coefficients for method that advances in time
+% b2 are coefficients to estimate error
+
 dt = tt.dt;
 accept = true;
 rel_err = 1;
 
-% compute lower order solution using b1
+% compute next candidate step using coefficents in b1
 k = zeros(length(xc(:))+length(tau),length(b1));
 
 for s = 1:length(b1)
@@ -158,51 +169,57 @@ end
 
 Up = [k(1:prams.nv,1)';k(prams.nv+1:2*prams.nv,1)'];
 wp = k(2*prams.nv+1:end,1)';    
-sol_low = [xc(1,:)';xc(2,:)';tau'] + dt*k*b1;
+sol_next = [xc(1,:)';xc(2,:)';tau'] + dt*k*b1;
 
 % check for collisions
-geom = capsules(prams, [sol_low(1:prams.nv),sol_low(prams.nv+1:2*prams.nv)]',...
-                            sol_low(2*prams.nv+1:end));                   
+geom = capsules(prams, [sol_next(1:prams.nv),sol_next(prams.nv+1:2*prams.nv)]',...
+                            sol_next(2*prams.nv+1:end));                   
 [near,~] = geom.getZone(geom,1);                       
 icollision = geom.collision(near,options.ifmm, options.inear, potF, om);
 
 if (icollision)
-    om.writeMessage('WARNING: COLLISION DETECTED USING LOWER ORDER RK');
+    om.writeMessage('WARNING: COLLISION DETECTED WHEN ADVANCING IN TIME');
     accept = false;
 end
 
 if accept
-    % add in last stage to compute higher order solution
-    dTmp = k*a(end,1:end-1)';
+    % compute error using coefficients in b2
+    if length(b2) > length(b1)
+        % add in last stage to compute higher order solution
+        dTmp = k*a(end,1:end-1)';
+        
+        dx = reshape(dTmp(1:2*prams.nv), prams.nv, 2);
+        dtau = dTmp(2*prams.nv+1:end);
+        
+        xc_k = xc + dt*dx';
+        tau_k = tau + dt*dtau';
+        
+        [k(:,end+1),densityF, densityW, stokes, rot, iter, flag, res] = ...
+            compute_velocities(xc_k, tau_k, ...
+            walls, tt, options, prams);
+    else
+        % take the k values already computed
+        k = k(:,1:length(b2));
+    end
     
-    dx = reshape(dTmp(1:2*prams.nv), prams.nv, 2);
-    dtau = dTmp(2*prams.nv+1:end);
-    
-    xc_k = xc + dt*dx';
-    tau_k = tau + dt*dtau';
-    
-    [k(:,end+1),densityF, densityW, stokes, rot, iter, flag, res] = ...
-        compute_velocities(xc_k, tau_k, ...
-                        walls, tt, options, prams);
-    
-    sol_high = [xc(1,:)';xc(2,:)';tau'] + dt*k*b2;
+    sol_estimate = [xc(1,:)';xc(2,:)';tau'] + dt*k*b2;
     
     % check for collisions
-    geom = capsules(prams, [sol_high(1:prams.nv),sol_high(prams.nv+1:2*prams.nv)]',...
-                            sol_high(2*prams.nv+1:end));
+    geom = capsules(prams, [sol_estimate(1:prams.nv),sol_estimate(prams.nv+1:2*prams.nv)]',...
+                            sol_estimate(2*prams.nv+1:end));
     [near,~] = geom.getZone(geom,1);  
     icollision = geom.collision(near,options.ifmm, options.inear, potF, om);
     
     if (icollision)
-        om.writeMessage('WARNING: COLLISION DETECTED USING HIGHER ORDER RK');
+        om.writeMessage('WARNING: COLLISION DETECTED WHEN COMPUTING ERROR');
         accept = false;
     else
 
         % compute difference, accept/reject
-        err = abs(sol_high - sol_low);
+        err = abs(sol_estimate - sol_next);
         err(err < 1e-14) = 0;
         
-        rel_err = max(err./abs(sol_high));
+        rel_err = max(err./abs(sol_estimate));
         
         if options.verbose
             om.writeMessage(['Relative error = ', num2str(rel_err)]);
@@ -212,13 +229,10 @@ if accept
             accept = false;
         end
     end
-
-else
-    sol_high = zeros(3*prams.nv,1);
 end
 
-xc_new = [sol_high(1:prams.nv)';sol_high(prams.nv+1:2*prams.nv)'];
-tau_new = sol_high(2*prams.nv+1:end)';
+xc_new = [sol_next(1:prams.nv)';sol_next(prams.nv+1:2*prams.nv)'];
+tau_new = sol_next(2*prams.nv+1:end)';
 
 
 end %adaptive_rk
