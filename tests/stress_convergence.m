@@ -3,7 +3,7 @@
 
 close all
 
-x = 10;
+x = 2;
 y = 1;
 
 % exact pressure and stress tensor computed using Mathematica
@@ -20,8 +20,8 @@ stress_exact = @(x,y) stress_v_exact(x,y) - p_exact(x,y)*eye(2);
 prams.nv = 1; % number of bodies
 prams.T = 10; % time horizon
 prams.m = 1; % number of time steps
-prams.lengths = 1*ones(1, prams.nv);
-prams.widths = 1*ones(1,prams.nv);
+prams.lengths = 2*ones(1, prams.nv);
+prams.widths = 2*ones(1,prams.nv);
 prams.order = 2;
 prams.Nbd = 0; %points on solid wall
 prams.nbd = 0; %number of walls
