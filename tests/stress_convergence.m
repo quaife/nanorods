@@ -3,7 +3,7 @@
 
 close all
 
-x = 1.01;
+x = 10;
 y = 1;
 
 % exact pressure and stress tensor computed using Mathematica
@@ -14,7 +14,7 @@ vx_exact = @(x,y) (-3*x^4+6*x^2*(3-2*x^2)*y^2 - (3+8*x^2)*y^4 + 4*y^6)/(4*(x^2+y
 vy_exact = @(x,y) x*(x-y)*y*(x+y)*(-3+2*x^2+2*y^2)/(x^2+y^2)^4;
 
 grad_exact = @(x,y) [ux_exact(x,y), uy_exact(x,y); vx_exact(x,y), vy_exact(x,y)];
-stress_v_exact = @(x,y) 0.5*(grad_exact(x,y) + grad_exact(x,y)');
+stress_v_exact = @(x,y) grad_exact(x,y) + grad_exact(x,y)';
 stress_exact = @(x,y) stress_v_exact(x,y) - p_exact(x,y)*eye(2);
 
 prams.nv = 1; % number of bodies
@@ -66,5 +66,6 @@ end
 stress_approx = [stress1(:,end),stress2(:,end)];
 
 % find ratio of computed quantities to exact quantities
-fs = (stress_approx + p_approx(end)*eye(2))./stress_v_exact(x,y);
+fsv = (stress_approx + p_approx(end)*eye(2))./stress_v_exact(x,y);
+fs = stress_approx./stress_exact(x,y);
 fp = p_approx(end)/p_exact(x,y);
