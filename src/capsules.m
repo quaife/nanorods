@@ -750,7 +750,7 @@ end
 end % pressure
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function [stress1,stress2] = stressTensor(vesicle,f,RS,stressTar)
+function [stress1,stress2] = stressTensor(vesicle,f,RS,stressTar,sEqualsT)
 % [stress1 stress2] = stressTensor(vesicle,f,RS,stressTar,fmm)
 % computes the stress tensor due to vesicle at the locations stressTar
 % with or without near-singular integration with traction jump f.
@@ -776,7 +776,11 @@ ny = -tanx;
 % decompose tangent and normal vectors into their x and y
 % coordinates
 
-[~,NearV2T] = vesicle.getZone(stressTar,2);
+if sEqualsT
+    [NearStruct,~] = vesicle.getZone(stressTar,1);
+else
+    [~,NearStruct] = vesicle.getZone(stressTar,2);
+end
 % build near-singular integration structure for vesicle
 % to pressure target points
 
@@ -858,15 +862,25 @@ kernel2 = @op.exactStressDL2;
 % Have built all single- or double-layer potentials on boundary so that
 % we can compute diagonal value to use near-singular integration
 
-stress1 = op.nearSingInt(vesicle,f,S1diagOutFn,[], NearV2T,kernel1,kernel1,...
-    stressTar,false,false);
+% CREATE UPSAMPLED MATRICES
+Xsou = vesicle.X; 
+Nup = N*ceil(sqrt(N));
+
+Xup = [interpft(Xsou(1:N,:),Nup);...
+       interpft(Xsou(N+1:2*N,:),Nup)];
+
+geomUp = capsules([],Xup);
+[Dup1, Dup2] = op.stressDLmatrix(geomUp);
+
+stress1 = op.nearSingInt(vesicle,f,S1diagOutFn,Dup1, NearStruct, kernel1,kernel1,...
+    stressTar,sEqualsT,false);
   % correct stress at exterior points
 
 % Use near-singular integration to compute first component of
 % the stress due to the double-layer potential
 
-stress2 = op.nearSingInt(vesicle,f,S2diagOutFn,[], NearV2T,kernel2,kernel2,...
-    stressTar,false,false);
+stress2 = op.nearSingInt(vesicle,f,S2diagOutFn,Dup2,NearStruct,kernel2,kernel2,...
+    stressTar,sEqualsT,false);
 % correct stress at exterior points
 
 % Use near-singular integration to compute second component of
@@ -877,42 +891,43 @@ if ~isempty(RS)
     cx = vesicle.center(1,k);
     cy = vesicle.center(2,k);
     % center of interior solid wall k
-    xi = RS(3*(k-2) + 3,k);
+    xi = RS(3*(k-2) + 3);
     % rotlet on interior solid wall k
-    xi1 = RS(3*(k-2) + 1,k);
-    xi2 = RS(3*(k-2) + 2,k);
+    xi1 = RS(3*(k-2) + 1);
+    xi2 = RS(3*(k-2) + 2);
     % first and second components of the stokeslet on 
     % interior solid wall k 
     [x,y] = oc.getXY(stressTar.X);
     rx = x - cx;
     ry = y - cy;
     rho4 = (rx.^2 + ry.^2).^2;
-    stress1(1:Ntar) = stress1(1:Ntar) - 4*xi*rx.*ry./rho4;
+    
+    stress1(1:stressTar.N,:) = stress1(1:stressTar.N,:) - 4*xi*rx.*ry./rho4;
     % add in (1,1) component of stress due to Rotlet
-    stress1(1+Ntar:2*Ntar) = stress1(1+Ntar:2*Ntar) + ...
+    stress1(1+stressTar.N:end,:) = stress1(1+stressTar.N:end,:) + ...
                     2*xi*(rx.^2 - ry.^2)./rho4;
     % add in (1,2) component of stress due to Rotlet
-    stress2(1:Ntar) = stress2(1:Ntar) + 2*xi*(rx.^2 - ry.^2)./rho4;
+    stress2(1:stressTar.N,:) = stress2(1:stressTar.N,:) + 2*xi*(rx.^2 - ry.^2)./rho4;
     % add in (2,1) component of stress due to Rotlet
-    stress2(1+Ntar:2*Ntar) = stress2(1+Ntar:2*Ntar) + 4*xi*rx.*ry./rho4;
+    stress2(1+stressTar.N:end,:) = stress2(1+stressTar.N:end,:) + 4*xi*rx.*ry./rho4;
     % add in (2,2) component of stress due to Rotlet
 
 
-    stress1(1:Ntar) = stress1(1:Ntar) + ...
+    stress1(1:stressTar.N,:) = stress1(1:stressTar.N,:) + ...
                 2*(rx*xi1 + ry*xi2).*(-rx.^2 + ry.^2)./rho4;
-    stress1(1:Ntar) = stress1(1:Ntar) - ...
+    stress1(1:Ntar) = stress1(1:stressTar.N,:) - ...
                 2*(rx*xi1 + ry*xi2)./(rx.^2+ry.^2);
     % add in (1,1) component of stress due to Stokeslet
     % need to add in -1*pressure term as well
-    stress1(1+Ntar:2*Ntar) = stress1(1+Ntar:2*Ntar) - ...
+    stress1(1+stressTar.N:end,:) = stress1(1+stressTar.N:end,:) - ...
                 4*rx.*ry.*(rx*xi1 + ry*xi2)./rho4;
     % add in (1,2) component of stress due to Stokeslet
-    stress2(1:Ntar) = stress2(1:Ntar) - ...
+    stress2(1:stressTar.N,:) = stress2(1:stressTar.N,:) - ...
                 4*rx.*ry.*(rx*xi1 + ry*xi2)./rho4;
     % add in (1,2) component of stress due to Stokeslet
-    stress2(1+Ntar:2*Ntar) = stress1(1+Ntar:2*Ntar) + ...
+    stress2(1+stressTar.N:end,:) = stress1(1+stressTar.N:end,:) + ...
                 2*(rx*xi1 + ry*xi2).*(rx.^2 - ry.^2)./rho4;
-    stress2(1+Ntar:2*Ntar) = stress2(1+Ntar:2*Ntar) - ...
+    stress2(1+stressTar.N:end,:) = stress2(1+stressTar.N:end,:) - ...
                 2*(rx*xi1 + ry*xi2)./(rx.^2+ry.^2);
     % add in (2,2) component of stress due to Stokeslet
     % need to add in -1*pressure term as well
