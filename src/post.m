@@ -410,16 +410,24 @@ end % post : evaluateTotalStress
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function[stress1, stress2] = evaluateStress(o, iT, X)
-% evaluates the stress tensor at time step iT at target points X, given a 
+% evaluates the stress tensor at time step iT at target points X, given a
 % boundary type, either 'fibers', or 'walls'
 
 geom = capsules(o.prams, o.xc(:,:,iT), o.tau(iT,:));
 geomTar = capsules([],X);
+
 RS = [];
 [stress1,stress2] = geom.stressTensor(o.etaF,RS,geomTar,false);
-            
+
 if o.options.confined
+
+    oc = curve;
+    xWalls = oc.createWalls(o.prams.Nbd, o.options);
+    walls = capsules([],xWalls);
+    [stress1w,stress2w] = walls.stressTensor(o.etaW,RS,geomTar,false);
     
+    stress1 = stress1 + stress1w;
+    stress2 = stress2 + stress2w;
 end
 
 end % post : evaluateDLP
