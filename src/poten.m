@@ -272,7 +272,7 @@ end % nearSingInt
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function D = stokesDLmatrix(o,geom)
+function D = stokesDLmatrix(~,geom)
 % D = stokesDLmatrix(geom), generate double-layer potential for 
 % Stokes. geom is a data structure defined as in the capsules class
 % D is (2N,2N,nv) array where N is the number of points per curve and 
@@ -346,13 +346,12 @@ end % k
 end % stokesDLmatrix
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function N0 = stokesN0matrix(o,wall)
+function N0 = stokesN0matrix(~,wall)
 % N0 = stokesN0matrix(vesicle) generates the the integral operator with 
 % kernel normal(x) \otimes normal(y) which removes the rank one defficiency 
 % of the double-layer potential.  Need this operator for solid walls
 
 oc = curve;
-[x,y] = oc.getXY(wall.X); % Vesicle positions
 
 normal = [wall.xt(wall.N+1:2*wall.N,:);...
          -wall.xt(1:wall.N,:)]; % Normal vector
@@ -372,7 +371,7 @@ N0(:,:,1) = normal.*normal'.*sa'*2*pi/wall.N;
 end % stokesN0matrix
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function P = pressDLmatrix(o,vesicle)
+function P = pressDLmatrix(~,vesicle)
 % P = pressDLmatrix(vesicle), generates the matrix that returns the
 % pressure given the traction jump.  Matrix has dimensions (N,2*N,nv)
 % where N is the number of points per curve and nv is the number of
@@ -453,7 +452,7 @@ end % k
 end % pressDLmatrix
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function [D1,D2] = stressDLmatrix(o,vesicle)
+function [D1,D2] = stressDLmatrix(~,vesicle)
 % [D1,D2] = stressDLmatrix(vesicle), generates the matrix that returns
 % the stress tensor due to the double-layer potential applied to [1;0] 
 % (D1) and to [0;1] (D2) given the traction jump.  Matricies have 
@@ -715,7 +714,7 @@ end % stressDLmatrix
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function DLP = exactStokesDLdiag(o,geom,D,f)
+function DLP = exactStokesDLdiag(~,geom,D,f)
 % DLP = exactStokesDLdiag(geom,f,K) computes the diagonal term of
 % the double-layer potential due to f around all geoms.  Source and
 % target points are the same.  This uses trapezoid rule with the
@@ -736,7 +735,7 @@ end
 end % exactStokesDLdiag
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function N0 = exactStokesN0diag(o,wall,N0,f)
+function N0 = exactStokesN0diag(~,wall,N0,f)
 % DLP = exactStokesN0diag(vesicle,f) computes the diagonal term of the
 % modification of the double-layer potential due to f around outermost
 % vesicle.  Source and target points are the same.  This uses trapezoid
@@ -761,7 +760,7 @@ end
 end % exactStokesN0diag
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function pressure = exactPressureDLdiag(o,vesicle,P,f)
+function pressure = exactPressureDLdiag(~,vesicle,P,f)
 % pressure = exactPressureDLdiag(vesicle,P,f) computes the diagonal
 % term of the pressure of the double-layer potental due to f around
 % each vesicle.  Source and target points are the same.  For now, we
@@ -776,7 +775,7 @@ end
 end % exactPressureDLdiag
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function stress = exactStressDLdiag(o,vesicle,S,f)
+function stress = exactStressDLdiag(~,vesicle,S,f)
 % stress = exactStressSLdiag(vesicle,S,f) computes the diagonal term of
 % the stress of the double-layer potental due to f around each
 % vesicle.  Source and target points are the same.  For now, we just
