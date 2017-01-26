@@ -137,6 +137,22 @@ switch options.farField
         x = [10*cos(t)+cen(1,1), 5*cos(-t)+cen(1,2)];
         y = [-10*sin(t)+cen(2,1), -5*sin(-t)+cen(2,2)];
         Xwalls = o.setXY(x,y);
+        
+    case 'bounded_shear'
+        
+        order = 20;
+        
+        r = (cos(t).^order + sin(t).^order).^(-1/order);
+
+        x = 100*r.*cos(t);
+        y = -20*r.*sin(t) + 20;
+%         
+%         cen = [0;0];
+%         x = 10*cos(t)+cen(1,1);
+%         y = -10*sin(t)+cen(2,1);
+        
+        Xwalls = o.setXY(x,y);
+
 end
     
 end % createWalls

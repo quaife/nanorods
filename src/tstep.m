@@ -274,7 +274,7 @@ if o.usePreco
       maxit,@o.preconditionerBD,[], o.rhs);
 else
   [Xn,iflag,res,I] = gmres(@(X) o.timeMatVec(X,geom,walls),o.rhs,[],o.gmresTol,...
-      maxit);
+      maxit, o.rhs);
 end
 
 iter = I(2);
@@ -725,7 +725,10 @@ if options.confined
             vInf = zeros(2*N,1);
             %[y,-x]==>counter clockwise
             vInf = [vInf; [-y(:,2)+mean(y(:,2)); x(:,2)-mean(x(:,2))]];
-
+    
+        case 'bounded_shear'
+            vInf = [-y(:,1); zeros(N,nv)];
+            
         otherwise
             vInf = [zeros(N,nv);zeros(N,nv)];
     end
