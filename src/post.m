@@ -25,8 +25,6 @@ methods
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function o = post(dataFile)
  
-
-
 load(dataFile)
 
 o.prams = prams;
@@ -297,7 +295,7 @@ end
 end % post : aimated_gif
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function u = evaluateDLP(o, geom, eta, X)
+function u = evaluateDLP(~, geom, eta, X)
 % evaluates the Stokes double layer potential at target points X, given a 
 % geometry geom and a density function eta
 
@@ -315,23 +313,114 @@ u = pot.nearSingInt(geom, eta, DLP,[],...
 end % post : evaluateDLP
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function[stress1, stress2] = evaluateStress(o, iT, X, boundary_type)
+function stressTotal = evaluateTotalStress(o, iT)
+   
+stressTotal = zeros(2,2);
+geom = capsules(o.prams, o.xc(:,:,iT), o.tau(iT,:));
+
+% [stress1ff,stress2ff] = geom.stressTensor(o.etaF,[],geom,true);
+% 
+oc = curve;
+% [x,y] = oc.getXY(geom.X);
+% [nx,ny] = oc.getXYperp(geom.xt);
+% sa = geom.sa;
+% [sx1,sy1] = oc.getXY(stress1ff);
+% [sx2,sy2] = oc.getXY(stress2ff);
+
+% compute stress from fibers on fibers
+% for k = 1:o.prams.nv
+% %    omega = o.omega(iT,k);
+% %    u_trans = o.U(:,k,iT);
+% %    xc = o.xc(1,k,iT);
+% %    yc = o.xc(2,k,iT);
+% %    
+% %    u = u_trans + omega*[y(k) - yc; xc - x(k)];
+% %    
+%    for i = 1:o.prams.N
+%        nox = [nx(i,k);ny(i,k)]*[x(i,k),y(i,k)];
+% %        uon = u*[nx(i,k),ny(i,k)];
+% %        nou = [nx(i,k);ny(i,k)]*u';
+%        
+%        stressTotal = stressTotal +...
+%                 ([sx1(i,k), sx2(i,k); sy1(i,k), sy2(i,k)]*nox)*sa(i,k)*2*pi/o.prams.N;
+%    end
+% end
+
+
+
+if o.options.confined
+    xWalls = oc.createWalls(o.prams.Nbd, o.options);
+    walls = capsules([],xWalls);
+    
+    RS = zeros(3*(o.prams.nbd),1);
+    for k = 1:o.prams.nbd-1
+        RS(3*(k-1)+1:3*(k-1)+2) = o.stokeslets(2*k-1:2*k);
+        RS(3*(k-1)+3) = o.rotlets(k);
+    end
+    
+%     % stress from walls on fibers  
+%     [stress1wf,stress2wf] = walls.stressTensor(o.etaW,RS,geom,false);
+%     [sx1,sy1] = oc.getXY(stress1wf);
+%     [sx2,sy2] = oc.getXY(stress2wf);
+%     for k = 1:o.prams.nv
+%         for i = 1:o.prams.N
+%             nox = [nx(i,k);ny(i,k)]*[x(i,k),y(i,k)];
+%             
+%             stressTotal = stressTotal +...
+%                 2*pi/o.prams.N*[sx1(i,k), sx2(i,k); sy1(i,k), sy2(i,k)]*nox*sa(i,k);
+%         end
+%     end
+    
+    % stress from fibers on walls
+    [x,y] = oc.getXY(walls.X);
+    [nx,ny] = oc.getXYperp(walls.xt);
+    sa = walls.sa;  
+    
+    [stress1fw,stress2fw] = geom.stressTensor(o.etaF,[],walls,false);
+    [sx1,sy1] = oc.getXY(stress1fw);
+    [sx2,sy2] = oc.getXY(stress2fw);
+    
+    for k = 1:o.prams.nbd
+        for i = 1:o.prams.Nbd
+  
+            f = [sx1(i,k), sx2(i,k); sy1(i,k), sy2(i,k)]*[nx(i,k);ny(i,k)];
+            xof = [x(i,k);y(i,k)]*f';
+            
+            stressTotal = stressTotal + xof*sa(i,k)*2*pi/o.prams.Nbd;
+        end
+    end
+    
+    % stress from walls on walls
+    [stress1ww,stress2ww] = walls.stressTensor(o.etaW,RS,walls,true);
+    [sx1,sy1] = oc.getXY(stress1ww);
+    [sx2,sy2] = oc.getXY(stress2ww);
+    
+    for k = 1:o.prams.nbd
+        for i = 1:o.prams.Nbd
+            nox = [nx(i,k);ny(i,k)]*[x(i,k),y(i,k)];
+            
+            stressTotal = stressTotal +...
+                2*pi/o.prams.Nbd*[sx1(i,k), sx2(i,k); sy1(i,k), sy2(i,k)]*nox*sa(i,k);
+        end
+    end
+end
+
+
+end % post : evaluateTotalStress
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+function[stress1, stress2] = evaluateStress(o, iT, X)
 % evaluates the stress tensor at time step iT at target points X, given a 
 % boundary type, either 'fibers', or 'walls'
 
-switch boundary_type
-    case 'fibers'
-        geom = capsules(o.prams, o.xc(:,:,iT), o.tau(iT,:));
-        eta = o.etaF;
-        RS = [];
-        
-    case 'walls'
-        
-end
-
+geom = capsules(o.prams, o.xc(:,:,iT), o.tau(iT,:));
 geomTar = capsules([],X);
-
-[stress1,stress2] = geom.stressTensor(eta,RS,geomTar);
+RS = [];
+[stress1,stress2] = geom.stressTensor(o.etaF,RS,geomTar,false);
+            
+if o.options.confined
+    
+end
 
 end % post : evaluateDLP
 
