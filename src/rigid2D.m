@@ -8,6 +8,7 @@ ttotal = tic;
 
 geom = capsules(prams, xc, tau);
 
+
 if (options.confined)
     walls = capsules(prams, xWalls);
 else
@@ -26,7 +27,10 @@ end
 
 om = monitor(options, prams, xc, tau);
 tt = tstep(options, prams, om, geom, walls, tau);
+
+
 potF = poten(geom.N,om);
+
 
 if (om.profile)
     profile on;
@@ -60,9 +64,8 @@ end
 while time < prams.T
     
     tSingleStep = tic;   
-
-    
     geom = capsules(prams, xc, tau);
+
     
     [densityF,densityW,Up,wp,stokes,rot,iter,flag,res] = tt.timeStep(geom, tau, ...
                             walls, options, prams);
@@ -70,8 +73,10 @@ while time < prams.T
     % update centres and angles
     if (iT == 0 || options.tstep_order == 1) % use forward Euler
         
-        xc = xc + tt.dt*Up;
-        tau = tau + tt.dt*wp;
+        if ~isempty(geom.X)
+            xc = xc + tt.dt*Up;
+            tau = tau + tt.dt*wp;
+        end
         
         if (options.tstep_order == 2)
             Up_m1 = Up;
@@ -79,8 +84,10 @@ while time < prams.T
         end
         
     else if (options.tstep_order == 2) % use Adams Bashforth
-            xc = xc + (3/2)*tt.dt*Up - (1/2)*tt.dt*Up_m1;
-            tau = tau + (3/2)*tt.dt*wp - (1/2)*tt.dt*wp_m1;
+            if ~isempty(geom.X)
+                xc = xc + (3/2)*tt.dt*Up - (1/2)*tt.dt*Up_m1;
+                tau = tau + (3/2)*tt.dt*wp - (1/2)*tt.dt*wp_m1;
+            end
             
             Up_m1 = Up;
             wp_m1 = wp;            
