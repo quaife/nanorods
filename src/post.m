@@ -73,19 +73,19 @@ function [] = plot_fluid(o, iT, xmin, xmax, ymin, ymax, M, stride, bg_flow)
 [X, Y] = meshgrid(linspace(xmin, xmax, M), linspace(ymin, ymax, M));
 
 geom = capsules(o.prams, o.xc(:,:,iT), o.tau(iT,:));
-Utmp =  o.evaluateDLP(geom, o.etaF(:,:,iT), [X(:), Y(:)]);
+Utmp =  o.evaluateVelocity(iT, [X(:)'; Y(:)']);
 
 % indentify points inside fiber
 inside = geom.sortPts([X(:);Y(:)],o.options.ifmm);
 
 %add in background flow
-bg = bg_flow(X(:),Y(:));
+bg = bg_flow(X(:),Y(:))';
 
-Utmp(1:end/2) = Utmp(1:end/2) + bg(:,1); 
-Utmp(end/2+1:end) = Utmp(end/2+1:end) + bg(:,2);
-Utmp(inside==1) = 0;
-U = reshape(Utmp(1:end/2), M, M);
-V = reshape(Utmp(end/2+1:end), M, M);
+Utmp(1,:) = Utmp(1,:) + bg(1,:); 
+Utmp(2,:) = Utmp(2,:) + bg(2,:);
+Utmp(:,inside==1) = zeros(2,length(find(inside==1)));
+U = reshape(Utmp(1,:), M, M);
+V = reshape(Utmp(2,:), M, M);
 
 quiver(X, Y, U, V, stride);
 
@@ -308,9 +308,265 @@ pot = poten(geom.N);
 D = pot.stokesDLmatrix(geom);
 DLP = @(X) pot.exactStokesDLdiag(geom,D,X) - 1/2*X;
 u = pot.nearSingInt(geom, eta, DLP,[],...
-    NearStruct, @pot.exactStokesDL, @pot.exactStokesDL, geomTar,false,false);
+    NearStruct, @pot.exactStokesDLfmm, @pot.exactStokesDL, geomTar,false,false);
 
 end % post : evaluateDLP
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+function u = evaluateRotStokes(o, iT, X)
+    
+xi = o.rotlets(:,iT);
+lambda = o.stokeslets(:,:,iT);
+
+oc = curve;
+[xWalls,cen] = oc.createWalls(o.prams.Nbd, o.options);
+walls = capsules([],xWalls);
+walls.center = cen;
+
+[x,y] = oc.getXY(X);
+
+u = zeros(2,length(x));
+
+for i = 1:length(xi)
+    r = [x - cen(i+1,1); y - cen(i+1,2)];
+    u = u + xi(i)*[r(2,:); -r(1,:)]; % add contributation from rotlets
+
+    for j = 1:length(x)
+        rho = norm(r(:,j));
+        ror = r(:,j)*r(:,j)';
+
+        u(:,j) = u(:,j) + (ror/rho^2 + log(rho)*eye(2))*lambda(:,i);
+    end
+end
+end % post : evaluateRotStokes
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+function u = evaluateVelocity(o, iT, X)
+
+u = zeros(size(X));
+
+if o.prams.nv > 0 % add contribution from fibers
+    oc = curve;
+    geom = capsules(o.prams, o.xc(:,:,iT), o.tau(iT,:));
+
+    u = u + o.evaluateDLP(geom, o.etaF(:,:,iT), X);
+end
+
+if o.options.confined
+    oc = curve;
+    xWalls = oc.createWalls(o.prams.Nbd, o.options);
+    walls = capsules(o.prams,xWalls);
+    u = u + o.evaluateDLP(walls, o.etaW(:,:,iT), X);
+    
+    if o.prams.nbd > 1
+        u = u + o.evaluateRotStokes(iT, X);
+    end
+end
+
+end % post : evaluateVelocity
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+function pressure = evaluatePressure(o, iT, X)
+% evaluates the stress tensor at time step iT at target points X, given a 
+% boundary type, either 'fibers', or 'walls'
+
+if o.prams.nv > 0
+    geom = capsules(o.prams, o.xc(:,:,iT), o.tau(iT,:));
+else
+    geom = capsules(o.prams, [], []);
+end
+
+geomTar = capsules([],X);
+
+RS = [];
+if geom.nv > 0
+    pressure = geom.pressure(o.etaF(:,:,iT),RS,geomTar);
+else
+    pressure = zeros(1,length(X));
+end
+
+if o.options.confined
+    
+    oc = curve;
+    [xWalls,cen] = oc.createWalls(o.prams.Nbd, o.options);
+    walls = capsules([],xWalls);
+    
+    walls.center = cen;
+    pressureW = walls.pressure(o.etaW(:,:,iT),o.stokeslets(:,:,iT),geomTar);
+    
+    pressure = pressure + pressureW;
+end
+
+end % post : evaluatePressure
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+function[stress1, stress2] = evaluateStress(o, iT, X)
+% evaluates the stress tensor at time step iT at target points X, given a
+% boundary type, either 'fibers', or 'walls'
+
+if o.prams.nv > 0
+    geom = capsules(o.prams, o.xc(:,:,iT), o.tau(iT,:));
+else
+    geom = capsules(o.prams, [], []);
+end
+
+geomTar = capsules([],X);
+
+RS = [];
+if geom.nv > 0
+    [stress1,stress2] = geom.stressTensor(o.etaF(:,:,iT),RS,geomTar,false);
+else
+    stress1 = zeros(2,geomTar.nv);
+    stress2 = zeros(2,geomTar.nv);
+end
+
+if o.options.confined
+
+%     RS = zeros(3*(o.prams.nbd),1);
+%     for k = 1:o.prams.nbd-1
+%         RS(3*(k-1)+1:3*(k-1)+2) = o.stokeslets(2*k-1:2*k);
+%         RS(3*(k-1)+3) = o.rotlets(k);
+%     end
+%     
+    oc = curve;
+    [xWalls,cen] = oc.createWalls(o.prams.Nbd, o.options);
+    walls = capsules([],xWalls);
+    
+    walls.center = cen;
+    
+    [stress1w,stress2w] = walls.stressTensor(o.etaW(:,:,iT),RS,geomTar,false);
+    
+    stress1 = stress1 + stress1w;
+    stress2 = stress2 + stress2w;
+end
+
+end % post : evaluateStress
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+function dissipation = evaluateDissipation(o, iT, X)
+
+[stress1,stress2] = o.evaluateStress(iT, X);
+pressure = o.evaluatePressure(iT,X);
+
+dissipation = zeros(length(X),1);
+
+for i = 1:length(dissipation)
+    stress_visc = [stress1(:,i), stress2(:,i)] + eye(2)*pressure(i);
+    dissipation(i) = 0.5*norm(stress_visc,'fro')^2;
+end
+
+end % post : evaluateDissipation
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+function [X,Y,W] = plotContour(o, variable, iT, xmin, xmax, ymin, ymax, M, exact_sol)
+
+[X, Y] = meshgrid(linspace(xmin, xmax, M), linspace(ymin, ymax, M));
+    
+oc = curve;
+if o.prams.nv > 0
+    geom = capsules(o.prams, o.xc(:,:,iT), o.tau(iT,:));
+else
+    geom = capsules(o.prams, [], []);
+end
+
+switch variable
+
+    case 'velocity_u'
+     
+        W = o.evaluateVelocity(iT, [X(:)';Y(:)']);
+        W = W(1,:);
+        
+    case 'velocity_v'
+        
+        W = o.evaluateVelocity(iT,  [X(:)';Y(:)']);
+        W = W(2,:);
+        
+    case 'velocity_u_err'
+        
+        W = o.evaluateVelocity(iT, [X(:)';Y(:)']);
+        W = W(1,:);
+        W_exact = exact_sol(X(:)',Y(:)');
+        W = abs(W - W_exact);
+        
+    case 'velocity_v_err'
+        
+        W = o.evaluateVelocity(iT,  [X(:)';Y(:)']);
+        W = W(2,:);   
+        W_exact = exact_sol(X(:)',Y(:)');
+        W = abs(W - W_exact);
+        
+    case 'pressure'
+        W = o.evaluatePressure(iT,  [X(:)';Y(:)']);
+        
+    case 'stress_xx'
+        
+        [W, ~] = o.evaluateStress(iT,  [X(:)';Y(:)']);
+        W = W(1,:);
+        
+    case 'stress_xy'
+        
+        [W, ~] = o.evaluateStress(iT,  [X(:)';Y(:)']);
+        W = W(2,:);
+        
+    case 'stress_yx'
+        
+        [~, W] = o.evaluateStress(iT,  [X(:)';Y(:)']);
+        W = W(1,:);
+        
+    case 'stress_yy'
+        
+        [~, W] = o.evaluateStress(iT,  [X(:)';Y(:)']);
+        W = W(2,:);
+        
+    case 'dissipation'
+        
+        W = o.evaluateDissipation(iT,  [X(:)';Y(:)']);
+end
+
+
+% indentify points inside fiber
+insideFibers = geom.sortPts([X(:);Y(:)],true);
+
+if o.options.confined
+    xWalls = oc.createWalls(o.prams.Nbd, o.options);
+
+
+    wallOuter = capsules(o.prams, xWalls(:,1));
+    insideOuterWall = wallOuter.sortPts([X(:);Y(:)],true);
+    
+    % identify points outside outer wall
+    W(insideOuterWall==0) = NaN;    
+    
+    if o.prams.nbd > 1
+        wallsInner = capsules(o.prams, xWalls(:,2:end));
+        
+        insideInnerWalls = wallsInner.sortPts([X(:);Y(:)],true);  
+        % identify points inside inner walls
+        W(insideInnerWalls==1) = NaN;
+        X(insideInnerWalls==1) = NaN;
+        Y(insideInnerWalls==1) = NaN;
+    end
+    
+    X(insideOuterWall==0) = NaN;
+    Y(insideOuterWall==0) = NaN;
+end
+
+W(insideFibers==1) = NaN;
+X(insideFibers==1) = NaN;
+Y(insideFibers==1) = NaN;
+
+W = reshape(W,M,M);
+
+surf(X,Y,W);
+view(2);
+shading interp
+hold on
+
+fill(geom.X(1:end/2,:),geom.X(end/2+1:end,:), 'k')
+colorbar
+axis equal
+
+end % post : plotDissipation
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function stressTotal = evaluateTotalStress(o, iT)
@@ -395,63 +651,20 @@ if o.options.confined
     [sx1,sy1] = oc.getXY(stress1ww);
     [sx2,sy2] = oc.getXY(stress2ww);
     
-    for k = 1:o.prams.nbd
+    for k = 1:o.prams.nbd        
         for i = 1:o.prams.Nbd
-            nox = [nx(i,k);ny(i,k)]*[x(i,k),y(i,k)];
             
-            stressTotal = stressTotal +...
-                2*pi/o.prams.Nbd*[sx1(i,k), sx2(i,k); sy1(i,k), sy2(i,k)]*nox*sa(i,k);
+            f = [sx1(i,k), sx2(i,k); sy1(i,k), sy2(i,k)]*[nx(i,k);ny(i,k)];
+            xof = [x(i,k);y(i,k)]*f';            
+            
+            stressTotal = stressTotal + xof*sa(i,k)*2*pi/o.prams.Nbd;
         end
     end
 end
 
-
 end % post : evaluateTotalStress
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function[stress1, stress2] = evaluateStress(o, iT, X)
-% evaluates the stress tensor at time step iT at target points X, given a
-% boundary type, either 'fibers', or 'walls'
 
-geom = capsules(o.prams, o.xc(:,:,iT), o.tau(iT,:));
-geomTar = capsules([],X);
-
-RS = [];
-[stress1,stress2] = geom.stressTensor(o.etaF,RS,geomTar,false);
-
-if o.options.confined
-
-    oc = curve;
-    xWalls = oc.createWalls(o.prams.Nbd, o.options);
-    walls = capsules([],xWalls);
-    [stress1w,stress2w] = walls.stressTensor(o.etaW,RS,geomTar,false);
-    
-    stress1 = stress1 + stress1w;
-    stress2 = stress2 + stress2w;
-end
-
-end % post : evaluateDLP
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function pressure = evaluatePressure(o, iT, X, boundary_type)
-% evaluates the stress tensor at time step iT at target points X, given a 
-% boundary type, either 'fibers', or 'walls'
-
-switch boundary_type
-    case 'fibers'
-        geom = capsules(o.prams, o.xc(:,:,iT), o.tau(iT,:));
-        eta = o.etaF;
-        RS = [];
-        
-    case 'walls'
-        
-end
-
-geomTar = capsules([],X);
-
-pressure = geom.pressure(eta,RS,geomTar);
-
-end % post : evaluateDLP
 end %methods
 
 end %classdef
