@@ -318,23 +318,23 @@ for k=1:geom.nv  % Loop over curves
   rho4(1:N+1:N.^2) = 0;
   % set diagonal terms to 0
 
-  kernel = -diffx.*(tysou(ones(N,1),:)) + ...
+  kernel = diffx.*(tysou(ones(N,1),:)) - ...
             diffy.*(txsou(ones(N,1),:));
   kernel = kernel.*rho4.*sa;
 
   D11 = kernel.*diffx.^2;
   % (1,1) component
-  D11(1:N+1:N.^2) = 0.5*cur.*sa(1,:).*txsou.^2;
+  D11(1:N+1:N.^2) = -0.5*cur.*sa(1,:).*txsou.^2;
   % diagonal limiting term
 
   D12 = kernel.*diffx.*diffy;
   % (1,2) component
-  D12(1:N+1:N.^2) = 0.5*cur.*sa(1,:).*txsou.*tysou;
+  D12(1:N+1:N.^2) = -0.5*cur.*sa(1,:).*txsou.*tysou;
   % diagonal limiting term
 
   D22 = kernel.*diffy.^2;
   % (2,2) component
-  D22(1:N+1:N.^2) = 0.5*cur.*sa(1,:).*tysou.^2;
+  D22(1:N+1:N.^2) = -0.5*cur.*sa(1,:).*tysou.^2;
   % diagonal limiting term
 
   D(:,:,k) = [D11 D12; D12 D22];
@@ -834,7 +834,6 @@ denx = denx(:); deny = deny(:);
 denx = denx(:,ones(Ntar,1))';
 deny = deny(:,ones(Ntar,1))';
 
-%[normalx,normaly] = oc.getXY(normal(:,K1));
 [normalx,normaly] = oc.getXYperp(geom.xt(:,K1));
 normalx = normalx(:); normaly = normaly(:);
 normalx = normalx(:,ones(Ntar,1))';
@@ -910,8 +909,8 @@ function [stokesDLP,stokesDLPtar] = exactStokesDLfmm(o,geom,f, D, Xtar,K)
 
 oc = curve;
 [x,y] = oc.getXY(geom.X); % seperate x and y coordinates
-nx = -geom.xt(geom.N+1:2*geom.N,:);
-ny = geom.xt(1:geom.N,:);
+nx = geom.xt(geom.N+1:2*geom.N,:);
+ny = -geom.xt(1:geom.N,:);
 % seperate the x and y coordinates of the normal vector
 
 den = f.*[geom.sa;geom.sa]*2*pi/geom.N;
@@ -941,7 +940,7 @@ else
   for k = 1:geom.nv
     is = (k-1)*geom.N+1;
     ie = k*geom.N;
-    stokesDLP(1:geom.N,k) = u(is:ie);
+    stokesDLP(1:geom.N,k) = u(is:ie); 
     stokesDLP(geom.N+1:2*geom.N,k) = v(is:ie);
   end
   % Wrap the output of the FMM into the usual 
@@ -962,7 +961,7 @@ else
       cur = geom.cur(:,k);
        
       fDotTau = txk.*f(1:end/2,k) + tyk.*f(end/2+1:end,k);
-      diag = [fDotTau.*cur.*sa.*txk; fDotTau.*cur.*sa.*tyk]/geom.N;
+      diag = -[fDotTau.*cur.*sa.*txk; fDotTau.*cur.*sa.*tyk]/geom.N;
       
       stokesDLP(:,k) = stokesDLP(:,k) - (diagDL(:,k) - diag);
   end
@@ -985,8 +984,8 @@ else
   stokesDLPtar = zeros(2*Ntar,ncol); % initialize
   [x,y] = oc.getXY(geom.X(:,K)); 
   % seperate x and y coordinates at geoms indexed by K
-  nx = -geom.xt(geom.N+1:2*geom.N,K);
-  ny = geom.xt(1:geom.N,K);
+  nx = geom.xt(geom.N+1:2*geom.N,K);
+  ny = -geom.xt(1:geom.N,K);
   x2 = Xtar(1:Ntar,:);
   x = [x(:);x2(:)];
   y2 = Xtar(Ntar+1:2*Ntar,:);
