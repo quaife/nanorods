@@ -21,8 +21,8 @@ end % getXY
 function [x,y]=getXYperp(o,X)
 % [x,y] = getXY(X) get the [x,y] component of curves X
 N = size(X,1)/2;
-x = -X(N+1:end,:);
-y = X(1:N,:);
+x = X(N+1:end,:);
+y = -X(1:N,:);
 end % getXYperp
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -121,7 +121,7 @@ end
 end % redistributeArcLength
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function Xwalls = createWalls(o, N, options)
+function [Xwalls,cen] = createWalls(o, N, options)
     
 t = (0:N-1)'*2*pi/N;
 
@@ -129,29 +129,39 @@ switch options.farField
     case 'circle'
         cen = [0;0];
         x = 10*cos(t)+cen(1,1);
-        y = -10*sin(t)+cen(2,1);
+        y = 10*sin(t)+cen(2,1);
         Xwalls = o.setXY(x,y);
         
     case 'couette'
         cen = [0 0;0 0];
         x = [10*cos(t)+cen(1,1), 5*cos(-t)+cen(1,2)];
-        y = [-10*sin(t)+cen(2,1), -5*sin(-t)+cen(2,2)];
+        y = [10*sin(t)+cen(2,1), 5*sin(-t)+cen(2,2)];
         Xwalls = o.setXY(x,y);
         
     case 'bounded_shear'
         
+        %cen = [0 0; 0 2.5];
+        cen = [0;0];
+        
+        C = 0.044;
+        a = 0.1;
+%         
+        ell = a/C;
+        L = ell*5;
+%         ell = 10;
+%         L = 50;
+        
         order = 20;
         
         r = (cos(t).^order + sin(t).^order).^(-1/order);
-
-        x = 100*r.*cos(t);
-        y = -20*r.*sin(t) + 20;
+% % 
+%         x = [(L/2)*r.*cos(t), 4*cos(-t)];
+%         y = [(ell/2)*r.*sin(t) + ell/2, sin(-t)+2.5];
 %         
-%         cen = [0;0];
-%         x = 10*cos(t)+cen(1,1);
-%         y = -10*sin(t)+cen(2,1);
-        
-        Xwalls = o.setXY(x,y);
+        x = [(L/2)*r.*cos(t)];
+        y = [(ell/2)*r.*sin(t)] + ell/2;
+% %         
+       Xwalls = o.setXY(x,y);
 
 end
     
