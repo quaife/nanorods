@@ -70,18 +70,25 @@ end
 
 % CREATE MATRICES FOR FIBRE-FIBRE SELF INTERATIONS AND 
 % WALL-WALL SELF INTERACTIONS
-o.Df = o.opFibers.stokesDLmatrix(geom);
-
+if ~isempty(geom.X)
+    o.Df = o.opFibers.stokesDLmatrix(geom);
+else
+    o.Df = [];
+end
 % CREATE UPSAMPLED MATRICES
 % FIBRE-FIBRE
-Xsou = geom.X; 
-Nup = N*ceil(sqrt(N));
+if ~isempty(geom.X)
+    Xsou = geom.X; 
+    Nup = N*ceil(sqrt(N));
 
-Xup = [interpft(Xsou(1:N,:),Nup);...
+    Xup = [interpft(Xsou(1:N,:),Nup);...
        interpft(Xsou(N+1:2*N,:),Nup)];
 
-geomUp = capsules([],Xup);
-o.Dupf = o.opFibers.stokesDLmatrix(geomUp);
+    geomUp = capsules([],Xup);
+    o.Dupf = o.opFibers.stokesDLmatrix(geomUp);
+else
+    o.Dupf = [];
+end
 
 % WALL-WALL
 if options.confined
@@ -107,21 +114,21 @@ if o.usePreco
     
     % FIBEE-FIBRE PRECONDITIONER
     o.precoF.L = zeros(2*N+3,2*N+3,nv);
-        o.precoF.U = zeros(2*N+3,2*N+3,nv);
-        for k = 1:nv
-            [o.precoF.L(:,:,k),o.precoF.U(:,:,k)] =...
-                lu([-1/2*eye(2*N)+o.Df(:,:,k) ...
-                [-ones(N,1);zeros(N,1)] ...
-                [zeros(N,1);-ones(N,1)] ...
-                [geom.X(end/2+1:end,k)-geom.center(2,k); -geom.X(1:end/2,k)+geom.center(1,k)];...
-                [-geom.sa(:,k)'*2*pi/N zeros(1,N) 0 0 0];
-                [zeros(1,N) -geom.sa(:,k)'*2*pi/N 0 0 0];
-                [(-geom.X(end/2+1:end,k)'+geom.center(2,k)).*geom.sa(:,k)'*2*pi/N ...
-                (geom.X(1:end/2,k)'-geom.center(1,k)).*geom.sa(:,k)'*2*pi/N 0 0 0]]);
-        end
-        
+    o.precoF.U = zeros(2*N+3,2*N+3,nv);
+    for k = 1:nv
+        [o.precoF.L(:,:,k),o.precoF.U(:,:,k)] =...
+            lu([-1/2*eye(2*N)+o.Df(:,:,k) ...
+            [-ones(N,1);zeros(N,1)] ...
+            [zeros(N,1);-ones(N,1)] ...
+            [geom.X(end/2+1:end,k)-geom.center(2,k); -geom.X(1:end/2,k)+geom.center(1,k)];...
+            [-geom.sa(:,k)'*2*pi/N zeros(1,N) 0 0 0];
+            [zeros(1,N) -geom.sa(:,k)'*2*pi/N 0 0 0];
+            [(-geom.X(end/2+1:end,k)'+geom.center(2,k)).*geom.sa(:,k)'*2*pi/N ...
+            (geom.X(1:end/2,k)'-geom.center(1,k)).*geom.sa(:,k)'*2*pi/N 0 0 0]]);
+    end
+    
     if o.confined
-         
+        
         % WALL-WALL PRECONDITIONER
         o.precoW.L = zeros(2*Nbd + 3,2*Nbd + 3,nbd);
         o.precoW.U = zeros(2*Nbd + 3,2*Nbd + 3,nbd);
@@ -136,10 +143,10 @@ if o.usePreco
             if k == 1 % first wall does not need Rotlets and Stokeslets
                 [o.precoW.L(1:2*Nbd,1:2*Nbd,k),o.precoW.U(1:2*Nbd,1:2*Nbd,k)] =...
                     lu(-1/2*eye(2*Nbd)+o.Dw(:,:,k)+o.N0w(:,:,k));
-            
-            else  
+                
+            else
                 r = [x(:,k) - cx(k), y(:,k) - cy(k)];
-                rho2 = (x(:,k) - cx(k)).^2 + (y(:,k) - cy(k)).^2;                
+                rho2 = (x(:,k) - cx(k)).^2 + (y(:,k) - cy(k)).^2;
                 
                 col_stokes1 = [-0.5*log(rho2) + r(:,1).*r(:,1)./rho2; r(:,2).*r(:,1)./rho2]/(4*pi);
                 col_stokes2 = [r(:,2).*r(:,1)./rho2; -0.5*log(rho2) + r(:,2).*r(:,2)./rho2]/(4*pi);
@@ -154,7 +161,7 @@ if o.usePreco
                     zeros(1,Nbd), int_stokes, 0, -2*pi, 0;...
                     int_rot, 0, 0, -2*pi]);
             end
-        end      
+        end
     end
     
     if o.profile
@@ -165,7 +172,7 @@ end
 % CREATE RIGHT HAND SIDE
 if options.confined
     rhs = o.farField(walls.X);
-    o.rhs = [zeros(2*N*nv,1); rhs; zeros(3*nv,1);zeros(3*(nbd-1),1)];
+    o.rhs = [zeros(2*N*nv,1); rhs(:); zeros(3*nv,1);zeros(3*(nbd-1),1)];
 else
     rhs = o.farField(geom.X);
     o.rhs = [-rhs(:); zeros(2*Nbd*nbd,1); zeros(3*nv,1)];
@@ -263,7 +270,7 @@ for i = 1:nv
 end
 
 % SOLVE SYSTEM USING GMRES
-maxit = 2*N*nv;% should be a lot lower than this
+maxit = 2*(N*nv + Nbd*nbd);% should be a lot lower than this
 %o.rhs  = [ones(2*nv*N,1);2*ones(2*Nbd*nbd,1);3*ones(2*nv,1);4*ones(nv,1);5*ones(2*(nbd-1),1);6*ones(nbd-1,1)];
 % 
 % clf;
@@ -274,7 +281,7 @@ if o.usePreco
       maxit,@o.preconditionerBD,[], o.rhs);
 else
   [Xn,iflag,res,I] = gmres(@(X) o.timeMatVec(X,geom,walls),o.rhs,[],o.gmresTol,...
-      maxit, o.rhs);
+      maxit);
 end
 
 iter = I(2);
@@ -410,7 +417,7 @@ end
 % ADD JUMP IN DLP
 valFibers = valFibers - 1/2*etaF;
 if o.confined
-    valWalls = valWalls - 1/2*etaW;
+   valWalls = valWalls - 1/2*etaW;
 end 
 
 % ADD SELF CONTRIBUTION
@@ -429,7 +436,7 @@ end
 
 kernelDirect = @potFibers.exactStokesDL;
 
-if o.inear
+if o.inear 
   DLP = @(X) potFibers.exactStokesDLdiag(geom,o.Df,X) - 1/2*X;
   ffdlp = potFibers.nearSingInt(geom, etaF, DLP, o.Dupf, o.nearStructff ,kernel,...
         kernelDirect, geom, true, false);
@@ -439,7 +446,7 @@ end
 % END OF TARGET == FIBRES
 
 % START OF TARGET == WALLS 
-if o.confined
+if o.confined && nv > 0
    
    if o.ifmm
        kernel = @potWalls.exactStokesDLfmm;       
@@ -449,7 +456,7 @@ if o.confined
    
    kernelDirect = @potWalls.exactStokesDL;
    
-   if o.inear
+   if o.inear 
        DLP = @(X) potWalls.exactStokesDLdiag(geom, o.Df, X) - 1/2*X;
        wfdlp = potWalls.nearSingInt(geom, etaF, DLP, o.Dupf, o.nearStructfw, ...
            kernel, kernelDirect, walls, false, false);
@@ -463,7 +470,7 @@ end
 
 % START OF SOURCE == WALLS
 % START OF TARGET == FIBERS
-if o.confined
+if o.confined && nv > 0
    
    if o.ifmm
         kernel = @potFibers.exactStokesDLfmm;       
@@ -725,10 +732,18 @@ if options.confined
             vInf = zeros(2*N,1);
             %[y,-x]==>counter clockwise
             vInf = [vInf; [-y(:,2)+mean(y(:,2)); x(:,2)-mean(x(:,2))]];
-    
-        case 'bounded_shear'
-            vInf = [-y(:,1); zeros(N,nv)];
             
+        case 'bounded_shear'
+            %vInf = [-y(:,1);zeros(N,1);-y(:,2);zeros(N,1)];
+            
+            if nv == 1
+                vInf = [-y(:,1); zeros(N,1)];
+                %vInf = [1-y(:,1).^2;zeros(N,1)];
+            else if nv == 2
+                    vInf = [[-x(:,1) + y(:,1); y(:,1)],[-x(:,2) + y(:,2); y(:,2)]];
+                    %vInf = [[1 - y(:,1).^2; zeros(N,1)], [1 - y(:,2).^2; zeros(N,1)]];
+                end
+            end
         otherwise
             vInf = [zeros(N,nv);zeros(N,nv)];
     end
@@ -781,40 +796,40 @@ function M = build_preconditioner_matrix(o, geom, walls)
     % fibre-fibre
     for k = 1:nv
         start_row = 1+(k-1)*2*N;
-       M(start_row:start_row+2*N-1,start_row:start_row+2*N-1) =  -1/2*eye(2*N)+o.Df(:,:,k);
+        M(start_row:start_row+2*N-1,start_row:start_row+2*N-1) =  -1/2*eye(2*N)+o.Df(:,:,k);
     end
     
     % wall-wall
     for k = 1:nbd
-       start_row = 2*N*nv+1+(k-1)*2*Nbd;
-       M(start_row:start_row+2*Nbd-1,start_row:start_row+2*Nbd-1) = -1/2*eye(2*Nbd)+o.Dw(:,:,k)+o.N0w(:,:,k);    
+        start_row = 2*N*nv+1+(k-1)*2*Nbd;
+        M(start_row:start_row+2*Nbd-1,start_row:start_row+2*Nbd-1) = -1/2*eye(2*Nbd)+o.Dw(:,:,k)+o.N0w(:,:,k);
     end
     
-    % u and omega    
+    % u and omega
     for k = 1:nv
         
-       start_row = 2*N*nv+2*Nbd*nbd+2*(k-1)+1;
-       start_col = 2*N*(k-1)+1;
-       
-       M(start_row:start_row+1,start_col:start_col+2*N-1) = ...
-                [[-geom.sa(:,k)'*2*pi/N, zeros(1,N)];...
-                [zeros(1,N), -geom.sa(:,k)'*2*pi/N]];
-       
-       start_row = 2*N*nv+2*Nbd*nbd+2*nv+k;
-       M(start_row,start_col:start_col+2*N-1) = ...
-                 [(-geom.X(end/2+1:end,k)'+geom.center(2,k)).*geom.sa(:,k)'*2*pi/N ...
-                    (geom.X(1:end/2,k)'-geom.center(1,k)).*geom.sa(:,k)'*2*pi/N];
+        start_row = 2*N*nv+2*Nbd*nbd+2*(k-1)+1;
+        start_col = 2*N*(k-1)+1;
         
-       start_row = 2*N*(k-1)+1;
-       start_col = 2*N*nv+2*Nbd*nbd+2*(k-1)+1;
-       
-       M(start_row:start_row+2*N-1,start_col:start_col+1) = ...
-                    [[-ones(N,1);zeros(N,1)] ...
-                    [zeros(N,1);-ones(N,1)]];
-       
+        M(start_row:start_row+1,start_col:start_col+2*N-1) = ...
+            [[-geom.sa(:,k)'*2*pi/N, zeros(1,N)];...
+            [zeros(1,N), -geom.sa(:,k)'*2*pi/N]];
+        
+        start_row = 2*N*nv+2*Nbd*nbd+2*nv+k;
+        M(start_row,start_col:start_col+2*N-1) = ...
+            [(-geom.X(end/2+1:end,k)'+geom.center(2,k)).*geom.sa(:,k)'*2*pi/N ...
+            (geom.X(1:end/2,k)'-geom.center(1,k)).*geom.sa(:,k)'*2*pi/N];
+        
+        start_row = 2*N*(k-1)+1;
+        start_col = 2*N*nv+2*Nbd*nbd+2*(k-1)+1;
+        
+        M(start_row:start_row+2*N-1,start_col:start_col+1) = ...
+            [[-ones(N,1);zeros(N,1)] ...
+            [zeros(N,1);-ones(N,1)]];
+        
         start_col = 2*N*nv + 2*Nbd*nbd+2*nv+k;
         M(start_row:start_row+2*N-1,start_col) = ...
-                [geom.X(end/2+1:end,k)-geom.center(2,k); -geom.X(1:end/2,k)+geom.center(1,k)];
+            [geom.X(end/2+1:end,k)-geom.center(2,k); -geom.X(1:end/2,k)+geom.center(1,k)];
     end
     
     
