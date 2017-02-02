@@ -127,9 +127,9 @@ if tEqualS % sources == targets
   end
 
 else % sources ~= targets
-  [~,farField] = kernel(geomUp,fup,Dup,Xtar,1:nvSou);
-  % evaluate layer potential due to all 'geoms' at all points in
-  % Xtar
+    [~,farField] = kernel(geomUp,fup,Dup,Xtar,1:nvSou);
+    % evaluate layer potential due to all 'geoms' at all points in
+    % Xtar
 end
 % Use upsampled trapezoid rule to compute layer potential
 
@@ -141,121 +141,121 @@ beta = 1.1;
 vel = zeros(2*Ntar, nvSou, nvSou); %allocate array for vel
 
 for k1 = 1:nvSou
-  if tEqualS % sources == targets
-    % K = [(1:k1-1) (k1+1:nvTar)];
-    % skip diagonal geom
-    K = nearFibers{k1};
-  else % sources ~= targets
-    K = (1:nvTar);
-    % consider all geoms
-  end
-  for k2 = K
-    J = find(zone{k1}(:,k2) == 1);
-    % set of points on geom k2 close to geom k1
-    if (numel(J) ~= 0)
-      indcp = icp{k1}(J,k2);
-      % closest point on geom k1 to each point on geom k2 
-      % that is close to geom k1
-      for j = 1:numel(J)
-        pn = mod((indcp(j)-p+1:indcp(j)-p+interpOrder)' - 1,Nsou) + 1;
-        % index of points to the left and right of the closest point
-        v = filter(1,[1 -full(argnear{k1}(J(j),k2))],...
-          o.interpMat*vself(pn,k1));
-        vel(J(j),k2,k1) = v(end);  
-        % x-component of the velocity at the closest point
-        v = filter(1,[1 -full(argnear{k1}(J(j),k2))],...
-          o.interpMat*vself(pn+Nsou,k1));
-        vel(J(j)+Ntar,k2,k1) = v(end);
-        % y-component of the velocity at the closest point
-      end
-%     compute values of velocity at required intermediate points
-%     using local interpolant
-      
-      if ((numel(J) + numel(fup)) >= 512 && numel(J) > 32)
-        [~,potTar] = kernel(geomUp,fup,Dup, [Xtar(J,k2);Xtar(J+Ntar,k2)],k1);
-      else
-        [~,potTar] = kernelDirect(geomUp,fup,Dup,[Xtar(J,k2);Xtar(J+Ntar,k2)],k1);
-      end
-      % Need to subtract off contribution due to geom k1 since its
-      % layer potential will be evaulted using Lagrange interpolant of
-      % nearby points
-      nearField(J,k2) =  nearField(J,k2) - potTar(1:numel(J));
-      nearField(J+Ntar,k2) =  nearField(J+Ntar,k2) - potTar(numel(J)+1:end);
-      
-      XLag = zeros(2*numel(J),interpOrder - 1);
-      % initialize space for initial tracer locations
-      for i = 1:numel(J)
-        nx = (Xtar(J(i),k2) - nearest{k1}(J(i),k2))/...
-            dist{k1}(J(i),k2);
-        ny = (Xtar(J(i)+Ntar,k2) - nearest{k1}(J(i)+Ntar,k2))/...
-            dist{k1}(J(i),k2);
-        XLag(i,:) = nearest{k1}(J(i),k2) + ...
-            beta*h(k1)*nx*(1:interpOrder-1);
-        XLag(i+numel(J),:) = nearest{k1}(J(i)+Ntar,k2) + ...
-            beta*h(k1)*ny*(1:interpOrder-1);
-        % Lagrange interpolation points coming off of geom k1 All
-        % points are behind Xtar(J(i),k2) and are sufficiently far from
-        % geom k1 so that the Nup-trapezoid rule gives sufficient
-        % accuracy
-      end
-
-      if (numel(XLag)/2 > 100)
-        [~,lagrangePts] = kernel(geomUp,fup,Dup,XLag,k1);
-      else
-        [~,lagrangePts] = kernelDirect(geomUp,fup,Dup,XLag,k1);
-      end
-      % evaluate velocity at the lagrange interpolation points
-      
-      for i = 1:numel(J)
-        Px = o.interpMat*[vel(J(i),k2,k1) ...
-            lagrangePts(i,:)]';
-        Py = o.interpMat*[vel(J(i)+Ntar,k2,k1) ...
-            lagrangePts(i+numel(J),:)]';
-        % Build polynomial interpolant along the one-dimensional
-        % points coming out of the geom
-        dscaled = full(dist{k1}(J(i),k2)/(beta*h(k1)*(interpOrder-1)));
-        % Point where interpolant needs to be evaluated
-
-        v = filter(1,[1 -dscaled],Px);
-        nearField(J(i),k2) = nearField(J(i),k2) +  v(end);
-        
-        v = filter(1,[1 -dscaled],Py);
-        nearField(J(i)+Ntar,k2) = nearField(J(i)+Ntar,k2) + v(end);
-
-        
-        if idebug
-          figure(2); clf; hold on;
-          plot(Xsou(1:Nsou,:),Xsou(Nsou+1:end,:),'r.','markersize',10)
-          plot(Xtar(1:Ntar,:),Xtar(Ntar+1:end,:),'k.','markersize',10)
-          plot(Xtar(J,k2),Xtar(Ntar+J,k2),'b.','markersize',10)
-          plot(XLag(1:numel(J),:),XLag(numel(J)+1:end,:),'kx','markersize',10)
-          plot(XLag(i,:),XLag(numel(J)+i,:),'gx','markersize',10)
-          axis equal
-
-          figure(1); clf; hold on
-          plot((0:interpOrder-1)*beta*h(k1),...
-              real([vel(J(i),k2,k1) lagrangePts(i,:)]),'g-o')
-          plot((0:interpOrder-1)*beta*h(k1),...
-              real([vel(J(i)+Ntar,k2,k1) lagrangePts(i+numel(J),:)]),'r--o')
-          
-          figure(3)
-          clf
-          hold on
-          plot(f(1:Nsou,k1));
-          plot(f(Nsou+1:2*Nsou,k1));
-          
-          drawnow;
-          pause
-          
-        end
-        % DEBUG: PASS IN idebug=true INTO THIS ROUTINE AND THEN YOU CAN SEE
-        % THE INTERPOLATION POINTS AND CHECK THE SMOOTHNESS OF THE INTERPOLANT
-
-      end % i
-    end % numel(J) ~= 0
-    % Evaluate layer potential at Lagrange interpolation
-    % points if there are any
-  end % k2
+    if tEqualS % sources == targets
+        % K = [(1:k1-1) (k1+1:nvTar)];
+        % skip diagonal geom
+        K = nearFibers{k1};
+    else % sources ~= targets
+        K = (1:nvTar);
+        % consider all geoms
+    end
+    for k2 = K
+        J = find(zone{k1}(:,k2) == 1);
+        % set of points on geom k2 close to geom k1
+        if (numel(J) ~= 0)
+            indcp = icp{k1}(J,k2);
+            % closest point on geom k1 to each point on geom k2
+            % that is close to geom k1
+            for j = 1:numel(J)
+                pn = mod((indcp(j)-p+1:indcp(j)-p+interpOrder)' - 1,Nsou) + 1;
+                % index of points to the left and right of the closest point
+                v = filter(1,[1 -full(argnear{k1}(J(j),k2))],...
+                    o.interpMat*vself(pn,k1));
+                vel(J(j),k2,k1) = v(end);
+                % x-component of the velocity at the closest point
+                v = filter(1,[1 -full(argnear{k1}(J(j),k2))],...
+                    o.interpMat*vself(pn+Nsou,k1));
+                vel(J(j)+Ntar,k2,k1) = v(end);
+                % y-component of the velocity at the closest point
+            end
+            %     compute values of velocity at required intermediate points
+            %     using local interpolant
+            
+            if ((numel(J) + numel(fup)) >= 512 && numel(J) > 32)
+                [~,potTar] = kernel(geomUp,fup,Dup, [Xtar(J,k2);Xtar(J+Ntar,k2)],k1);
+            else
+                [~,potTar] = kernelDirect(geomUp,fup,Dup,[Xtar(J,k2);Xtar(J+Ntar,k2)],k1);
+            end
+            % Need to subtract off contribution due to geom k1 since its
+            % layer potential will be evaulted using Lagrange interpolant of
+            % nearby points
+            nearField(J,k2) =  nearField(J,k2) - potTar(1:numel(J));
+            nearField(J+Ntar,k2) =  nearField(J+Ntar,k2) - potTar(numel(J)+1:end);
+            
+            XLag = zeros(2*numel(J),interpOrder - 1);
+            % initialize space for initial tracer locations
+            for i = 1:numel(J)
+                nx = (Xtar(J(i),k2) - nearest{k1}(J(i),k2))/...
+                    dist{k1}(J(i),k2);
+                ny = (Xtar(J(i)+Ntar,k2) - nearest{k1}(J(i)+Ntar,k2))/...
+                    dist{k1}(J(i),k2);
+                XLag(i,:) = nearest{k1}(J(i),k2) + ...
+                    beta*h(k1)*nx*(1:interpOrder-1);
+                XLag(i+numel(J),:) = nearest{k1}(J(i)+Ntar,k2) + ...
+                    beta*h(k1)*ny*(1:interpOrder-1);
+                % Lagrange interpolation points coming off of geom k1 All
+                % points are behind Xtar(J(i),k2) and are sufficiently far from
+                % geom k1 so that the Nup-trapezoid rule gives sufficient
+                % accuracy
+            end
+            
+            if (numel(XLag)/2 > 100)
+                [~,lagrangePts] = kernel(geomUp,fup,Dup,XLag,k1);
+            else
+                [~,lagrangePts] = kernelDirect(geomUp,fup,Dup,XLag,k1);
+            end
+            % evaluate velocity at the lagrange interpolation points
+            
+            for i = 1:numel(J)
+                Px = o.interpMat*[vel(J(i),k2,k1) ...
+                    lagrangePts(i,:)]';
+                Py = o.interpMat*[vel(J(i)+Ntar,k2,k1) ...
+                    lagrangePts(i+numel(J),:)]';
+                % Build polynomial interpolant along the one-dimensional
+                % points coming out of the geom
+                dscaled = full(dist{k1}(J(i),k2)/(beta*h(k1)*(interpOrder-1)));
+                % Point where interpolant needs to be evaluated
+                
+                v = filter(1,[1 -dscaled],Px);
+                nearField(J(i),k2) = nearField(J(i),k2) +  v(end);
+                
+                v = filter(1,[1 -dscaled],Py);
+                nearField(J(i)+Ntar,k2) = nearField(J(i)+Ntar,k2) + v(end);
+                
+                
+                if idebug
+                    figure(2); clf; hold on;
+                    plot(Xsou(1:Nsou,:),Xsou(Nsou+1:end,:),'r.','markersize',10)
+                    plot(Xtar(1:Ntar,:),Xtar(Ntar+1:end,:),'k.','markersize',10)
+                    plot(Xtar(J,k2),Xtar(Ntar+J,k2),'b.','markersize',10)
+                    plot(XLag(1:numel(J),:),XLag(numel(J)+1:end,:),'kx','markersize',10)
+                    plot(XLag(i,:),XLag(numel(J)+i,:),'gx','markersize',10)
+                    axis equal
+                    
+                    figure(1); clf; hold on
+                    plot((0:interpOrder-1)*beta*h(k1),...
+                        real([vel(J(i),k2,k1) lagrangePts(i,:)]),'g-o')
+                    plot((0:interpOrder-1)*beta*h(k1),...
+                        real([vel(J(i)+Ntar,k2,k1) lagrangePts(i+numel(J),:)]),'r--o')
+                    
+                    figure(3)
+                    clf
+                    hold on
+                    plot(f(1:Nsou,k1));
+                    plot(f(Nsou+1:2*Nsou,k1));
+                    
+                    drawnow;
+                    pause
+                    
+                end
+                % DEBUG: PASS IN idebug=true INTO THIS ROUTINE AND THEN YOU CAN SEE
+                % THE INTERPOLATION POINTS AND CHECK THE SMOOTHNESS OF THE INTERPOLANT
+                
+            end % i
+        end % numel(J) ~= 0
+        % Evaluate layer potential at Lagrange interpolation
+        % points if there are any
+    end % k2
 end % k1
 % farField
 
