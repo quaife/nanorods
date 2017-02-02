@@ -776,8 +776,7 @@ if nwalls > 0
     rx = x - cx;
     ry = y - cy;
     rho2 = rx.^2 + ry.^2;
-    press = press + (rx*xi1 + ry*xi2)./(2*pi*rho2); % corrected pressure term
-    %press = press +  2./(rx.^2 + ry.^2).*(rx*xi1 + ry*xi2);
+    press = press +  2./(rx.^2 + ry.^2).*(rx*xi1 + ry*xi2);
     % add in pressure of stokeslet term
     % rotlet has a vanishing pressure gradient
   end
@@ -906,7 +905,7 @@ Xup = [interpft(Xsou(1:N,:),Nup);...
 geomUp = capsules([],Xup);
 [Dup1, Dup2] = op.stressDLmatrix(geomUp);
 
-stress1 = op.nearSingInt(vesicle,f,S1diagOutFn,Dup1, NearStruct, kernel1,kernel1,...
+stress1 = op.nearSingInt(vesicle,f,S1diagOutFn,Dup1,NearStruct,kernel1,kernel1,...
     stressTar,sEqualsT,false);
   % correct stress at exterior points
 
@@ -917,6 +916,13 @@ stress2 = op.nearSingInt(vesicle,f,S2diagOutFn,Dup2,NearStruct,kernel2,kernel2,.
     stressTar,sEqualsT,false);
 % correct stress at exterior points
 
+if sEqualsT
+    % add self contribution
+    for k = 1:vesicle.nv        
+        stress1(:,k) = stress1(:,k) + S1diagOut(:,:,k)*f(:,k);
+        stress2(:,k) = stress2(:,k) + S2diagOut(:,:,k)*f(:,k);
+    end
+end
 % Use near-singular integration to compute second component of
 % the stress due to the double-layer potential
 
@@ -949,7 +955,7 @@ if ~isempty(RS)
 
     stress1(1:stressTar.N,:) = stress1(1:stressTar.N,:) + ...
                 2*(rx*xi1 + ry*xi2).*(-rx.^2 + ry.^2)./rho4;
-    stress1(1:Ntar) = stress1(1:stressTar.N,:) - ...
+    stress1(1:stressTar.N,:) = stress1(1:stressTar.N,:) - ...
                 2*(rx*xi1 + ry*xi2)./(rx.^2+ry.^2);
     % add in (1,1) component of stress due to Stokeslet
     % need to add in -1*pressure term as well
@@ -959,7 +965,7 @@ if ~isempty(RS)
     stress2(1:stressTar.N,:) = stress2(1:stressTar.N,:) - ...
                 4*rx.*ry.*(rx*xi1 + ry*xi2)./rho4;
     % add in (1,2) component of stress due to Stokeslet
-    stress2(1+stressTar.N:end,:) = stress1(1+stressTar.N:end,:) + ...
+    stress2(1+stressTar.N:end,:) = stress2(1+stressTar.N:end,:) + ...
                 2*(rx*xi1 + ry*xi2).*(rx.^2 - ry.^2)./rho4;
     stress2(1+stressTar.N:end,:) = stress2(1+stressTar.N:end,:) - ...
                 2*(rx*xi1 + ry*xi2)./(rx.^2+ry.^2);
