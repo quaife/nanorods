@@ -298,7 +298,7 @@ end
 if options.confined
     etaW = zeros(2*Nbd, nbd);
     for k = 1:nbd
-       etaW(:,k) = Xn(2*N+1+(k-1)*2*Nbd:2*N+k*2*Nbd);
+       etaW(:,k) = Xn(2*N*nv+1+(k-1)*2*Nbd:2*N*nv+k*2*Nbd);
     end
 else
     etaW = 0;
@@ -727,21 +727,18 @@ if options.confined
             vInf = [-y(:,1); x(:,1)];
             
         case 'couette'
-            %[-y,x]==>clockwise
-            %vInf = 1*[-y(:,1)+mean(y(:,1));x(:,1)-mean(x(:,1))];
+
             vInf = zeros(2*N,1);
-            %[y,-x]==>counter clockwise
-            vInf = [vInf; [-y(:,2)+mean(y(:,2)); x(:,2)-mean(x(:,2))]];
+            vInf = [vInf, [-y(:,2); x(:,2)]];
             
-        case 'bounded_shear'
-            %vInf = [-y(:,1);zeros(N,1);-y(:,2);zeros(N,1)];
+        case 'pipe'            
+            vInf = [1 - y(:,1).^2; zeros(N,1)];
             
+        case 'bounded_shear'            
             if nv == 1
                 vInf = [-y(:,1); zeros(N,1)];
-                %vInf = [1-y(:,1).^2;zeros(N,1)];
             else if nv == 2
-                    vInf = [[-x(:,1) + y(:,1); y(:,1)],[-x(:,2) + y(:,2); y(:,2)]];
-                    %vInf = [[1 - y(:,1).^2; zeros(N,1)], [1 - y(:,2).^2; zeros(N,1)]];
+                    vInf = [[-y(:,1);zeros(2*N,1)],[-y(:,2);zeros(2*N,1)]];
                 end
             end
         otherwise
@@ -750,11 +747,13 @@ if options.confined
 else
     switch options.farField
         case 'shear'
-            vInf = [5*X(end/2+1:end,:);zeros(N,nv)];
+            vInf = [-X(end/2+1:end,:);zeros(N,nv)];
 
         case 'extensional'
             vInf = [X(1:end/2,:);-X(end/2+1:end,:)];
 
+        case 'pipe'
+            vInf = [1 - X(end/2+1:end,:).^2; zeros(N,nv)];
         otherwise
             vInf = [ones(N,nv);zeros(N,nv)];
     end
