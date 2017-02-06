@@ -137,6 +137,17 @@ switch options.farField
         x = [10*cos(t)+cen(1,1), 5*cos(-t)+cen(1,2)];
         y = [10*sin(t)+cen(2,1), 5*sin(-t)+cen(2,2)];
         Xwalls = o.setXY(x,y);
+      
+    case 'pipe'
+        cen = [0 0];
+        
+        order = 20;        
+        r = (cos(t).^order + sin(t).^order).^(-1/order);
+        
+        x = [100*r.*cos(t)];
+        y = [20*r.*sin(t)];
+
+        Xwalls = o.setXY(x,y);
         
     case 'bounded_shear'
         
@@ -158,8 +169,12 @@ switch options.farField
 %         x = [(L/2)*r.*cos(t), 4*cos(-t)];
 %         y = [(ell/2)*r.*sin(t) + ell/2, sin(-t)+2.5];
 %         
-        x = [(L/2)*r.*cos(t)];
-        y = [(ell/2)*r.*sin(t)] + ell/2;
+%         x = [(L/2)*r.*cos(t)];
+%         y = [(ell/2)*r.*sin(t)] + ell/2;
+        
+        x = [100*r.*cos(t)];
+        y = [20*r.*sin(t)];
+
 % %         
        Xwalls = o.setXY(x,y);
 
