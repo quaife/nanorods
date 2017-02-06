@@ -82,6 +82,6 @@ gif_options.ymax = 10.5;
 gif_options.axis = false;
 gif_options.itmax = 'all';
 gif_options.stride = 1;
-gif_options.plot_pressure = true;
+gif_options.contour_field = 'dissipsation';
 pp.animated_gif(gif_options);
 
