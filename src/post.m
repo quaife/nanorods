@@ -173,13 +173,13 @@ for i = 1:gif_options.stride:itmax-1
         ymax = max(max(o.xc(2,:,i))) + max(o.prams.lengths);
     end
       
-    if gif_options.plot_pressure
+    if ~isempty(gif_options.contour_field)
         couette_u = @(x,y) -(y.*(100-x.^2-y.^2))./(99*(x.^2+y.^2));
         if (i > 1)
-            o.plotContourCircle('dissipation', i, 5.01, 9.99, 0, 0, 100, 300, ...
+            o.plotContourCircle(gif_options.contour_field, i, 5.01, 9.99, 0, 0, 100, 300, ...
                                 false, cmin, cmax, couette_u);
         else
-            [~,~,~,cmin,cmax] = o.plotContourCircle('dissipation', i, 5.01, 9.99, ...
+            [~,~,~,cmin,cmax] = o.plotContourCircle(gif_options.contour_field, i, 5.01, 9.99, ...
                                     0, 0, 100, 300, false, [], [], couette_u);
         end
         
