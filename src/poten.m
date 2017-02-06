@@ -78,14 +78,6 @@ nvSou = size(Xsou,2); % number of source 'geoms'
 Xtar = geomTar.X; % target positions
 Ntar = size(Xtar,1)/2; % number of target points
 nvTar = size(Xtar,2); % number of target 'geoms'
-
-% theta = (0:Nsou-1)'*2*pi/Nsou;
-% 
-% for k = 1:nvSou
-% %    f(1:Nsou,k) = exp(cos(theta));
-% %    f(Nsou+1:2*Nsou,k) = exp(sin(theta));
-%     f = ones(size(f));
-% end
 h = geomSou.length/Nsou; % arclength term
 
 Nup = Nsou*ceil(sqrt(Nsou));
