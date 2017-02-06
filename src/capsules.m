@@ -684,7 +684,7 @@ end
 % collision
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function press = pressure(geom,f,stokeslets,pressTar)
+function press = pressure(geom,f,stokeslets,pressTar,sEqualsT)
 % press = pressure(vesicle,f,RS,pressTar,fmm,LP) computes the pressure
 % due to vesicle at the locations pressTar with near-singular
 % integration with traction jump f. Note that vesicle may correspond to 
@@ -698,7 +698,11 @@ Ntar = pressTar.N;
 % number of target points where we want to compute the pressure
 % and stress
 
-[~,NearV2T] = geom.getZone(pressTar,2);
+if sEqualsT
+    [NearStruct,~] = geom.getZone(pressTar,1);
+else
+    [~,NearStruct] = geom.getZone(pressTar,2);
+end
 % build near-singular integration structure for vesicle
 % to pressure target points
 %InOutFlag = find(vesicle.sortPts(pressTar.X,fmm,NearV2T) == 1);
@@ -747,8 +751,8 @@ Xup = [interpft(geom.X(1:N,:),Nup); interpft(geom.X(N+1:2*N,:),Nup)];
 geomUp = capsules([],Xup);
 Dup = op.stokesDLmatrix(geomUp);
 
-press = op.nearSingInt(geom,f,Pdiag,Dup,NearV2T,kernel,kernelDirect,...
-                    pressTar,false,false);
+press = op.nearSingInt(geom,f,Pdiag,Dup,NearStruct,kernel,kernelDirect,...
+                    pressTar,sEqualsT,false);
 
 % compute the pressure of the single- or double-layer 
 % potential using near-singular integration.  First row 
@@ -757,9 +761,17 @@ press = op.nearSingInt(geom,f,Pdiag,Dup,NearV2T,kernel,kernelDirect,...
 % using the limiting value for the pressure interior of the 
 % vesicle
 % press = pressT(1:Ntar);
-press = press(1,:);
+press = press(1:Ntar,:);
 %press(InOutFlag) = pressT(Ntar+InOutFlag);
 % At the interior points, take the second row
+
+if sEqualsT
+    % add self contribution
+    for k = 1:geom.nv        
+        press(:,k) = press(:,k) + PdiagIn(:,:,k)*f(:,k);
+    end
+end
+
 
 nwalls = length(stokeslets)/2; % number of inner walls
 
