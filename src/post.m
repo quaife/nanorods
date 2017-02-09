@@ -45,40 +45,13 @@ o.OUTPUTPATH_GIFS = '../output/gifs/';
 end %post : constructor
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function [] = plot_fibres(o, iT, xmin, xmax, ymin, ymax)
+function [] = plotFibres(o, iT)
     
     geom = capsules(o.prams, o.xc(:,:,iT), o.tau(iT,:));
     fill3(geom.X(1:end/2,:),geom.X(end/2+1:end,:),...
                         100*ones(o.prams.N,o.prams.nv), 'k');
     
 end % post : plot_fibres
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function [] = plot_fluid(o, iT, xmin, xmax, ymin, ymax, M, stride, bg_flow)
-% plots the Stokes double layer potential over a meshgrid X, Y with M 
-% points in each direction. 
-
-
-[X, Y] = meshgrid(linspace(xmin, xmax, M), linspace(ymin, ymax, M));
-
-geom = capsules(o.prams, o.xc(:,:,iT), o.tau(iT,:));
-Utmp =  o.evaluateVelocity(iT, [X(:)'; Y(:)']);
-
-% indentify points inside fiber
-inside = geom.sortPts([X(:);Y(:)],o.options.ifmm);
-
-%add in background flow
-bg = bg_flow(X(:),Y(:))';
-
-Utmp(1,:) = Utmp(1,:) + bg(1,:); 
-Utmp(2,:) = Utmp(2,:) + bg(2,:);
-Utmp(:,inside==1) = zeros(2,length(find(inside==1)));
-U = reshape(Utmp(1,:), M, M);
-V = reshape(Utmp(2,:), M, M);
-
-quiver(X, Y, U, V, stride);
-
-end % post : plot_fluid
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function [] = plotWalls(o,iT)
@@ -99,7 +72,7 @@ function [] = plotWalls(o,iT)
 end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-function [] = animated_gif(o, gif_options)
+function [] = animatedGif(o, gif_options)
     
 h = figure();
 set(h,'Units','normalized');
@@ -176,7 +149,7 @@ for i = 1:gif_options.stride:itmax-1
     if ~isempty(gif_options.contour_field)
         couette_u = @(x,y) -(y.*(100-x.^2-y.^2))./(99*(x.^2+y.^2));
         if (i > 1)
-            o.plotContourCircle(gif_options.contour_field, i, 5.01, 9.99, 0, 0, 100, 300, ...
+            o.plotContourCircle(gif_options.contour_field, i, 5.01, 9.99, 0, 0, 100,  300, ...
                                 false, cmin, cmax, couette_u);
         else
             [~,~,~,cmin,cmax] = o.plotContourCircle(gif_options.contour_field, i, 5.01, 9.99, ...
@@ -186,9 +159,8 @@ for i = 1:gif_options.stride:itmax-1
         %o.plotContourBox('pressure', i, -2, 10, -3, 3, 300, 100, false, @(x,y) 0);
     end
     
-    if gif_options.plot_fluid
-         o.plot_fluid(i, xmin, xmax, ymin, ymax, gif_options.grid_pts, ...
-                        gif_options.velocity_grid_stride, gif_options.bg_flow); 
+    if gif_options.velocity_quiver
+         o.velocityQuiverBox(i, xmin, xmax, ymin, ymax, 20, 20, 1, gif_options.bg_flow);
     end
 
     if o.options.confined
@@ -196,7 +168,7 @@ for i = 1:gif_options.stride:itmax-1
     end
     
     if o.prams.nv > 0
-        o.plot_fibres(i, xmin, xmax, ymin, ymax);
+        o.plotFibres(i);
     end
     
     axis equal
@@ -417,6 +389,76 @@ end
 end % post : evaluateDissipation
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+function [X,Y,U,V] = velocityQuiver(o, iT, X, Y, stride, bg_flow)
+
+[M,N] = size(X);
+    
+oc = curve;
+if o.prams.nv > 0
+    geom = capsules(o.prams, o.xc(:,:,iT), o.tau(iT,:));
+else
+    geom = capsules(o.prams, [], []);
+end
+
+W = o.evaluateVelocity(iT, [X(:)';Y(:)']);
+U = W(1,:);
+V = W(2,:);
+
+
+%add in background flow
+bg = bg_flow(X(:),Y(:))';
+U = U - bg(1,:);
+V = V - bg(2,:);
+
+if o.prams.nv > 0
+    insideFibers = geom.sortPts([X(:);Y(:)],true);
+    W(insideFibers==1) = NaN;
+    X(insideFibers==1) = NaN;
+    Y(insideFibers==1) = NaN;
+end
+
+if o.options.confined
+    xWalls = oc.createWalls(o.prams.Nbd, o.options);
+    
+    
+    wallOuter = capsules(o.prams, xWalls(:,1));
+    insideOuterWall = wallOuter.sortPts([X(:);Y(:)],true);
+    
+    % identify points outside outer wall
+    W(insideOuterWall==0) = NaN;
+    
+    if o.prams.nbd > 1
+        wallsInner = capsules(o.prams, xWalls(:,2:end));
+        
+        insideInnerWalls = wallsInner.sortPts([X(:);Y(:)],true);
+        % identify points inside inner walls
+        W(insideInnerWalls==1) = NaN;
+        X(insideInnerWalls==1) = NaN;
+        Y(insideInnerWalls==1) = NaN;
+    end
+    
+    X(insideOuterWall==0) = NaN;
+    Y(insideOuterWall==0) = NaN;
+end    
+ 
+U = reshape(U,M,N);
+V = reshape(V,M,N);
+
+
+quiver(X, Y, U, V, stride);
+
+end % post : velocityQuiver
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+function [X,Y,U,V] = velocityQuiverBox(o, iT, xmin, xmax, ymin, ymax, ...
+                        Nx, Ny, stride, bg_flow)
+    
+[X, Y] = meshgrid(linspace(xmin, xmax, Nx), linspace(ymin, ymax, Ny));
+[X,Y,U,V] = o.velocityQuiver(iT, X, Y, stride, bg_flow);
+
+end % post : plotContourBox
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function [X,Y,W, cmin, cmax] = plotContour(o, variable, iT, X, Y, ...
                         replace_inside, cmin, cmax, exact_sol)
 
@@ -563,20 +605,13 @@ X = R.*cos(T) + cx;
 Y = R.*sin(T) + cy;
 
 [X,Y,W,cmin,cmax] = o.plotContour(variable, iT, X, Y, replace_inside,...
-                        cmin, cmax, exact_sol); 
+    cmin, cmax, exact_sol);
 
 end % post : plotContourCircle
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function [stress_xx, stress_xy, stress_yx, stress_yy, pressure] = ...
-        computeWallForce(o, iT)
+function [sxx, sxy, syx, syy] = computeStressOnWalls(o,iT)
     
-pressure = zeros(1,o.prams.nbd);
-stress_xx = zeros(1, o.prams.nbd);
-stress_xy = zeros(1, o.prams.nbd);
-stress_yx = zeros(1, o.prams.nbd);
-stress_yy = zeros(1, o.prams.nbd);
-
 oc = curve;
 xWalls = oc.createWalls(o.prams.Nbd, o.options);
 walls = capsules([],xWalls);
@@ -586,48 +621,134 @@ for k = 1:o.prams.nbd-1
     RS(3*(k-1)+1:3*(k-1)+2) = o.stokeslets(2*k-1:2*k);
     RS(3*(k-1)+3) = o.rotlets(k);
 end
+% compute stresses from walls and Rotlets/Stokeslets
+[stress1w, stress2w] = walls.stressTensor(o.etaW(:,:,iT), RS, walls, true);
 
-[x,y] = oc.getXY(walls.X);
-[nx,ny] = oc.getXYperp(walls.xt);
-sa = walls.sa;
-
+[sxxw,sxyw] = oc.getXY(stress1w);
+[syxw,syyw] = oc.getXY(stress2w);
 
 if o.prams.nv > 0
     % compute stresses from fibers
     geom = capsules(o.prams, o.xc(:,:,iT), o.tau(iT,:));
-    [stress1f, stress2f] = geom.stressTensor(o.etaF(:,:,iT), [], walls, false);    
-    pressuref = geom.pressure(o.etaF(:,:,iT), [], walls, false);
-    
+    [stress1f, stress2f] = geom.stressTensor(o.etaF(:,:,iT), [], walls, false);
+
     [sxxf,sxyf] = oc.getXY(stress1f);
     [syxf,syyf] = oc.getXY(stress2f);
-    
+
 else
     sxxf = zeros(o.prams.Nbd,o.prams.nbd);
     sxyf = zeros(o.prams.Nbd,o.prams.nbd);
     syxf = zeros(o.prams.Nbd,o.prams.nbd);
     syyf = zeros(o.prams.Nbd,o.prams.nbd);
-    pressuref = zeros(1,2);
 end
-% compute stresses from walls and Rotlets/Stokeslets
-[stress1w, stress2w] = walls.stressTensor(o.etaW(:,:,iT), RS, walls, true);
-pressurew =  walls.pressure(o.etaW(:,:,iT), [], walls, true);
 
-[sxxw,sxyw] = oc.getXY(stress1w);
-[syxw,syyw] = oc.getXY(stress2w);
+sxx = sxxf+sxxw;
+sxy = sxyf+sxyw;
+syx = syxf+syxw;
+syy = syyf+syyw;
+    
+end
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+function [forceN, forceT] = computeWallForceComponents(o, iT)
+    
+forceN = zeros(1,o.prams.nbd);
+forceT = zeros(1,o.prams.nbd);
+
+[sxx, sxy, syx, syy] = computeStressOnWalls(o,iT);
+
+oc = curve;
+
+xWalls = oc.createWalls(o.prams.Nbd, o.options);
+walls = capsules([],xWalls);
+
+[tx,ty] = oc.getXY(walls.xt);
+[nx,ny] = oc.getXYperp(walls.xt);
+sa = walls.sa;
 
 for i = 1:o.prams.nbd
-
-    stress_xx(i) = (sum(sxxf(:,i).*sa(:,i)) + sum(sxxw(:,i).*sa(:,i)))*2*pi/o.prams.Nbd;
-    stress_xy(i) = (sum(sxyf(:,i).*sa(:,i)) + sum(sxyw(:,i).*sa(:,i)))*2*pi/o.prams.Nbd;
-    stress_yx(i) = (sum(syxf(:,i).*sa(:,i)) + sum(syxw(:,i).*sa(:,i)))*2*pi/o.prams.Nbd;
-    stress_yy(i) = (sum(syyf(:,i).*sa(:,i)) + sum(syyw(:,i).*sa(:,i)))*2*pi/o.prams.Nbd;
     
-    pressure(i) = (sum(pressuref(:,i).*sa(:,i)) + sum(pressurew(:,i).*sa(:,i)))*2*pi/o.prams.Nbd;
+    fdotn = sum(((sxx(:,i).*nx(:,i) + sxy(:,i).*ny(:,i)).*nx(:,i) + ...
+                        (syx(:,i).*nx(:,i) + syy(:,i).*ny(:,i)).*ny(:,i)).*sa(:,i));
+    
+    fdott = sum(((sxx(:,i).*nx(:,i) + sxy(:,i).*ny(:,i)).*tx(:,i) + ...
+                        (syx(:,i).*nx(:,i) + syy(:,i).*ny(:,i)).*ty(:,i)).*sa(:,i));
+                    
+    forceN(i) = fdotn*2*pi/o.prams.Nbd;    
+    forceT(i) = fdott*2*pi/o.prams.Nbd;
 end
     
 
+end % post : computeWallForceComponents
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+function [force, torque] = computeWallTorque(o,iT)
+
+force = zeros(2,o.prams.nbd);
+torque = zeros(1,o.prams.nbd);
+
+[sxx, sxy, syx, syy] = computeStressOnWalls(o,iT);
+oc = curve;
+
+xWalls = oc.createWalls(o.prams.Nbd, o.options);
+walls = capsules([],xWalls);
+
+[x,y] = oc.getXY(walls.X);
+[nx,ny] = oc.getXYperp(walls.xt);
+sa = walls.sa;
+
+for i = 1:o.prams.nbd
+    
+    force(1,i) = sum((sxx(:,i).*nx(:,i) + sxy(:,i).*ny(:,i)).*sa(:,i));
+    force(2,i) = sum((syx(:,i).*nx(:,i) + syy(:,i).*ny(:,i)).*sa(:,i));
+    
+    torque(i) = sum((y(:,i).*(sxx(:,i).*nx(:,i) + sxy(:,i).*ny(:,i)) - ...
+                        x(:,i).*(syx(:,i).*nx(:,i) + syy(:,i).*ny(:,i))).*sa(:,i));
+end
+    
+end % post : computeWallTorque
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+function [stress_xx, stress_xy, stress_yx, stress_yy] = computeWallStress(o, iT)
+
+oc = curve;
+xWalls = oc.createWalls(o.prams.Nbd, o.options);
+walls = capsules([],xWalls);
+
+sa = walls.sa;
+
+[sxx, sxy, syx, syy] = computeStressOnWalls(o,iT);
+
+for i = 2
+    
+    stress_xx = sum(sxx(:,i).*sa(:,i));
+    stress_xy = sum(sxy(:,i).*sa(:,i));
+    stress_yx = sum(syx(:,i).*sa(:,i));
+    stress_yy = sum(syy(:,i).*sa(:,i));
+end
+    
 
 end % post : computeWallStress
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+function drag = computeWallDrag(o, iT)
+    
+drag = zeros(1,o.prams.nbd);
+
+oc = curve;
+xWalls = oc.createWalls(o.prams.Nbd, o.options);
+walls = capsules([],xWalls);
+
+[nx,ny] = oc.getXYperp(walls.xt);
+sa = walls.sa;
+
+[sxx, sxy,~,~] = computeStressOnWalls(o,iT);
+
+for i = 1:o.prams.nbd
+    
+    drag = sum((sxx(:,i).*nx(:,i) + sxy(:,i).*ny(:,i)).*sa(:,i));
+    drag(i) = drag *2*pi/o.prams.Nbd;    
+end
+    
+end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function stressTotal = evaluateVolumeAverageStress(o, iT)
 
