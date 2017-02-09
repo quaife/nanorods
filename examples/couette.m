@@ -1,14 +1,14 @@
 close all
 
-prams.N = 16; % points per body
+prams.N = 8; % points per body
 prams.Nbd = 192; %points on solid wall
 
 prams.nv = 2; % number of bodies
 prams.nbd = 2; %number of walls
-prams.T = 4*pi; % time horizon
-prams.m = 4*pi/0.1; % number of time steps
-prams.lengths = 0.5*ones(1, prams.nv);
-prams.widths = 0.5*ones(1,prams.nv);
+% prams.T = 4*pi; % time horizon
+% prams.m = 1;%4*pi/0.1; % number of time steps
+prams.lengths = 0.1*ones(1, prams.nv);
+prams.widths = 0.1*ones(1,prams.nv);
 prams.order = 2;
 prams.tracker_fnc = @(t) [10,0;5*cos(t),5*sin(t)];
 prams.gmresTol = 1e-8;
@@ -34,32 +34,46 @@ options.rk_safety = 0.9;
 oc = curve;
 xWalls = oc.createWalls(prams.Nbd, options);
 
-xc = [];
-tau = [];
-xc = [5, 5;-5, 5];
-tau = [0, 0];
+% xc = [];
+% tau = [];
+% xc = [5, 5;-5, 5];
+% tau = [0, 0];
+
+% add particles randomly
+% geom = capsules(prams, xc, tau);
+% [xc, tau] = geom.fill_couette(5.26, 9.74, N, prams, seed);
+
 % add particles on uniform grid
 
-N = 8;
-x = linspace(-10,10,N);
-y = linspace(-10,10,N);
 
-buffer = 0.5;
-[X,Y] = meshgrid(x,y);
-xc = zeros(2,0);
-tau  = [];
-
-% remove particles outside domain
-for i = 1:N
-    for j = 1:N
-        
-       r = sqrt(X(i,j)^2+Y(i,j)^2);
-       if (r > 5 + buffer && r < 10 - buffer)
-           xc(:,end+1) = [X(i,j);Y(i,j)]+0.1*buffer*rand(2,1);
-           tau(end+1) = 0;
-       end
-    end 
-end
+% N = 60;
+% x = linspace(-10,10,N);
+% y = linspace(-10,10,N);
+% 
+% buffer = 1.1*prams.lengths(1)/2;
+% [X,Y] = meshgrid(x,y);
+% X = X + max_disp*rand(size(X));
+% Y = Y + max_disp*rand(size(Y));
+% xc = zeros(2,0);
+% tau  = [];
+% 
+% dist = x(2)-x(1);
+% max_disp = 0.95*dist/2;
+% X = X + max_disp*rand(size(X));
+% Y = Y + max_disp*rand(size(Y));
+% 
+% % remove particles outside domain
+% for m = 1:N
+%     for n = 1:N
+%         
+%        disp_rand = max_disp*rand(2,1);
+%        r = sqrt((X(n,n))^2+(Y(m,n))^2);
+%        if (r > 5 + buffer && r < 10 - buffer)
+%            xc(:,end+1) = [X(m,n);Y(m,n)];
+%            tau(end+1) = 0;
+%        end
+%     end 
+% end
 
 %compute volume fraction
 prams.nv = length(tau);
@@ -82,6 +96,7 @@ gif_options.ymax = 10.5;
 gif_options.axis = false;
 gif_options.itmax = 'all';
 gif_options.stride = 1;
-gif_options.contour_field = 'dissipsation';
-pp.animated_gif(gif_options);
+gif_options.contour_field = 'pressure';
+gif_options.velocity_quiver = false;
+%pp.animatedGif(gif_options);
 
