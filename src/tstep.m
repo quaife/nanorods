@@ -729,7 +729,7 @@ if options.confined
         case 'couette'
 
             vInf = zeros(2*N,1);
-            vInf = [vInf, [-y(:,2); x(:,2)]];
+            vInf = [vInf, [-options.couetteSpeed*y(:,2); options.couetteSpeed*x(:,2)]];
             
         case 'pipe'            
             vInf = [1 - y(:,1).^2; zeros(N,1)];
