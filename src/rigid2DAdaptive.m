@@ -1,6 +1,8 @@
-function [Xfinal] = rigid2DAdaptive(options, prams, xc, tau, xWalls)
+function [Xfinal, tstep_rejects] = rigid2DAdaptive(options, prams, xc, tau, xWalls)
 
 ttotal = tic;
+tstep_rejects = 0;
+
 geom = capsules(prams, xc, tau);
 
 
@@ -83,7 +85,13 @@ while (time < prams.T)
                 stokes, rot, Up, wp, iter, flag, res] = adaptive_rk(a, ...
                                 b1, b2, xc, tau, walls, tt, potF, om,...
                                 options, prams);
-    if ~accept
+    if accept
+        modify_step = true;
+    else
+        % do not increase or decrease dt if we have already rejected a step
+        modify_step = false;
+        
+        tstep_rejects = tstep_rejects+1;
         % halve time step size, try again until accept
         while (~accept && tt.dt > options.dt_min)
             tt.dt = tt.dt/2;
@@ -103,9 +111,13 @@ while (time < prams.T)
     xc = xc_new;
     tau = tau_new;
     
-    % adjust time step size    
-    tt.dt =  max(min(tt.dt*(options.rk_tol/rel_err)^(1/(options.tstep_order+1)), ...
-                        2*tt.dt), 0.25*tt.dt);                    
+    if modify_step
+        % adjust time step size    
+        tt.dt =  tt.dt*options.rk_safety*max(min((options.rk_tol/rel_err)^...
+                            (1/(options.tstep_order+1)), ...
+                              options.rk_max_up), options.rk_max_down);   
+    end
+    
     if options.verbose
          om.writeMessage(['Step completed, new dt = ', num2str(tt.dt)]);
     end
@@ -172,8 +184,9 @@ wp = k(2*prams.nv+1:end,1)';
 sol_next = [xc(1,:)';xc(2,:)';tau'] + dt*k*b1;
 
 % check for collisions
-geom = capsules(prams, [sol_next(1:prams.nv),sol_next(prams.nv+1:2*prams.nv)]',...
-                            sol_next(2*prams.nv+1:end));                   
+geom = capsules(prams, [sol_next(1:prams.nv),...
+                        sol_next(prams.nv+1:2*prams.nv)]',...
+                        sol_next(2*prams.nv+1:end));                   
 [near,~] = geom.getZone(geom,1);                       
 icollision = geom.collision(near,options.ifmm, options.inear, potF, om);
 
@@ -184,7 +197,7 @@ end
 
 if accept
     % compute error using coefficients in b2
-    if length(b2) > length(b1)
+    if length(b2) > length(b1)        
         % add in last stage to compute higher order solution
         dTmp = k*a(end,1:end-1)';
         
@@ -205,7 +218,8 @@ if accept
     sol_estimate = [xc(1,:)';xc(2,:)';tau'] + dt*k*b2;
     
     % check for collisions
-    geom = capsules(prams, [sol_estimate(1:prams.nv),sol_estimate(prams.nv+1:2*prams.nv)]',...
+    geom = capsules(prams, [sol_estimate(1:prams.nv),...
+                            sol_estimate(prams.nv+1:2*prams.nv)]',...
                             sol_estimate(2*prams.nv+1:end));
     [near,~] = geom.getZone(geom,1);  
     icollision = geom.collision(near,options.ifmm, options.inear, potF, om);
@@ -217,7 +231,7 @@ if accept
 
         % compute difference, accept/reject
         err = abs(sol_estimate - sol_next);
-        err(err < 1e-14) = 0;
+        %err(err < 1e-14) = 0;
         
         rel_err = max(err./abs(sol_estimate));
         
@@ -242,8 +256,8 @@ function [xdot, densityF, densityW, stokes, rot, iter, flag, res] = ...
                     compute_velocities(xc, tau, walls, tt, options, prams)
     
     geom = capsules(prams, xc, tau);
-    [densityF,densityW,Up,wp,stokes,rot,iter,flag,res] = tt.timeStep(geom, ...
-                            tau, walls, options, prams);
+    [densityF,densityW,Up,wp,stokes,rot,iter,flag,res] = ...
+                    tt.timeStep(geom, tau, walls, options, prams);
      
      xdot = [Up(1,:)';Up(2,:)';wp'];
 end
