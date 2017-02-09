@@ -115,7 +115,7 @@ function [Xnew, xc, tau, add] = add_fibre(o, rmin, rmax, prams, k)
         
         for i = 1:o.nv
             
-            if (length(near.nearFibers{i}) > 0 || min(rx) < rmin + 0.1 || max(rx) > rmax - 0.1)
+            if (length(near.nearFibers{i}) > 0 || min(rx) < rmin + 0.01 || max(rx) > rmax - 0.01)
                 add = false;                
             end            
         end
@@ -142,9 +142,9 @@ function [Xnew, xc, tau, add] = add_fibre(o, rmin, rmax, prams, k)
 end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function [xc, tau] = fill_couette(o, rmin, rmax, nv, prams)
+function [xc, tau] = fill_couette(o, rmin, rmax, nv, prams, seed)
    
-    %rng(12345);
+    rng(seed);
 
     xc = zeros(2,nv);
     tau =zeros(1,nv);
