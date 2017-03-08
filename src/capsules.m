@@ -5,8 +5,8 @@ classdef capsules < handle
 % include constructing structures required for near-singluar integration
 
 properties
-N;        % number of points per componenet
-nv;       % number of components
+Np;        % number of points per componenet
+np;       % number of components
 X;        % positions of component
 center;   % center of each rigid body
 xt;       % tangent unit vector
@@ -28,30 +28,31 @@ oc = curve;
 
 if length(varargin) == 1 % coordinates provided directly
     o.X = varargin{1};
-    o.N = size(o.X,1)/2; % points per component
-    o.nv = size(o.X,2);  % number of components
+    o.Np = size(o.X,1)/2; % points per component
+    o.np = size(o.X,2);  % number of components
     o.center = [mean(o.X(1:end/2,:));mean(o.X(end/2+1:end,:))];
     % centers of each component
     
 else if length(varargin) == 2 % centres and orientation angles
         
-        if prams.nv > 0
+        if prams.np > 0
             xc = varargin{1};
             tau = varargin{2};
             
-            o.N = prams.N;              % points per component
-            o.nv = prams.nv;            % number of components
+            o.Np = prams.N;              % points per component
+            o.np = prams.nv;            % number of components
             o.center = xc;
             
-            theta = (0:prams.N-1)'*2*pi/prams.N;
-            o.X = zeros(2*prams.N,prams.nv);
+            theta = (0:prams.Np-1)'*2*pi/prams.Np;
+            o.X = zeros(2*prams.Np,prams.np);
             
-            r = (cos(-theta).^prams.order + sin(-theta).^prams.order).^(-1/prams.order);
+            r = (cos(-theta).^prams.order + sin(-theta).^prams.rounding_order)...
+                                .^(-1/prams.rounding_order);
             
-            for k = 1:prams.nv
+            for k = 1:prams.np
                 
-                x_square = prams.lengths(1)/2*r.*cos(-theta);
-                y_square = prams.widths(1)/2*r.*sin(-theta);
+                x_square = prams.lengths/2*r.*cos(-theta);
+                y_square = prams.widths/2*r.*sin(-theta);
                 
                 o.X(:,k) = [x_square*cos(tau(k)) - y_square*sin(tau(k)) + xc(1,k);
                     x_square*sin(tau(k)) + y_square*cos(tau(k)) + xc(2,k)];
@@ -75,8 +76,8 @@ else
     o.xt = [];
     o.cur = [];
     o.length = [];
-    o.N = 0;
-    o.nv = 0;
+    o.Np = 0;
+    o.np = 0;
     o.center = [];
 end
 
@@ -88,12 +89,13 @@ function [Xnew, xc, tau, add] = add_fibre(o, rmin, rmax, prams, k)
         
     attempt = 0;
     
-    theta = (0:prams.N-1)'*2*pi/prams.N;    
+    theta = (0:prams.Np-1)'*2*pi/prams.Np;    
     Xoriginal = o.X;
-    rt = (cos(theta).^prams.order+ sin(theta).^prams.order).^(-1/prams.order);
+    rt = (cos(theta).^prams.order+ sin(theta).^prams.rounding_order)...
+                        .^(-1/prams.rounding_order);
     
-    x_square = mean(prams.lengths)/2*rt.*cos(theta);
-    y_square = mean(prams.widths)/2*rt.*sin(theta);
+    x_square = prams.lengths/2*rt.*cos(theta);
+    y_square = prams.widths/2*rt.*sin(theta);
 
     while attempt < max_attempts
         
@@ -113,7 +115,7 @@ function [Xnew, xc, tau, add] = add_fibre(o, rmin, rmax, prams, k)
         
         rx = sqrt(o.X(1:end/2,end).^2+o.X(end/2+1:end,end).^2);
         
-        for i = 1:o.nv
+        for i = 1:o.np
             
             if (length(near.nearFibers{i}) > 0 || min(rx) < rmin + 0.01 || max(rx) > rmax - 0.01)
                 add = false;                
@@ -122,7 +124,7 @@ function [Xnew, xc, tau, add] = add_fibre(o, rmin, rmax, prams, k)
         
         attempt = attempt + 1;
         o.X = Xoriginal;
-        o.nv = o.nv - 1;
+        o.np = o.np - 1;
         
         if add
             Xnew = [x_square*cos(tau) - y_square*sin(tau) + xc(1);
@@ -142,14 +144,14 @@ function [Xnew, xc, tau, add] = add_fibre(o, rmin, rmax, prams, k)
 end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function [xc, tau] = fill_couette(o, rmin, rmax, nv, prams, seed)
+function [xc, tau] = fill_couette(o, rmin, rmax, np, prams, seed)
    
     rng(seed);
 
-    xc = zeros(2,nv);
-    tau =zeros(1,nv);
+    xc = zeros(2,np);
+    tau =zeros(1,np);
     
-    for i = 1:nv
+    for i = 1:np
        
         [Xnew, xc(:,i),tau(i), add] = o.add_fibre(rmin, rmax, prams,i); 
        
@@ -158,7 +160,7 @@ function [xc, tau] = fill_couette(o, rmin, rmax, nv, prams, seed)
            
             oc = curve;
             o.center(:,end+1) = xc(:,i);
-            o.nv = o.nv+1;
+            o.np = o.np+1;
            [o.sa,o.xt,o.cur] = oc.diffProp(o.X);
            [~,o.length] = oc.geomProp(o.X);
        end
@@ -173,7 +175,7 @@ function X = getXY(o)
 end % getXY
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function [NearSelf,NearOther] = getZone(bd1,bd2,relate)
+function [NearSelf,NearOther] = getZone(o,bd2,relate)
 % [NearSelf,NearOther] = getZone(bd1,bd2,relate) constructs
 % each boundary, index of the closest point, nearest point on a local
 % interapolant, and argument of that nearest point.  bd1 contains
@@ -184,18 +186,18 @@ function [NearSelf,NearOther] = getZone(bd1,bd2,relate)
 % relate == 2  => only requirpe NearOther (ie. bd1 to bd2)
 % relate == 3  => require both NearSelf and NearOther
 
-if ~isempty(bd1.X)
+if ~isempty(o.X)
     NearSelf = [];
     NearOther = [];
     
-    N1 = bd1.N; % number of source/target points
-    nv1 = bd1.nv; % number of source/target boundaries
-    X1 = bd1.X; % source and target points
+    Np1 = o.Np; % number of source/target points
+    np1 = o.np; % number of source/target boundaries
+    X1 = o.X; % source and target points
     oc = curve;
     [xsou,ysou] = oc.getXY(X1);
     % separate targets into x and y coordinates
     
-    h = max(bd1.length)/N1;
+    h = max(o.length)/Np1;
     % smallest arclength over all boundaries
     ptsperbox = 10;
     % Estimate for number of points per box.  This simply sets the
@@ -246,15 +248,15 @@ if ~isempty(bd1.X)
     % DEBUG: This does a simple plot of the points with a grid that
     % aligns with the boundary of the boxes
     
-    fpt = zeros(Nbins,nv1);
-    lpt = zeros(Nbins,nv1);
+    fpt = zeros(Nbins,np1);
+    lpt = zeros(Nbins,np1);
     % allocate space for storing first and last points
     [binsort,permute] = sort(bin);
     % build permute.  Need binsort to find first and last points
     % in each box
     
-    for k = 1:nv1 % Loop over boundaries
-        for j = 1:N1 % Loop over bins
+    for k = 1:np1 % Loop over boundaries
+        for j = 1:Np1 % Loop over bins
             ibox = binsort(j,k);
             if (fpt(ibox,k) == 0)
                 fpt(ibox,k) = j;
@@ -317,16 +319,16 @@ if ~isempty(bd1.X)
     
     
     if (relate == 1 || relate == 3)
-        for k = 1:nv1
-            distSS{k} = spalloc(N1,nv1,0);
+        for k = 1:np1
+            distSS{k} = spalloc(Np1,np1,0);
             % dist(n,k,j) is the distance of point n on boundary k to boundary j
-            zoneSS{k} = spalloc(N1,nv1,0);
+            zoneSS{k} = spalloc(Np1,np1,0);
             % near or far zone
-            nearestSS{k} = spalloc(2*N1,nv1,0);
+            nearestSS{k} = spalloc(2*Np1,np1,0);
             % nearest point using local interpolant
-            icpSS{k} = spalloc(N1,nv1,0);
+            icpSS{k} = spalloc(Np1,np1,0);
             % index of closest discretization point
-            argnearSS{k} = spalloc(N1,nv1,0);
+            argnearSS{k} = spalloc(Np1,np1,0);
             % argument in [0,1] of local interpolant
             nearFibersSS{k} = {};
         end
@@ -336,7 +338,7 @@ if ~isempty(bd1.X)
         
         % begin classifying points where we are considering
         % boundary to boundary relationships
-        for k = 1:nv1
+        for k = 1:np1
             boxes = unique(bin(:,k));
             % Find all boxes containing points of boundary k
             boxes = neigh(boxes,:);
@@ -346,7 +348,7 @@ if ~isempty(bd1.X)
             boxes = boxes(boxes~=0);
             % Delete non-existent boxes that came up because of neigh
             
-            K = [(1:k-1) (k+1:nv1)];
+            K = [(1:k-1) (k+1:np1)];
             for k2 = K
                 istart = fpt(boxes,k2);
                 iend = lpt(boxes,k2);
@@ -409,10 +411,10 @@ if ~isempty(bd1.X)
                     icpSS{k}(ipt,k2) = d0loc;
                     if (d0 < 2*h);
                         [distSS{k}(ipt,k2),nearestx,nearesty,argnearSS{k}(ipt,k2)] = ...
-                            bd1.closestPnt([xsou;ysou],xsou(ipt,k2),...
+                            o.closestPnt([xsou;ysou],xsou(ipt,k2),...
                             ysou(ipt,k2),k,icpSS{k}(ipt,k2));
                         nearestSS{k}(ipt,k2) = nearestx;
-                        nearestSS{k}(ipt+N1,k2) = nearesty;
+                        nearestSS{k}(ipt+Np1,k2) = nearesty;
                         
                         nearFibersSS{k}= [nearFibersSS{k},k2];
                         % Find closest point along a local interpolant using
@@ -448,8 +450,8 @@ if ~isempty(bd1.X)
     
     % Bin target points with respect to the source points
     if (relate == 2 || relate == 3)
-        N2 = bd2.N; % number of additional targets
-        nv2 = bd2.nv; % number of additional boundaries
+        Np2 = bd2.Np; % number of additional targets
+        np2 = bd2.np; % number of additional boundaries
         X2 = bd2.X; % additional target points
         [xtar,ytar] = oc.getXY(X2);
         % separate additional target points into x and y coordinates
@@ -461,16 +463,16 @@ if ~isempty(bd1.X)
         % DEBUG: FOR SEEING TARGET AND SOURCE POINTS IN THE TREE STRUCTURE
         % WHICH CAN BE PLOTTED ABOVE
         
-        for k = 1:nv1
-            distST{k} = spalloc(N1,nv2,0);
+        for k = 1:np1
+            distST{k} = spalloc(Np1,np2,0);
             % dist(n,k,j) is the distance of point n on boundary k to
-            zoneST{k} = spalloc(N1,nv2,0);
+            zoneST{k} = spalloc(Np1,np2,0);
             % near or far zone
-            nearestST{k} = spalloc(2*N1,nv2,0);
+            nearestST{k} = spalloc(2*Np1,np2,0);
             % nearest point using local interpolant
-            icpST{k} = spalloc(N1,nv2,0);
+            icpST{k} = spalloc(Np1,np2,0);
             % index of closest discretization point
-            argnearST{k} = spalloc(N1,nv2,0);
+            argnearST{k} = spalloc(Np1,np2,0);
             % argument in [0,1] of local interpolant
         end
         % New way of representing near-singular integration structure so that
@@ -483,7 +485,7 @@ if ~isempty(bd1.X)
         % Only have to consider xx(ind),yy(ind) since all other points
         % are not contained in the box [xmin xmax] x [ymin ymax]
         
-        for k = 1:nv1 % loop over sources
+        for k = 1:np1 % loop over sources
             for nind = 1:numel(indx)
                 % loop over points that are not outside the box that surrounds
                 % all target points with a sufficiently large buffer
@@ -522,10 +524,10 @@ if ~isempty(bd1.X)
                     
                     if d0 < 2*h
                         [distST{k}(ii,jj),nearestx,nearesty,argnearST{k}(ii,jj)] = ...
-                            bd1.closestPnt([xsou;ysou],xtar(ii,jj),...
+                            o.closestPnt([xsou;ysou],xtar(ii,jj),...
                             ytar(ii,jj),k,icpST{k}(ii,jj));
                         nearestST{k}(ii,jj) = nearestx;
-                        nearestST{k}(ii+N2,jj) = nearesty;
+                        nearestST{k}(ii+Np2,jj) = nearesty;
                         
                         %          figure(2);
                         %          plot(xtar(ii,jj),ytar(ii,jj),'g.')
@@ -578,7 +580,7 @@ end % getZone
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function [dist,nearestx,nearesty,theta] = closestPnt(o,X,xTar,ytar,k,icp)
+function [dist,nearestx,nearesty,theta] = closestPnt(~,X,xTar,ytar,k,icp)
 % [dist,nearestx,nearesty,theta] = closestPnt(X,xTar,ytar,k,icp)
 % computes the closest point on boundary k to (xTar,ytar)
 % using a Lagrange interpolant.  icp is the index of the closest
@@ -642,17 +644,17 @@ dist = sqrt((nearestx - xTar)^2 + (nearesty - ytar)^2);
 end % closestPnt
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function icollision = collision(geom,near,ifmm,inear,op, om)
+function icollision = collision(o,near,fmm,near_gingular,op,om)
 
 if (om.profile)
     tCollision = tic;
 end
 
-f = [ones(geom.N,geom.nv);zeros(geom.N,geom.nv)];
+f = [ones(o.Np,o.np);zeros(o.Np,o.np)];
 % density function.  Solving a scalar-valued layer-potential, so set the
 % second component of density function to 0
 
-if (ifmm)
+if (fmm)
     kernel = @op.exactLaplaceDLfmm;
 else
     kernel = @op.exactLaplaceDL;
@@ -662,13 +664,13 @@ D = @(X) zeros(2*size(X,1),size(X,2));
 % know that the limiting value of the DLP of the density function is
 % always zero, so don't have to build the DLP matrix for
 % self-interactions
-if inear
-  Fdlp = op.nearSingInt(geom,f,D,[],near,kernel,kernel,geom,true,false);
+if near_gingular
+  Fdlp = op.nearSingInt(o,f,D,[],near,kernel,kernel,o,true,false);
 else
-  Fdlp = kernel(geom,f,D);
+  Fdlp = kernel(o,f,D);
 end
 
-Fdlp = Fdlp(1:geom.N,:);
+Fdlp = Fdlp(1:o.Np,:);
 % take only first component of the DLP
 % plot(Fdlp);
 
@@ -684,14 +686,14 @@ end
 % collision
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function press = pressure(geom,f,stokeslets,pressTar,sEqualsT)
+function press = pressure(o,f,stokeslets,pressTar,sEqualsT)
 % press = pressure(vesicle,f,RS,pressTar,fmm,LP) computes the pressure
 % due to vesicle at the locations pressTar with near-singular
 % integration with traction jump f. Note that vesicle may correspond to 
 % solid walls rather than vesicles
 
-N = geom.N; % points per vesicle
-nv = geom.nv; % number of vesicles
+N = o.Np; % points per vesicle
+nv = o.np; % number of vesicles
 Nup = N*ceil(sqrt(N));
 op = poten(N);
 Ntar = pressTar.N;
@@ -699,9 +701,9 @@ Ntar = pressTar.N;
 % and stress
 
 if sEqualsT
-    [NearStruct,~] = geom.getZone(pressTar,1);
+    [NearStruct,~] = o.getZone(pressTar,1);
 else
-    [~,NearStruct] = geom.getZone(pressTar,2);
+    [~,NearStruct] = o.getZone(pressTar,2);
 end
 % build near-singular integration structure for vesicle
 % to pressure target points
@@ -715,18 +717,17 @@ end
 % DEBUG: MAKE SURE POINTS INSIDE AND OUTSIDE ARE LABELLED CORRECTLY
 
 oc = curve;
-PdiagIn = op.pressDLmatrix(geom);
+PdiagIn = op.pressDLmatrix(o);
 PdiagOut = PdiagIn;
 Deriv = fft1.D1(N);
 % spectral differentiation matrix
 for k = 1:nv
-    [tanx,tany] = oc.getXY(geom.xt(:,k));
+    [tanx,tany] = oc.getXY(o.xt(:,k));
     % tangent vector
-    sa = geom.sa(:,k);
+    sak = o.sa(:,k);
     % Jacobian
     
-    jump = -[diag(tanx./sa) diag(tany./sa)] * ...
-        [Deriv zeros(N); zeros(N) Deriv];
+    jump = -[diag(tanx./sak) diag(tany./sak)] * [Deriv zeros(N); zeros(N) Deriv];
     PdiagIn(:,:,k) = PdiagIn(:,:,k) - jump;
     PdiagOut(:,:,k) = PdiagOut(:,:,k) + jump;
     % add in the jump term.  Jump term is negative because target
@@ -737,7 +738,7 @@ end
 % jump with the tangent.  Assuming that all the pressure target
 % points are inside the physical domain so there is no use to
 % consider the limiting value from the other side
-Pdiag = @(X) op.exactPressureDLdiag(geom,[PdiagOut;PdiagIn],X);
+Pdiag = @(X) op.exactPressureDLdiag(o,[PdiagOut;PdiagIn],X);
 % nearSingInt assumes that input and output are vector-valued Take
 % adavntage of the fact that nearSingInt only works with
 % vector-valued densities by passing in two different jumps---one for
@@ -746,12 +747,12 @@ Pdiag = @(X) op.exactPressureDLdiag(geom,[PdiagOut;PdiagIn],X);
 kernel = @op.exactPressDL;
 kernelDirect = @op.exactPressDL;
 
-Xup = [interpft(geom.X(1:N,:),Nup); interpft(geom.X(N+1:2*N,:),Nup)];
+Xup = [interpft(o.X(1:N,:),Nup); interpft(o.X(N+1:2*N,:),Nup)];
 
 geomUp = capsules([],Xup);
 Dup = op.stokesDLmatrix(geomUp);
 
-press = op.nearSingInt(geom,f,Pdiag,Dup,NearStruct,kernel,kernelDirect,...
+press = op.nearSingInt(o,f,Pdiag,Dup,NearStruct,kernel,kernelDirect,...
                     pressTar,sEqualsT,false);
 
 % compute the pressure of the single- or double-layer 
@@ -767,18 +768,18 @@ press = press(1:Ntar,:);
 
 if sEqualsT
     % add self contribution
-    for k = 1:geom.nv        
+    for k = 1:o.nv        
         press(:,k) = press(:,k) + PdiagIn(:,:,k)*f(:,k);
     end
 end
 
 
-nwalls = length(stokeslets)/2; % number of inner walls
+nw = length(stokeslets)/2; % number of inner walls
 
-if nwalls > 0
-  for k = 1:nwalls
-    cx = geom.center(1,k+1);
-    cy = geom.center(2,k+1);
+if nw > 0
+  for k = 1:nw
+    cx = o.center(1,k+1);
+    cy = o.center(2,k+1);
     % center of interior solid wall k
     xi1 = stokeslets(2*(k-1)+1);
     xi2 = stokeslets(2*(k-1)+2);
@@ -787,7 +788,6 @@ if nwalls > 0
     [x,y] = oc.getXY(pressTar.X);
     rx = x - cx;
     ry = y - cy;
-    rho2 = rx.^2 + ry.^2;
     press = press +  2./(rx.^2 + ry.^2).*(rx*xi1 + ry*xi2);
     % add in pressure of stokeslet term
     % rotlet has a vanishing pressure gradient
@@ -797,7 +797,7 @@ end
 end % pressure
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function [stress1,stress2] = stressTensor(vesicle,f,RS,stressTar,sEqualsT)
+function [stress1,stress2] = stressTensor(o,f,RS,stressTar,sEqualsT)
 % [stress1 stress2] = stressTensor(vesicle,f,RS,stressTar,fmm)
 % computes the stress tensor due to vesicle at the locations stressTar
 % with or without near-singular integration with traction jump f.
@@ -807,13 +807,13 @@ function [stress1,stress2] = stressTensor(vesicle,f,RS,stressTar,sEqualsT)
 % than vesicles.  If doing solid walls, there is a stress due to the
 % rotlet and stokeslet terms that needs to be added in
 
-N = vesicle.N; % points per vesicle
-nv = vesicle.nv; % number of vesicles
+N = o.Np; % points per vesicle
+n = o.np; % number of vesicles
 op = poten(N);
-Ntar = stressTar.N*stressTar.nv;
+Ntar = stressTar.Np*stressTar.np;
 % number of points where we want to evaluate the stress
 
-tangent = vesicle.xt;
+tangent = o.xt;
 oc = curve;
 [tanx,tany] = oc.getXY(tangent);
 nx = tany;
@@ -822,15 +822,15 @@ ny = -tanx;
 % coordinates
 
 if sEqualsT
-    [NearStruct,~] = vesicle.getZone(stressTar,1);
+    [NearStruct,~] = o.getZone(stressTar,1);
 else
-    [~,NearStruct] = vesicle.getZone(stressTar,2);
+    [~,NearStruct] = o.getZone(stressTar,2);
 end
 % build near-singular integration structure for vesicle
 % to pressure target points
 
     
-[S1diagIn,S2diagIn] = op.stressDLmatrix(vesicle);
+[S1diagIn,S2diagIn] = op.stressDLmatrix(o);
 % use odd-even integration to evaluate stress due to
 % each vesicle independent of the others on its boundary
 % S1diagIn is the matrix that takes the traction jump and returns
@@ -846,50 +846,50 @@ S2diagOut = S2diagIn;
 Deriv = fft1.D1(N);
 % Fourier differentiation matrix
 
-for k = 1:nv
-    [tanx,tany] = oc.getXY(vesicle.xt(:,k));
+for k = 1:n
+    [tanx,tany] = oc.getXY(o.xt(:,k));
     % tangent vector
-    sa = vesicle.sa(:,k);
+    sak = o.sa(:,k);
     % Jacobian
 
-    jump = diag(1./sa.*(1+tanx.^2-tany.^2).*tanx)*Deriv;
+    jump = diag(1./sak.*(1+tanx.^2-tany.^2).*tanx)*Deriv;
     S1diagIn(1:N,1:N,k) = S1diagIn(1:N,1:N,k) - jump;
     S1diagOut(1:N,1:N,k) = S1diagOut(1:N,1:N,k) + jump;
     % add in (1,1) jump component to stress applied to [1;0]
 
-    jump = diag(1./sa.*(1+tanx.^2-tany.^2).*tany)*Deriv;
+    jump = diag(1./sak.*(1+tanx.^2-tany.^2).*tany)*Deriv;
     S1diagIn(1:N,N+1:2*N,k) = S1diagIn(1:N,N+1:2*N,k) - jump;
     S1diagOut(1:N,N+1:2*N,k) = S1diagOut(1:N,N+1:2*N,k) + jump;
     % add in (1,2) jump component to stress applied to [1;0]
 
-    jump = diag(1./sa.*(2*tanx.*tany).*tanx)*Deriv;
+    jump = diag(1./sak.*(2*tanx.*tany).*tanx)*Deriv;
     S1diagIn(N+1:2*N,1:N,k) = S1diagIn(N+1:2*N,1:N,k) - jump;
     S1diagOut(N+1:2*N,1:N,k) = S1diagOut(N+1:2*N,1:N,k) + jump;
     % add in (2,1) jump component to stress applied to [1;0]
 
-    jump = diag(1./sa.*(2*tanx.*tany).*tany)*Deriv;
+    jump = diag(1./sak.*(2*tanx.*tany).*tany)*Deriv;
     S1diagIn(N+1:2*N,N+1:2*N,k) = ...
         S1diagIn(N+1:2*N,N+1:2*N,k) - jump;
     S1diagOut(N+1:2*N,N+1:2*N,k) = ...
         S1diagOut(N+1:2*N,N+1:2*N,k) + jump;
     % add in (2,2) jump component to stress applied to [1;0]
 
-    jump = diag(1./sa.*(2*tanx.*tany).*tanx)*Deriv;
+    jump = diag(1./sak.*(2*tanx.*tany).*tanx)*Deriv;
     S2diagIn(1:N,1:N,k) = S2diagIn(1:N,1:N,k) - jump;
     S2diagOut(1:N,1:N,k) = S2diagOut(1:N,1:N,k) + jump;
     % add in (1,1) jump component to stress applied to [0;1]
 
-    jump = diag(1./sa.*(2*tanx.*tany).*tany)*Deriv;
+    jump = diag(1./sak.*(2*tanx.*tany).*tany)*Deriv;
     S2diagIn(1:N,N+1:2*N,k) = S2diagIn(1:N,N+1:2*N,k) - jump;
     S2diagOut(1:N,N+1:2*N,k) = S2diagOut(1:N,N+1:2*N,k) + jump;
     % add in (1,2) jump component to stress applied to [0;1]
 
-    jump = diag(1./sa.*(1-tanx.^2+tany.^2).*tanx)*Deriv;
+    jump = diag(1./sak.*(1-tanx.^2+tany.^2).*tanx)*Deriv;
     S2diagIn(N+1:2*N,1:N,k) = S2diagIn(N+1:2*N,1:N,k) - jump;
     S2diagOut(N+1:2*N,1:N,k) = S2diagOut(N+1:2*N,1:N,k) + jump;
     % add in (2,1) jump component to stress applied to [0;1]
 
-    jump = diag(1./sa.*(1-tanx.^2+tany.^2).*tany)*Deriv;
+    jump = diag(1./sak.*(1-tanx.^2+tany.^2).*tany)*Deriv;
     S2diagIn(N+1:2*N,N+1:2*N,k) = ...
         S2diagIn(N+1:2*N,N+1:2*N,k) - jump;
     S2diagOut(N+1:2*N,N+1:2*N,k) = ...
@@ -897,8 +897,8 @@ for k = 1:nv
     % add in (2,2) jump component to stress applied to [0;1]
 end
 % Jump term that comes from stress of double-layer potential
-S1diagOutFn = @(X) op.exactStressDLdiag(vesicle,S1diagOut,X);
-S2diagOutFn = @(X) op.exactStressDLdiag(vesicle,S2diagOut,X);
+S1diagOutFn = @(X) op.exactStressDLdiag(o,S1diagOut,X);
+S2diagOutFn = @(X) op.exactStressDLdiag(o,S2diagOut,X);
 % nearSingInt assumes that input and output are vector-valued
 
 kernel1 = @op.exactStressDL1;
@@ -908,7 +908,7 @@ kernel2 = @op.exactStressDL2;
 % we can compute diagonal value to use near-singular integration
 
 % CREATE UPSAMPLED MATRICES
-Xsou = vesicle.X; 
+Xsou = o.X; 
 Nup = N*ceil(sqrt(N));
 
 Xup = [interpft(Xsou(1:N,:),Nup);...
@@ -917,20 +917,20 @@ Xup = [interpft(Xsou(1:N,:),Nup);...
 geomUp = capsules([],Xup);
 [Dup1, Dup2] = op.stressDLmatrix(geomUp);
 
-stress1 = op.nearSingInt(vesicle,f,S1diagOutFn,Dup1,NearStruct,kernel1,kernel1,...
+stress1 = op.nearSingInt(o,f,S1diagOutFn,Dup1,NearStruct,kernel1,kernel1,...
     stressTar,sEqualsT,false);
   % correct stress at exterior points
 
 % Use near-singular integration to compute first component of
 % the stress due to the double-layer potential
 
-stress2 = op.nearSingInt(vesicle,f,S2diagOutFn,Dup2,NearStruct,kernel2,kernel2,...
+stress2 = op.nearSingInt(o,f,S2diagOutFn,Dup2,NearStruct,kernel2,kernel2,...
     stressTar,sEqualsT,false);
 % correct stress at exterior points
 
 if sEqualsT
     % add self contribution
-    for k = 1:vesicle.nv        
+    for k = 1:o.nv        
         stress1(:,k) = stress1(:,k) + S1diagOut(:,:,k)*f(:,k);
         stress2(:,k) = stress2(:,k) + S2diagOut(:,:,k)*f(:,k);
     end
@@ -939,9 +939,9 @@ end
 % the stress due to the double-layer potential
 
 if ~isempty(RS)
-  for k = 2:vesicle.nv
-    cx = vesicle.center(1,k);
-    cy = vesicle.center(2,k);
+  for k = 2:o.nv
+    cx = o.center(1,k);
+    cy = o.center(2,k);
     % center of interior solid wall k
     xi = RS(3*(k-2) + 3);
     % rotlet on interior solid wall k
@@ -990,21 +990,21 @@ end
 end % stressTensor
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function InOut = sortPts(vesicle,Xtar,fmm,NearV2T)
+function InOut = sortPts(o,Xtar,fmm,NearV2T)
 % InOut = sortPts(vesicle,Xtar,fmm,nearV2T) determines if the set of
 % points in Xtar are inside or outside of a vesicle configuration
 
-density = [ones(vesicle.N,vesicle.nv);...
-           zeros(vesicle.N,vesicle.nv)];
+density = [ones(o.Np,o.np);...
+           zeros(o.Np,o.np)];
 % density function that is used to check if a point is inside or
 % outside
 
 tracers = capsules([], Xtar);
 if nargin == 3 
-  [~,NearV2T] = vesicle.getZone(tracers,2);
+  [~,NearV2T] = o.getZone(tracers,2);
 end
 
-op = poten(vesicle.N);
+op = poten(o.N);
 if ~fmm
   kernel = @op.exactLaplaceDL;
 else
@@ -1017,7 +1017,7 @@ DLP = @(X) zeros(2*size(X,1),size(X,2));
 % applied to the constant density function will always return zero
 
 kernelDirect = kernel;
-InOut = op.nearSingInt(vesicle,density,DLP,[],NearV2T,kernel,kernelDirect,tracers,false,false);
+InOut = op.nearSingInt(o,density,DLP,[],NearV2T,kernel,kernelDirect,tracers,false,false);
 
 InOut = InOut(1:end/2);
 % only care about the first half as we are working with laplace as
