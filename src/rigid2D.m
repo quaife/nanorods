@@ -13,17 +13,15 @@ if (options.confined)
     walls = capsules(prams, xWalls);
 else
     walls = [];
-    prams.Nbd = 0;
-    prams.nbd = 0;
+    prams.Nw = 0;
+    prams.nw = 0;
 end
 
 % [xc_added, tau_added] = geom.fill_couette(5, 10, 86, prams);
 % xc = [xc, xc_added];
 % tau = [tau, tau_added];
 
-% prams.nv = length(tau);
-% prams.legnths = prams.lengths(1)*ones(1,prams.nv);
-% prams.widths = prams.widths(1)*ones(1,prams.nv);
+% prams.np = length(tau);
 
 om = monitor(options, prams, xc, tau);
 tt = tstep(options, prams, om, geom, walls, tau);
@@ -96,7 +94,7 @@ while time < prams.T
     
     % check for collisions
     [near,~] = geom.getZone(geom,1);
-    icollision = geom.collision(near,options.ifmm, options.inear, potF, om);
+    icollision = geom.collision(near,options.fmm, options.near_singular, potF, om);
     
     if (icollision)
         om.writeMessage('WARNING: COLLISION DETECTED');
