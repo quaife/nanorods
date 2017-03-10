@@ -4,10 +4,10 @@ classdef monitor
 properties
 verbose         % write data to console
 profile         % profile code (TO DO)
-saveData        % save data to the dat files and log file
-dataFile        % name of data file containing fibre centres and orientations
-logFile         % name of log file
-profileFile     % name of profile folder
+save        % save data to the dat files and log file
+data_file        % name of data file containing fibre centres and orientations
+log_file         % name of log file
+profile_file     % name of profile folder
 append          % append new data to files
 options         % options structure
 prams           % prameter structure
@@ -32,10 +32,10 @@ o.OUTPUTPATH_PROFILE = '../output/profile/';
 o.verbose = options.verbose;
 % write data to console
 
-o.saveData = options.saveData;
-o.dataFile = [o.OUTPUTPATH_DATA, options.fileBase, '.mat'];
-o.logFile = [o.OUTPUTPATH_LOG, options.fileBase, '.log'];
-o.profileFile = [o.OUTPUTPATH_PROFILE, options.fileBase];
+o.save = options.save;
+o.data_file = [o.OUTPUTPATH_DATA, options.file_base, '.mat'];
+o.log_file = [o.OUTPUTPATH_LOG, options.file_base, '.log'];
+o.profile_file = [o.OUTPUTPATH_PROFILE, options.file_base];
 
 o.append = options.append;
 o.profile = options.profile;
@@ -45,20 +45,20 @@ o.prams = prams;
 
 o.welcomeMessage();
 %% start new data file if needed
-if (o.saveData && ~o.append)
+if (o.save && ~o.append)
 
     o.clearFiles();
-    etaW = zeros(2*prams.Nbd, prams.nbd);
-    etaF = zeros(2*prams.N, prams.nv);
+    etaW = zeros(2*prams.Nw, prams.nw);
+    etaF = zeros(2*prams.Np, prams.np);
     
-    U = zeros(2, prams.nv);
-    omega = zeros(1,prams.nv);
+    U = zeros(2, prams.np);
+    omega = zeros(1,prams.np);
     
-    stokes = zeros(2,prams.nbd-1);
-    rot = zeros(1,prams.nbd-1);
+    stokes = zeros(2,prams.nw-1);
+    rot = zeros(1,prams.nw-1);
     t = 0;
     
-    save(o.dataFile, 'prams', 'options', 't', 'xc', 'tau', 'U', 'omega', 'stokes', 'rot', 'etaW', 'etaF');
+    save(o.data_file, 'prams', 'options', 't', 'xc', 'tau', 'U', 'omega', 'stokes', 'rot', 'etaW', 'etaF');
 end
 
 end % constructor: monitor
@@ -68,8 +68,8 @@ function clearFiles(o)
 % clearFiles() clears the previous log and data files so that there is 
 % nothing from previous runs
 
-fid1 = fopen(o.dataFile,'w');
-fid2 = fopen(o.logFile,'w');
+fid1 = fopen(o.data_file,'w');
+fid2 = fopen(o.log_file,'w');
 
 fclose(fid1);
 fclose(fid2);
@@ -140,8 +140,8 @@ end
 % if user doesn't give format, take it to be string followed by a new
 % line
 
-if o.saveData
-  fid = fopen(o.logFile, 'a');
+if o.save
+  fid = fopen(o.log_file, 'a');
   fprintf(fid,format,message);
   fclose(fid);
 end
@@ -160,7 +160,7 @@ function writeData(o, t_c, xc_c, tau_c, U_c, omega_c, stokes_c, rot_c, etaF_c, e
 % to a mat file. This file can be read in to Matlab later for
 % postprocessing.
 
-load(o.dataFile);
+load(o.data_file);
 
 t = [t, t_c];
 
@@ -198,7 +198,8 @@ else
     end
 end
 
-save(o.dataFile, 'prams', 'options', 't', 'xc', 'tau', 'U', 'omega', 'stokes', 'rot', 'etaW', 'etaF');
+save(o.data_file, 'prams', 'options', 't', 'xc', 'tau', 'U', 'omega',...
+                        'stokes', 'rot', 'etaW', 'etaF');
 
 end % writeData
 
