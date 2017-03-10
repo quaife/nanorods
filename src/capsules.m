@@ -46,7 +46,7 @@ else if length(varargin) == 2 % centres and orientation angles
             theta = (0:prams.Np-1)'*2*pi/prams.Np;
             o.X = zeros(2*prams.Np,prams.np);
             
-            r = (cos(-theta).^prams.order + sin(-theta).^prams.rounding_order)...
+            r = (cos(-theta).^prams.rounding_order + sin(-theta).^prams.rounding_order)...
                                 .^(-1/prams.rounding_order);
             
             for k = 1:prams.np
@@ -450,8 +450,8 @@ if ~isempty(o.X)
     
     % Bin target points with respect to the source points
     if (relate == 2 || relate == 3)
-        Np2 = bd2.Np; % number of additional targets
-        np2 = bd2.np; % number of additional boundaries
+        Np2 = bd2.N; % number of additional targets
+        np2 = bd2.n; % number of additional boundaries
         X2 = bd2.X; % additional target points
         [xtar,ytar] = oc.getXY(X2);
         % separate additional target points into x and y coordinates
@@ -692,8 +692,8 @@ function press = pressure(o,f,stokeslets,pressTar,sEqualsT)
 % integration with traction jump f. Note that vesicle may correspond to 
 % solid walls rather than vesicles
 
-N = o.Np; % points per vesicle
-nv = o.np; % number of vesicles
+N = o.N; % points per vesicle
+nv = o.n; % number of vesicles
 Nup = N*ceil(sqrt(N));
 op = poten(N);
 Ntar = pressTar.N;

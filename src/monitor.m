@@ -32,7 +32,7 @@ o.OUTPUTPATH_PROFILE = '../output/profile/';
 o.verbose = options.verbose;
 % write data to console
 
-o.save = options.save;
+o.save = options.save_data;
 o.data_file = [o.OUTPUTPATH_DATA, options.file_base, '.mat'];
 o.log_file = [o.OUTPUTPATH_LOG, options.file_base, '.log'];
 o.profile_file = [o.OUTPUTPATH_PROFILE, options.file_base];
@@ -48,8 +48,8 @@ o.welcomeMessage();
 if (o.save && ~o.append)
 
     o.clearFiles();
-    etaW = zeros(2*prams.Nw, prams.nw);
-    etaF = zeros(2*prams.Np, prams.np);
+    eta_w = zeros(2*prams.Nw, prams.nw);
+    eta_p = zeros(2*prams.Np, prams.np);
     
     U = zeros(2, prams.np);
     omega = zeros(1,prams.np);
@@ -58,7 +58,7 @@ if (o.save && ~o.append)
     rot = zeros(1,prams.nw-1);
     t = 0;
     
-    save(o.data_file, 'prams', 'options', 't', 'xc', 'tau', 'U', 'omega', 'stokes', 'rot', 'etaW', 'etaF');
+    save(o.data_file, 'prams', 'options', 't', 'xc', 'tau', 'U', 'omega', 'stokes', 'rot', 'eta_w', 'eta_p');
 end
 
 end % constructor: monitor
@@ -155,7 +155,7 @@ end
 end % writeMessage
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function writeData(o, t_c, xc_c, tau_c, U_c, omega_c, stokes_c, rot_c, etaF_c, etaW_c)
+function writeData(o, t_c, xc_c, tau_c, U_c, omega_c, stokes_c, rot_c, eta_pc, eta_wc)
 % writeData(t, xc, tau, U, omega, etaF, etaW) writes centre point and orientation of each fibre
 % to a mat file. This file can be read in to Matlab later for
 % postprocessing.
@@ -173,12 +173,12 @@ tau = [tau; tau_c];
 if (length(t) > 2)
     U(:,:,end+1) = U_c;
     omega = [omega;omega_c];
-    etaF(:,:,end+1) = etaF_c;
+    eta_p(:,:,end+1) = eta_pc;
 
     if o.options.confined
-        etaW(:,:,end+1) = etaW_c;
+        eta_w(:,:,end+1) = eta_wc;
 
-        if o.prams.nbd > 1
+        if o.prams.nw > 1
             stokes(:,:,end+1) = stokes_c;
             rot(:,end+1) = rot_c;
         end
@@ -186,12 +186,12 @@ if (length(t) > 2)
 else
     U(:,:,1) = U_c;
     omega = omega_c;
-    etaF(:,:,1) = etaF_c;
+    eta_p(:,:,1) = eta_pc;
 
     if o.options.confined
-        etaW(:,:,1) = etaW_c;
+        eta_w(:,:,1) = eta_wc;
 
-        if o.prams.nbd > 1
+        if o.prams.nw > 1
             stokes(:,:,1) = stokes_c;
             rot(:,1) = rot_c;
         end
@@ -199,7 +199,7 @@ else
 end
 
 save(o.data_file, 'prams', 'options', 't', 'xc', 'tau', 'U', 'omega',...
-                        'stokes', 'rot', 'etaW', 'etaF');
+                        'stokes', 'rot', 'eta_w', 'eta_p');
 
 end % writeData
 

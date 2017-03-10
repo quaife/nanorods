@@ -61,7 +61,7 @@ nw = prams.nw;
 o.potp = poten(prams.Np, om);
 
 if options.confined
-    o.potw = poten(prams.Nbd, om);
+    o.potw = poten(prams.Nw, om);
     o.Dw = o.potw.stokesDLmatrix(walls);
 else
     o.potw = [];
@@ -455,7 +455,7 @@ if o.confined && np > 0
    
    kernelDirect = @pot_walls.exactStokesDL;
    
-   if o.inear 
+   if o.near_singular
        DLP = @(X) pot_walls.exactStokesDLdiag(geom, o.Dp, X) - 1/2*X;
        wfdlp = pot_walls.nearSingInt(geom, etaF, DLP, o.Dup, o.near_structfw, ...
            kernel, kernelDirect, walls, false, false);
@@ -588,8 +588,8 @@ Np = (size(o.precop.L,1)-3)/2;
 np = size(o.precop.L,3);
 
 if o.confined
-    Nw = (size(o.precoW.L,1)-3)/2;
-    nw = size(o.precoW.L,3);
+    Nw = (size(o.precow.L,1)-3)/2;
+    nw = size(o.precow.L,3);
 else
     Nw = 0;
     nw = 0;
@@ -620,7 +620,7 @@ for k = 1:nw
        xiStart = 2*Np*np +  1;
        xiEnd = xiStart + 2*Nw - 1;
        
-       zblock = o.precoW.U(1:2*Nw,1:2*Nw,1)\(o.precoW.L(1:2*Nw,1:2*Nw,1)\...
+       zblock = o.precow.U(1:2*Nw,1:2*Nw,1)\(o.precow.L(1:2*Nw,1:2*Nw,1)\...
                             z(xiStart:xiEnd));
        Pz(xiStart:xiEnd) = zblock;
        
@@ -633,7 +633,7 @@ for k = 1:nw
         rotletStart = 2*Np*np+2*Nw*nw+3*np+2*(nw-1)+(k-1);
         rotletEnd = rotletStart;
         
-        zblock = o.precoW.U(:,:,k)\(o.precoW.L(:,:,k)\...
+        zblock = o.precow.U(:,:,k)\(o.precow.L(:,:,k)\...
                 [z(xiStart:xiEnd);z(stokesletStart:stokesletEnd);...
                 z(rotletStart:rotletEnd)]);
 
@@ -685,7 +685,7 @@ function z = letsIntegrals(~,otlets,etaM,walls)
 % function to enforce constraints on stokeslets and rotlets
 
 Nw = walls.N;
-nw = walls.nv;
+nw = walls.n;
 z = zeros(3*(nw-1),1);
 
 for k = 2:nw
@@ -722,7 +722,7 @@ oc = curve;
 [x,y] = oc.getXY(X);
 
 if options.confined
-    switch options.farField
+    switch options.far_field
         case 'constant'
             vInf = [ones(Np,np);zeros(Np,np)];
 
@@ -732,7 +732,7 @@ if options.confined
         case 'couette'
 
             vInf = zeros(2*Np,1);
-            vInf = [vInf, [-options.couetteSpeed*y(:,2); options.couetteSpeed*x(:,2)]];
+            vInf = [vInf, [-options.couette_speed*y(:,2); options.couette_speed*x(:,2)]];
             
         case 'pipe'            
             vInf = [1 - y(:,1).^2; zeros(Np,1)];

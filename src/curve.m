@@ -125,7 +125,7 @@ function [Xwalls,cen] = createWalls(o, N, options)
     
 t = (0:N-1)'*2*pi/N;
 
-switch options.farField
+switch options.far_field
     case 'circle'
         cen = [0;0];
         x = 10*cos(t)+cen(1,1);
