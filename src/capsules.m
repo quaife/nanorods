@@ -5,8 +5,8 @@ classdef capsules < handle
 % include constructing structures required for near-singluar integration
 
 properties
-Np;        % number of points per componenet
-np;       % number of components
+N;        % number of points per componenet
+n;        % number of components
 X;        % positions of component
 center;   % center of each rigid body
 xt;       % tangent unit vector
@@ -28,8 +28,8 @@ oc = curve;
 
 if length(varargin) == 1 % coordinates provided directly
     o.X = varargin{1};
-    o.Np = size(o.X,1)/2; % points per component
-    o.np = size(o.X,2);  % number of components
+    o.N = size(o.X,1)/2; % points per component
+    o.n = size(o.X,2);  % number of components
     o.center = [mean(o.X(1:end/2,:));mean(o.X(end/2+1:end,:))];
     % centers of each component
     
@@ -39,8 +39,8 @@ else if length(varargin) == 2 % centres and orientation angles
             xc = varargin{1};
             tau = varargin{2};
             
-            o.Np = prams.N;              % points per component
-            o.np = prams.nv;            % number of components
+            o.N = prams.Np;              % points per component
+            o.n = prams.np;            % number of components
             o.center = xc;
             
             theta = (0:prams.Np-1)'*2*pi/prams.Np;
@@ -76,8 +76,8 @@ else
     o.xt = [];
     o.cur = [];
     o.length = [];
-    o.Np = 0;
-    o.np = 0;
+    o.N = 0;
+    o.n = 0;
     o.center = [];
 end
 
@@ -190,14 +190,14 @@ if ~isempty(o.X)
     NearSelf = [];
     NearOther = [];
     
-    Np1 = o.Np; % number of source/target points
-    np1 = o.np; % number of source/target boundaries
+    N1 = o.N; % number of source/target points
+    n1 = o.n; % number of source/target boundaries
     X1 = o.X; % source and target points
     oc = curve;
     [xsou,ysou] = oc.getXY(X1);
     % separate targets into x and y coordinates
     
-    h = max(o.length)/Np1;
+    h = max(o.length)/N1;
     % smallest arclength over all boundaries
     ptsperbox = 10;
     % Estimate for number of points per box.  This simply sets the
@@ -248,15 +248,15 @@ if ~isempty(o.X)
     % DEBUG: This does a simple plot of the points with a grid that
     % aligns with the boundary of the boxes
     
-    fpt = zeros(Nbins,np1);
-    lpt = zeros(Nbins,np1);
+    fpt = zeros(Nbins,n1);
+    lpt = zeros(Nbins,n1);
     % allocate space for storing first and last points
     [binsort,permute] = sort(bin);
     % build permute.  Need binsort to find first and last points
     % in each box
     
-    for k = 1:np1 % Loop over boundaries
-        for j = 1:Np1 % Loop over bins
+    for k = 1:n1 % Loop over boundaries
+        for j = 1:N1 % Loop over bins
             ibox = binsort(j,k);
             if (fpt(ibox,k) == 0)
                 fpt(ibox,k) = j;
@@ -319,16 +319,16 @@ if ~isempty(o.X)
     
     
     if (relate == 1 || relate == 3)
-        for k = 1:np1
-            distSS{k} = spalloc(Np1,np1,0);
+        for k = 1:n1
+            distSS{k} = spalloc(N1,n1,0);
             % dist(n,k,j) is the distance of point n on boundary k to boundary j
-            zoneSS{k} = spalloc(Np1,np1,0);
+            zoneSS{k} = spalloc(N1,n1,0);
             % near or far zone
-            nearestSS{k} = spalloc(2*Np1,np1,0);
+            nearestSS{k} = spalloc(2*N1,n1,0);
             % nearest point using local interpolant
-            icpSS{k} = spalloc(Np1,np1,0);
+            icpSS{k} = spalloc(N1,n1,0);
             % index of closest discretization point
-            argnearSS{k} = spalloc(Np1,np1,0);
+            argnearSS{k} = spalloc(N1,n1,0);
             % argument in [0,1] of local interpolant
             nearFibersSS{k} = {};
         end
@@ -338,7 +338,7 @@ if ~isempty(o.X)
         
         % begin classifying points where we are considering
         % boundary to boundary relationships
-        for k = 1:np1
+        for k = 1:n1
             boxes = unique(bin(:,k));
             % Find all boxes containing points of boundary k
             boxes = neigh(boxes,:);
@@ -348,7 +348,7 @@ if ~isempty(o.X)
             boxes = boxes(boxes~=0);
             % Delete non-existent boxes that came up because of neigh
             
-            K = [(1:k-1) (k+1:np1)];
+            K = [(1:k-1) (k+1:n1)];
             for k2 = K
                 istart = fpt(boxes,k2);
                 iend = lpt(boxes,k2);
@@ -414,7 +414,7 @@ if ~isempty(o.X)
                             o.closestPnt([xsou;ysou],xsou(ipt,k2),...
                             ysou(ipt,k2),k,icpSS{k}(ipt,k2));
                         nearestSS{k}(ipt,k2) = nearestx;
-                        nearestSS{k}(ipt+Np1,k2) = nearesty;
+                        nearestSS{k}(ipt+N1,k2) = nearesty;
                         
                         nearFibersSS{k}= [nearFibersSS{k},k2];
                         % Find closest point along a local interpolant using
@@ -463,16 +463,16 @@ if ~isempty(o.X)
         % DEBUG: FOR SEEING TARGET AND SOURCE POINTS IN THE TREE STRUCTURE
         % WHICH CAN BE PLOTTED ABOVE
         
-        for k = 1:np1
-            distST{k} = spalloc(Np1,np2,0);
+        for k = 1:n1
+            distST{k} = spalloc(N1,np2,0);
             % dist(n,k,j) is the distance of point n on boundary k to
-            zoneST{k} = spalloc(Np1,np2,0);
+            zoneST{k} = spalloc(N1,np2,0);
             % near or far zone
-            nearestST{k} = spalloc(2*Np1,np2,0);
+            nearestST{k} = spalloc(2*N1,np2,0);
             % nearest point using local interpolant
-            icpST{k} = spalloc(Np1,np2,0);
+            icpST{k} = spalloc(N1,np2,0);
             % index of closest discretization point
-            argnearST{k} = spalloc(Np1,np2,0);
+            argnearST{k} = spalloc(N1,np2,0);
             % argument in [0,1] of local interpolant
         end
         % New way of representing near-singular integration structure so that
@@ -485,7 +485,7 @@ if ~isempty(o.X)
         % Only have to consider xx(ind),yy(ind) since all other points
         % are not contained in the box [xmin xmax] x [ymin ymax]
         
-        for k = 1:np1 % loop over sources
+        for k = 1:n1 % loop over sources
             for nind = 1:numel(indx)
                 % loop over points that are not outside the box that surrounds
                 % all target points with a sufficiently large buffer
@@ -650,7 +650,7 @@ if (om.profile)
     tCollision = tic;
 end
 
-f = [ones(o.Np,o.np);zeros(o.Np,o.np)];
+f = [ones(o.N,o.n);zeros(o.N,o.n)];
 % density function.  Solving a scalar-valued layer-potential, so set the
 % second component of density function to 0
 
@@ -670,7 +670,7 @@ else
   Fdlp = kernel(o,f,D);
 end
 
-Fdlp = Fdlp(1:o.Np,:);
+Fdlp = Fdlp(1:o.N,:);
 % take only first component of the DLP
 % plot(Fdlp);
 
