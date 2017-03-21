@@ -713,6 +713,372 @@ end % k
 end % letsIntegrals
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+function [X,eta,RS,fc_tot_store] = ...
+                        resolveCollision(o,X0,X1,walls,geom,PROPCOL)
+
+Np = PROPCOL.Np;
+np = PROPCOL.np;
+Nw = PROPCOL.Nw;
+nw = PROPCOL.nw;
+Nrd = PROPCOL.Nrd;
+
+X = PROPCOL.X;
+eta = PROPCOL.eta;
+RS = PROPCOL.RS;
+
+up = PROPCOL.u;
+omegap = PROPCOL.omega;
+rhs = PROPCOL.rhs;
+rhsChange = rhs*0;
+
+oc = curve;
+cellSize = 0;
+if np
+  [~,~,length] = oc.geomProp(X0);
+  edgelength = length/Np;
+  cellSize = max(cellSize,max(edgelength));
+end
+
+if o.confined
+  [~,~,length] = oc.geomProp(walls.X);
+  walllength = max(length/Nw);
+  wallupSamp = ceil(walllength/cellSize);
+else
+  wallupSamp = 1;
+end
+
+upSampleFactor = 1;
+nexten = 0;
+c_tol = 1e-12;
+minSep = o.minSep;
+maxIter = 1000;
+
+% check for collision
+[Ns,totalnp,Xstart,Xend,totalPts] = o.preColCheck(X0,X1,walls,wallupSamp);
+[vgrad, iv, ids, vols] = getCollision(Ns, totalnp, Xstart, Xend, minSep, ...
+        maxIter, totalPts, c_tol, prams.np, prams.nw, Np*upSampleFactor, ...
+        prams.Nw*wallupSamp, nexten, max(cellSize,minSep));
+    
+o.om.writeMessage(['ivolume: ' num2str(iv)],'%s\n');
+
+fc_tot = zeros(2*Np*np+2*Nrd*nvrd,1);
+fc_tot_store = zeros(2*Np*np+2*Nrd*nvrd,1);
+XchangeTot = X*0;
+sigmaChangeTot = sigma*0;
+uChangeTot = u*0;
+etaChangeTot = eta*0;
+RSchangeTot = RS*0;
+X1tmp = X1;
+
+colCount = 0;
+
+if(iv<0 && minSep==0) 
+    o.om.writeMessage('collision, exit matlab.','%s\n');
+    exit;
+end
+
+% resolve collision
+while(iv<0)
+    
+  colCount = colCount + 1;
+  vgrad = vgrad(1:2*Np*np);
+  ids_tmp = ids;
+  ids = ids(1:2*Np*np);
+  vols = vols(1:2*Np*np);
+
+  vgrad = o.adjustNormal(vgrad,Np,np,geom,edgelength,colCount);
+  [A,jaco,ivs,listnv,jacoSmooth] = o.preprocessRigid(vgrad,ids,vols,Np,np,geom);
+  
+  % update forcing term
+  [fc, lambda] = o.getColForce(A,ivs/o.dt,ivs*0,jacoSmooth);
+  fc_tot = fc_tot + fc;
+  
+    for k = 1:numel(listnv)
+        i = listnv(k);
+        fc_toti = fc_tot((i-1)*(2*Np)+1:i*(2*Nrd));
+        [stokeslet,rotlet] = o.getRS(geom.X(:,i),geom.sa(:,i),geom.center(:,i),fc_toti);
+        fCol = stokeslet*2*pi;
+        torqueCol = rotlet*2*pi; 
+        rhsChangei = [zeros(2*Nrd,1);fCol(:);torqueCol(:)];
+        
+        if o.use_precond
+             Xn = gmres(@(X) o.timeMatVec(X,geom,walls),rhsChangei,[],o.gmres_tol,...
+                            maxit,@o.preconditionerBD,[]);
+        else
+             Xn = gmres(@(X) o.timeMatVec(X,geom,walls),rhsChangei,[],o.gmres_tol,...
+                    maxit);
+        end
+        
+        Xk = o.extractRHSk(Xn,geom,i);
+        Xrig(:,i) = Xk;
+        X1tmp(:,np+i) = Xrig(:,i);
+    end
+  
+    for k = 1:size(ids_tmp,1)
+        if ids_tmp(k) ~= 0
+            lambda(ids_tmp(k)) = 0;
+        end
+    end
+    
+    fc_tot_store = fc_tot_store + jacoSmooth'*lambda;
+
+    [Ns,totalnp,Xstart,Xend,totalPts] = o.preColCheck(X0,X1tmp,walls,wallupSamp);
+    [vgrad, iv, ids, vols] = getCollision(Ns, totalnp, Xstart, Xend, minSep, ...
+        maxIter, totalPts, c_tol, prams.np, prams.nw, Np*upSampleFactor, ...
+        prams.Nw*wallupSamp, nexten, max(cellSize,minSep));
+
+    o.om.writeMessage(['ivolume: ' num2str(iv)],'%s\n');
+end
+
+X = X + XchangeTot;
+sigma = sigma + sigmaChangeTot;
+u = u + XchangeTot/o.dt;
+
+% Not sure what this is doing - treating walls explicity maybe?
+% if(o.confined && colCount)
+%   RIGID.rigid = geom;
+%   RIGID.etaRig = etaRig;
+% 
+%   WALL.walls = walls;
+%   
+%   
+%   SDCPROP = [];
+%   
+%   if o.SDCcorrect
+%     VES.X = XchangeTot; 
+%     VES.sig = sigmaChangeTot;
+%     VES.u = XchangeTot/o.dt;
+%   else
+%     VES.X = X; 
+%     VES.sig = sigma;
+%     VES.u = u;
+%   end
+% 
+%   [rhs] = o.sdcwallrhs(VES,WALL,PROP,SDCPROP,vesicle,RIGID);
+% 
+%   [Xn,iflagTemp,R,I,resvec] = gmres(@(X) o.wallmat(X,walls),...
+%         rhs,[],o.gmresTol,o.gmresMaxIter,...
+%         @o.preconditionerBDWall);
+%   if ~o.SDCcorrect
+%     [eta,RS] = o.extractRHSWall(Xn,Nw,nw);
+%   else
+%     [etaChange,RSChange] = o.extractRHSWall(Xn,Nw,nw);
+%     eta = eta + etaChange;
+%     RS = RS + RSChange;
+%   end
+% end
+% if np
+%   fc_tot_store = reshape(fc_tot_store(1:2*Np*np),2*Np,np);
+% else
+%   fc_tot_store = [];
+% end
+end % resolveCollisionGSrigid
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+function [A,jaco,ivs,listnv,jacoSmooth] = preprocessRigid(o,vgrad,ids,...
+                    vols,Np,np,geom)
+nivs = max(ids);
+A = zeros(nivs,nivs);
+ivs = zeros(nivs,1);
+vtoiv = zeros(nv+np,nivs);
+if o.withRigid
+    %rhsRig = reshape(rhsRig,[],nvrd);
+    %rhsRigChange = reshape(rhsRigChange,[],nvrd);
+end
+jI = [];
+jJ = [];
+jV = [];
+listnv = [];
+
+for i = 1:2*Np*np
+    if(ids(i)~=0)
+        k = ceil(i/(2*Np));
+        listnv = [listnv;k];
+        jI = [ids(i);jI];
+        jJ = [i;jJ];
+        jV = [vgrad(i);jV];
+        vtoiv(k,ids(i)) = 1;
+        ivs(ids(i)) = vols(i);
+    end
+end
+
+listnv = unique(listnv);
+ivs(ivs>-1e-12) = -1e-12;
+jaco = sparse(jI,jJ,jV,nivs,2*Np*np);
+jacoSmooth = jaco*0;
+
+
+for i = 1:nivs
+    S = find(vtoiv(:,i)~=0);
+    for j = 1:numel(S)
+        k = S(j);
+        f = jaco(i,1+(k-1)*2*Np:2*Np+(k-1)*2*Np)';
+        %add smooth force
+        %f = o.f_smooth(full(f),N,1);
+        jacoSmooth(i,1+(k-1)*2*Nmax:2*Np+(k-1)*2*Np) = f';
+
+        cm = geom.center(:,k);
+        X = geom.X(:,k);
+        [stokeslet,rotlet] = o.getRS(geom.X(:,k),geom.sa(:,k),geom.center(:,k),f);
+        fCol = stokeslet*2*pi;
+        torqueCol = rotlet*2*pi; 
+        
+        % new rhs with nonzero force and torque - make sure this is in
+        % correct order
+        rhsUp = [zeros(2*Np,1);fCol(:);torqueCol(:)];
+
+        if o.use_precond
+             Xn = gmres(@(X) o.timeMatVec(X,geom,walls),rhsUp,[],o.gmres_tol,...
+                            maxit,@o.preconditionerBD,[], o.rhs);
+        else
+             Xn = gmres(@(X) o.timeMatVec(X,geom,walls),rhsUp,[],o.gmres_tol,...
+                    maxit);
+        end
+
+        b = repmat(Xn(end-2:end-1)',Np,1) + Xn(end)*[X(Np+1:end)-cm(2),-(X(1:Np)-cm(1))];
+        b = b(:);
+    end
+    
+    SS = find(vtoiv(k,:)~=0);
+    for l = 1:numel(SS)
+        A(SS(l),i) = A(SS(l),i) + dot(jaco(SS(l),1+(k-1)*2*Np:2*Np+(k-1)*2*Np),b);
+    end
+end
+end % preprocessRigid
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+function [vgrad] = adjustNormal(~,vgrad,N,n,geom,edgelength,colCount)
+% use the normal of Xn or X?
+vgrad = reshape(vgrad,2*N,n);
+
+for k = 1:n
+  for i = 1:N
+    if(vgrad(i,k)==0 && vgrad(N+i,k)==0)
+      continue;
+    end
+    
+    % in rare case if space-time gradient is too small, 
+    % collision resolving may get stuck
+    % use surface normal instead
+    %if(norm(n_tmp) < edgelength(nvi)*0.1 || colCount > 20)
+    if(colCount > 20)
+      bnnorm = edgelength(k);
+      vgrad(i,k) = geom.normal(i,k)*bnnorm;
+      vgrad(N+i,k) = geom.normal(i+N,k)*bnnorm;
+    end
+  end
+end
+
+vgrad = vgrad(:);
+end % adjustNormal
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+function [stokeslet, rotlet] = getRS(~,X,sa,cm,eta)
+  N = size(X,1)/2;
+  stokeslet = zeros(2,1);
+  
+  stokeslet(1) = sum(eta(1:N).*sa)*2*pi/N;
+  stokeslet(2) = sum(eta(N+1:end).*sa)*2*pi/N;
+  
+  rotlet = sum(((X(N+1:end)-cm(2)).*eta(1:N) - ...
+    (X(1:N)-cm(1)).*eta(N+1:end)).*...
+    sa)*2*pi/N;
+  
+  stokeslet = stokeslet/(2*pi);
+  rotlet = rotlet/(2*pi);
+end %getRS
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+function [fc,lambda] = getColForce(~,A,b,x0,jaco)
+    
+tol_rel = 0.0;
+tol_abs = 0.0;
+max_iter = 50;
+[lambda, ~, ~, ~, ~, ~] = fischer_newton(A, b, x0, max_iter, tol_rel, ...
+                tol_abs, 'perturbation', false);
+fc = jaco'*lambda;
+end % getColForce
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+function [rhs] = getColRHSrigid(o,rigid,fc)
+    
+nv = rigid.nv;
+N = rigid.N;
+fc = reshape(fc,2*N,nv);
+u0 = zeros(2*N,nv);
+fColRig = zeros(2,nv);
+torqueColRig = zeros(1,nv);
+for i = 1:nv
+   [stokeslet, rotlet] = o.getRS(rigid.X(:,i),rigid.sa(:,i),...
+                                        rigid.center(:,i),fc(:,i));
+   fColRig(:,i) = stokeslet*2*pi;
+   torqueColRig(i) = rotlet*2*pi;
+end
+rhs = [u0;fColRig;torqueColRig];
+rhs = rhs(:);
+end % getColRHSrigid
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+function [Xrig] = extractRHSk(o,Xn,rigid,k)
+N = rigid.N;
+nv = numel(k);
+
+tmp = reshape(Xn,2*N+2+1,nv);
+uRig = tmp(2*N+1:2*N+2,:);
+omgRig = tmp(2*N+3,:);
+Xrig = zeros(2*N,nv);
+for j = 1:nv
+  i = k(j);
+  X  = rigid.X(:,i);
+  cm = rigid.center(:,i);
+  ui = uRig(:,j);
+  wi = omgRig(:,j);
+
+  X0 = reshape([X(1:N)-cm(1);X(N+1:end)-cm(2)],N,2);
+  cm = cm + ui*o.dt;
+  X1 = [cm(1)+cos(wi*o.dt)*X0(:,1)+sin(wi*o.dt)*X0(:,2);...
+        cm(2)-sin(wi*o.dt)*X0(:,1)+cos(wi*o.dt)*X0(:,2)];
+  Xrig(:,j) = X1(:);
+end
+
+end% extractRHSk
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+function [Ns,totalnv,Xstart,Xend,totalPts] = preColCheck(~,X0,X1,walls,upSampleFactor)
+Np = size(X0,1)/2;
+np = size(X0,2);
+%Ns = ones(nv,1)*N*upSampleFactor;
+Ns = ones(np,1)*Np;
+totalnv = np;
+
+% upsample positions
+Xv0 = reshape(X0,Np,2*np);
+%Xv0 = interpft(Xv0,N,1);
+%Xv0 = interpft(Xv0,N*upSampleFactor,1);
+Xv1 = reshape(X1,Np,2*np);
+%Xv1 = interpft(Xv1,N*upSampleFactor,1);
+%Xv1 = interpft(Xv1,N,1);
+
+Xstart = Xv0(:);
+Xend = Xv1(:);
+
+if(size(walls,1))
+  Ns = [Ns;ones(walls.nv,1)*walls.N*upSampleFactor];
+  totalnv = totalnv + walls.nv;
+  nb = walls.nv;
+  Npb = walls.N;
+  Xb = reshape(walls.X,Npb,2*nb);
+  Xb = interpft(Xb,Npb*upSampleFactor,1);
+  Xstart = [Xstart;Xb(:)];
+  Xend = [Xend;Xb(:)];
+end
+
+totalPts = sum(Ns);
+
+end % preColCheck
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function vInf = bgFlow(~,X,options)
     
 Np = size(X,1)/2;
