@@ -76,6 +76,8 @@ while time < prams.T
             tau = tau + tt.dt*wp;
         end
         
+
+        
         if (options.tstep_order == 2)
             Up_m1 = Up;
             wp_m1 = wp;
@@ -92,6 +94,40 @@ while time < prams.T
         end
     end
     
+    % calculate interference volume
+    X0 = geom.getXY();
+    oc = curve;
+    cellSize = 0;
+    if prams.np > 0
+        [~,length_tmp] = oc.geomProp(X0(:,1:prams.np));
+        edgelength = length_tmp/prams.Np;
+        cellSize = max(cellSize,max(edgelength));
+    end
+
+    if options.confined
+        [~,length_tmp] = oc.geomProp(walls.X);
+        walllength = max(length_tmp/prams.Nw);
+        wallupSamp = ceil(walllength/cellSize);
+    else
+        wallupSamp = 1;
+    end
+
+    geom = capsules(prams, xc, tau);
+    minSep = 0.01;
+    maxIter = 10;
+    upSampleFactor = 1;
+    nexten = 0;
+    c_tol = 1e-12;
+    Nmax = prams.Np;
+    
+    [Ns,totalnv,Xstart,Xend,totalPts] = tt.preColCheck(X0,geom.X,walls,wallupSamp); 
+    [vgrad, iv, ids, vols] = getCollision(Ns, totalnv, Xstart, Xend, minSep, ...
+        maxIter, totalPts, c_tol, prams.np, prams.nw, Nmax*upSampleFactor, ...
+        prams.Nw*wallupSamp, nexten, max(cellSize,minSep));
+    
+    om.writeMessage(['ivolume: ' num2str(iv)],'%s\n');
+
+        
     % check for collisions
     [near,~] = geom.getZone(geom,1);
     icollision = geom.collision(near,options.fmm, options.near_singular, potF, om);
