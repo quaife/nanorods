@@ -12,6 +12,13 @@ else
     prams.nw = 0;
 end
 
+% set minSep
+if prams.np > 0
+  oc = curve;
+  [~,len] = oc.geomProp(geom.X);
+  prams.minimum_separation = prams.minimum_separation*max(len)/prams.Np;
+end
+
 om = monitor(options, prams, xc, tau);
 tt = tstep(options, prams, om, geom, walls, tau);
 potP = poten(geom.N,om);
@@ -30,19 +37,24 @@ while time < prams.T
     geom = capsules(prams, xc, tau);
     X = geom.getXY();
     
-    [xc,tau,densityF,densityW,Up,wp,stokes, rot, ...
-        ~,~,iter,flag,res] = tt.timeStep(geom, walls, xc, tau);
+    if (iT == 0)
+        [xc,tau,densityF,densityW,Up,wp,stokes,rot, ...
+                ~,~,iter,flag,res] = tt.timeStep(geom, walls, xc, tau, [], [], true);
+    else
+        [xc,tau,densityF,densityW,Up,wp,stokes,rot, ...
+                ~,~,iter,flag,res] = tt.timeStep(geom, walls, xc, tau, Up, wp, false);
+    end
 
     time = time + tt.dt;
     iT = iT + 1;
     
-    % check for collisions
-    [near,~] = geom.getZone(geom,1);
-    icollision = geom.collision(near,options.fmm, options.near_singular, potP, om);
-    
-    if (icollision)
-        om.writeMessage('WARNING: COLLISION DETECTED');
-    end
+%     % check for collisions
+%     [near,~] = geom.getZone(geom,1);
+%     icollision = geom.collision(near,options.fmm, options.near_singular, potP, om);
+%     
+%     if (icollision)
+%         om.writeMessage('WARNING: COLLISION DETECTED');
+%     end
     
     om.writeMessage(....
         ['Finished t=', num2str(time, '%3.3e'), ' in ' num2str(iter) ...
