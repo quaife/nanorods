@@ -994,8 +994,7 @@ function InOut = sortPts(o,Xtar,fmm,NearV2T)
 % InOut = sortPts(vesicle,Xtar,fmm,nearV2T) determines if the set of
 % points in Xtar are inside or outside of a vesicle configuration
 
-density = [ones(o.Np,o.np);...
-           zeros(o.Np,o.np)];
+density = [ones(o.N,o.n); zeros(o.N,o.n)];
 % density function that is used to check if a point is inside or
 % outside
 
