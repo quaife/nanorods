@@ -59,7 +59,7 @@ o.display_solution = options.display_solution;
 o.resolve_collisions = options.resolve_collisions;
 o.dt = prams.T/prams.number_steps;                  
 o.gmres_tol = options.gmres_tol;             
-o.gmres_max_it = 100;
+o.gmres_max_it = 2*(prams.np*prams.Np + prams.nw*prams.Nw);
 
 o.far_field = @(X) o.bgFlow(X,options); 
 o.om = om;
@@ -71,6 +71,7 @@ o.points_per_particle = prams.Np;
 o.points_per_wall = prams.Nw;
 
 np = o.num_particles;
+nw = o.num_walls;
 Np = o.points_per_particle;
 Nw = o.points_per_wall;
 
@@ -156,7 +157,7 @@ if o.use_precond
         [x,y] = oc.getXY(walls.X);
         [cx,cy] = oc.getXY(walls.center);
         
-        for k = 1:Nw
+        for k = 1:nw
             
             if k == 1 % first wall does not need Rotlets and Stokeslets
                 [o.precow.L(1:2*Nw,1:2*Nw,k),o.precow.U(1:2*Nw,1:2*Nw,k)] =...
@@ -168,8 +169,8 @@ if o.use_precond
                 
                 col_stokes1 = [-0.5*log(rho2) + r(:,1).*r(:,1)./rho2; ...
                                 r(:,2).*r(:,1)./rho2]/(4*pi);
-                col_stokes2 = [r(:,2).*r(:,1)./rho2; -0.5*log(rho2) +...
-                                r(:,2).*r(:,2)./rho2]/(4*pi);
+                col_stokes2 = [r(:,2).*r(:,1)./rho2; ...
+                                -0.5*log(rho2) + r(:,2).*r(:,2)./rho2]/(4*pi);
                 col_rot = [r(:,2)./rho2; -r(:,1)./rho2];
                 
                 int_stokes = 2*pi*sa(:,k)'/Nw;
@@ -203,6 +204,8 @@ function [xc_new,tau_new,etaP,etaW,uP,omega,forceW,torqueW,forceP,....
 
 np = o.num_particles;
 Np = o.points_per_particle;
+nw = o.num_walls;
+Nw = o.points_per_wall;
 
 % ASSEMBLE RHS WITH NO FORCE AND TORQUE ON PARTICLES
 forceP = zeros(2,np);
@@ -328,13 +331,6 @@ if o.resolve_collisions
     torqueP = solution.torqueP;
 end
 
-if o.display_solution
-    geomNew = capsules(o.prams, xc_new, tau_new);
-    fill(geomNew.X(1:end/2,:),geomNew.X(end/2+1:end,:),'k');
-    axis equal
-    drawnow
-end
-
 end % timeStep
 
 
@@ -365,7 +361,6 @@ torqueP = zeros(np,1);
 % CALCULATE VELOCITIES ON PARTICLES AND WALLS
 
 % ADD JUMP IN DLP
-
 velParticles = velParticles - 1/2*etaP;
 
 if o.confined
@@ -553,9 +548,8 @@ Nw = o.points_per_wall;
 
 if o.confined
     ff = o.far_field(walls.X);
-    rhs = [zeros(2*Np*np,1); ff(:); forceP(:); torqueP' ;zeros(3*(Nw-1),1)];
-else
-    
+    rhs = [zeros(2*Np*np,1); ff(:); forceP(:); torqueP';zeros(3*(nw-1),1)];
+else    
     ff = o.far_field(geom.X);
     rhs = [-ff(:); forceP(:); torqueP'];
 end
@@ -631,7 +625,7 @@ if o.confined
 
     xi = zeros(1,nw-1);
     for k = 1:nw-1
-       lambda(k) = Xn(2*Np*np+2*Nw*nw+3*np+2*(nw-1)+k);
+       xi(k) = Xn(2*Np*np+2*Nw*nw+3*np+2*(nw-1)+k);
     end
 else
     lambda = 0;
@@ -719,14 +713,14 @@ LogTerm = -0.5*log(rho2)*stokeslet(1);
 rorTerm = 1./rho2.*((x-cx).*(x-cx)*stokeslet(1) + ...
     (x-cx).*(y-cy)*stokeslet(2));
 RotTerm = (y-cy)./rho2*rotlet;
-velx = 1/4/pi*(LogTerm + rorTerm) + RotTerm;
+velx = 1/4/pi*(LogTerm + rorTerm) + RotTerm/(4*pi);
 % x component of velocity due to the stokeslet and rotlet
 
 LogTerm = -0.5*log(rho2)*stokeslet(2);
 rorTerm = 1./rho2.*((y-cy).*(x-cx)*stokeslet(1) + ...
     (y-cy).*(y-cy)*stokeslet(2));
 RotTerm = -(x-cx)./rho2*rotlet;
-vely = 1/4/pi*(LogTerm + rorTerm) + RotTerm;
+vely = 1/4/pi*(LogTerm + rorTerm) + RotTerm/(4*pi);
 % y component of velocity due to the stokeslet and rotlet
 
 vel = [velx;vely];
@@ -735,7 +729,7 @@ vel = [velx;vely];
 end % RSlets
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function z = letsIntegrals(~,otlets,eta,walls)
+function z = letsIntegrals(o,otlets,eta,walls)
 % z = letsIntegrals(stokeslet,rotlet,etaM,walls) integrates the density
 % function to enforce constraints on stokeslets and rotlets
 
@@ -857,12 +851,21 @@ while(iv<0)
         xc_new = solution.xc_old + (3/2)*o.dt*uP - (1/2)*o.dt*uP_m1;
         tau_new = solution.tau_old + (3/2)*o.dt*omega - (1/2)*o.dt*omega_m1;
     end
-
+    
+    % FIX FORCE BALANCE, TOTAL FORCE IN SYSTEM SHOULD BE 0
+%     for k = 1:size(ids,1)
+%         if ids(k) ~= 0
+%             lambda(ids(k)) = 0;
+%         end
+%     end
+%     
+%     fc_tot = fc_tot + jacoSmooth'*lambda;
+    
     geomProv = capsules(o.prams, xc_new, tau_new);
-
+    
     % CHECK AGAIN FOR COLLISIONS
     [Ns,totalnp,Xstart,Xend,totalPts] = o.preColCheck(geomOld.X,geomProv.X,...
-      walls,wallupSamp);
+        walls,wallupSamp);
 
     [vgrad, iv, ids, vols] = getCollision(Ns, totalnp, Xstart, Xend, minSep, ...
       maxIter, totalPts, c_tol, np, nw, Np*upSampleFactor, ...
@@ -891,6 +894,8 @@ function [A,jaco,ivs,listnv,jacoSmooth] = preprocessRigid(o,vgrad,ids,...
                 
 Np = o.points_per_particle;
 np = o.num_particles;
+Nw = o.points_per_wall;
+nw = o.num_walls;
 
 nivs = max(ids);
 A = zeros(nivs,nivs);
@@ -933,10 +938,18 @@ for i = 1:nivs
     
     % ASSEMBLE NEW RHS WITH CONTACT FORCES
     rhs = o.assembleRHS(geom, walls, forceP, torqueP, true);
-    ff = o.far_field(geom.X);
-    rhs(1:2*Np*np) = rhs(1:2*Np*np) + ff(:);
+    
+    % REMOVE BACKGROUND FLOW
+    if (o.confined)
+        ff = o.far_field(walls.X);
+        start = 2*Np*np+1;
+        rhs(start:start+2*Nw*nw-1) = rhs(start:start+2*Nw*nw-1) - ff(:);
+    else
+        ff = o.far_field(geom.X);
+        rhs(1:2*Np*np) = rhs(1:2*Np*np) + ff(:);
+    end
 
-    % SOLVE SYSTEM
+    % SOLVE SYSTEM WITH FAR FIELD NEGLECTED
     if o.use_precond
       Xn = gmres(@(X) o.timeMatVec(X,geom,walls,false),rhs,[],o.gmres_tol,...
           o.gmres_max_it,@o.preconditionerBD,[]);
@@ -1095,19 +1108,24 @@ if options.confined
                     vInf = [[-y(:,1);zeros(2*Np,1)],[-y(:,2);zeros(2*Np,1)]];
                 end
             end
+    
         otherwise
             vInf = [zeros(Np,np);zeros(Np,np)];
     end
 else
     switch options.far_field
         case 'shear'
-            vInf = [-3*X(end/2+1:end,:);zeros(Np,np)];
+            vInf = [-3*y;zeros(Np,np)];
 
         case 'extensional'
-            vInf = [X(1:end/2,:);-X(end/2+1:end,:)];
+            vInf = [x;-y];
 
         case 'pipe'
-            vInf = [1 - X(end/2+1:end,:).^2; zeros(Np,np)];
+            vInf = [1 - y.^2; zeros(Np,np)];
+                         
+        case 'taylor-green'
+            vInf = [cos(x).*sin(y); -sin(x).*cos(y)];
+            
         otherwise
             vInf = [ones(Np,np);zeros(Np,np)];
     end
