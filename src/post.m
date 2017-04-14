@@ -68,7 +68,8 @@ function [] = plotWalls(o,iT)
 
     ptsTrack = o.prams.tracker_fnc(o.times(iT));
     
-    plot3(ptsTrack(:,1),ptsTrack(:,2), 100*ones(size(ptsTrack,1),1), 'b.', 'MarkerSize', 20); 
+    plot3(ptsTrack(:,1),ptsTrack(:,2), 100*ones(size(ptsTrack,1),1),...
+                    'b.', 'MarkerSize', 20); 
 end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
