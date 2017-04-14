@@ -350,15 +350,31 @@ pot_particles = o.potp;
 pot_walls = o.potw;
 
 % PREALLOCATE OUTPUT VECTORS
+% velParticles : velocity of particles
+% velWalls     : velocity of particles
+% forceP       : net force on particles, strength of Stokeslets
+% torqueP      : net torque on particles, strengh of rotlets
 velParticles = zeros(2*Np,np);
 velWalls = zeros(2*Nw,nw);
-forceP = zeros(2,np);
-torqueP = zeros(np,1);
 
 % UNPACK Xn
-[etaP, etaW, uP, omega, forceW, torqueW] = unpackSolution(o, Xn);
+% etaP    : denisty function on particles
+% etaW    : density function on walls
+% uT      : translational velocity of particles
+% omega   : angular velocity of particles
+% forceW  : net force on walls, strength of Stokeslets
+% torqueW : net torque on walls, strength of rotlets
+[etaP, etaW, uT, omega, forceW, torqueW] = unpackSolution(o, Xn);
 
-% CALCULATE VELOCITIES ON PARTICLES AND WALLS
+% CALCULATE VELOCITIES ON PARTICLES AND WALLS, NET FORCE AND TORQUE ON
+% WALLS
+
+% pp_dlp : velocity on particles due to density funtion on other particles
+% wp_dlp : velocity on walls due to density function on all particles
+% pw_dlp : velocity on particles due to density function on all walls
+% ww_dlp : velocity on walls due to denisity function on other walls
+% p_sr   : velocity on particles due to rotlets and Stokeslets in walls
+% w_sr   : velocity on walls due to rotlets and Stokeslets in walls
 
 % ADD JUMP IN DLP
 velParticles = velParticles - 1/2*etaP;
@@ -479,12 +495,17 @@ if (o.confined && nw > 1)
     % END TARGETS == WALLS
     % END SOURCE == ROTLETS
     
-    % EVALUATE ROTLET AND STOKESLET EQUATIONS
-    valLets = o.letsIntegrals([forceW;torqueW], etaW, walls);
+    % COMPUTE NET FORCE AND TORQUE ON WALLS
+    [f_w, t_w] = o.computeNetForceTorque(etaW, walls);
+    
+    % subtract off known force and torque for all walls except outer wall
+    forceW = f_w(:,2:end) - forceW; 
+    torqueW = t_w(2:end) - torqueW;
 else
     p_sr = 0;
     w_sr = 0;
-    valLets = [];
+    forceW = [];
+    torqueW = [];
 end
 
 % EVALUATE TOTAL VELOCITY ON PARTICLES
@@ -496,8 +517,8 @@ end
 
 % SUBTRACT VELOCITY ON SURFACE
 for k = 1:np
-  velParticles(1:end/2,k) = velParticles(1:end/2,k) - uP(1,k);
-  velParticles(end/2+1:end,k) = velParticles(end/2+1:end,k) - uP(2,k);
+  velParticles(1:end/2,k) = velParticles(1:end/2,k) - uT(1,k);
+  velParticles(end/2+1:end,k) = velParticles(end/2+1:end,k) - uT(2,k);
 end
 
 for k = 1:np
@@ -515,20 +536,11 @@ if o.confined
 end
 
 % EVALUTATE FORCES ON PARTICLES
-for k = 1:np
-  forceP(1,k) = sum(etaP(1:Np,k).*geom.sa(:,k))*2*pi/Np;
-  forceP(2,k) = sum(etaP(Np+1:2*Np,k).*geom.sa(:,k))*2*pi/Np;
-end
-
-% EVALUATE TORQUES ON PARTICLES
-for k = 1:np
-  torqueP(k) = sum(((geom.X(Np+1:2*Np,k)-geom.center(2,k)).*etaP(1:Np,k) - ...
-                     ((geom.X(1:Np,k)-geom.center(1,k)).*etaP(Np+1:2*Np,k))).*...
-                     geom.sa(:,k))*2*pi/Np;
-end
+[forceP, torqueP] = o.computeNetForceTorque(etaP, geom);
 
 % CONSTRUCT OUTPUT VECTOR
-Tx = [velParticles(:); velWalls(:); forceP(:); torqueP(:); valLets(:)];
+Tx = [velParticles(:); velWalls(:); forceP(:); torqueP(:); ...
+                                forceW(:)', torqueW(:)'];
 
 if o.profile
     o.om.writeMessage(['Matvec assembly completed in ', ....
@@ -729,38 +741,28 @@ vel = [velx;vely];
 end % RSlets
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function z = letsIntegrals(o,otlets,eta,walls)
+function [force,torque] = computeNetForceTorque(~,eta, geom)
 % z = letsIntegrals(stokeslet,rotlet,etaM,walls) integrates the density
 % function to enforce constraints on stokeslets and rotlets
 
-Nw = o.points_per_wall;
-nw = o.num_walls;
+N = geom.N;
+n = geom.n;
 
-z = zeros(3*(nw-1),1);
+force = zeros(2,n);
+torque = zeros(1,n);
 
-for k = 2:nw
-  stokeslet = otlets(3*(k-2)+1:3*(k-2)+2);
-  % two stokeslet terms per inner boundary
-  rotlet = otlets(3*(k-1));
-  % one rotlet term per inner boundary
-  ind = 3*(k-2)+1;
-  z(ind) = -2*pi*stokeslet(1) + ...
-    sum(eta(1:Nw,k).*walls.sa(:,k))*2*pi/Nw;
-  % integral of density function dotted with [1;0]
-  % is one stokeslet
-  z(ind+1) = -2*pi*stokeslet(2) + ...
-    sum(eta(Nw+1:2*Nw,k).*walls.sa(:,k))*2*pi/Nw;
-  % integral of density fuction dotted with [0;1]
-  % is the other stokeslet
-  z(ind+2) = -2*pi*rotlet + sum(...
-    ((walls.X(Nw+1:2*Nw,k)).*eta(1:Nw,k) - ...
-    (walls.X(1:Nw,k)).*eta(Nw+1:2*Nw,k)).*...
-    walls.sa(:,k))*2*pi/Nw;
-  % integral of density function dotted with (y,-x)
-  % is the rotlet
-end % k
+for k = 1:n
 
-end % letsIntegrals
+  force(1,k) =  sum(eta(1:N,k).*geom.sa(:,k))*2*pi/N;
+  force(2,k) =  sum(eta(N+1:2*N,k).*geom.sa(:,k))*2*pi/N;
+  
+  torque(k) = sum(((geom.X(N+1:2*N,k)).*eta(1:N,k) - ...
+    (geom.X(1:N,k)).*eta(N+1:2*N,k)).*...
+    geom.sa(:,k))*2*pi/N;
+
+end
+
+end % computeNetForceTorque
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function solution = resolveCollisions(o,geomOld, geomProv, walls, ...
