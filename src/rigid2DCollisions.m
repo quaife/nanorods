@@ -37,6 +37,20 @@ while time < prams.T
     geom = capsules(prams, xc, tau);
     X = geom.getXY();
     
+    if options.display_solution
+        fill(geom.X(1:end/2,:),geom.X(end/2+1:end,:),'k');
+        axis equal
+        
+        if options.confined
+            hold on
+            for k = 1:prams.nw
+                plot(xWalls(1:end/2,k),xWalls(end/2+1:end,k), 'r', 'linewidth', 2);
+            end
+            hold off
+        end
+        drawnow
+    end
+    
     if (iT == 0)
         [xc,tau,densityF,densityW,Up,wp,stokes,rot, ...
                 ~,~,iter,flag,res] = tt.timeStep(geom, walls, xc, tau, [], [], true);
