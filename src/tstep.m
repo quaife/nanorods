@@ -480,7 +480,8 @@ if (o.confined && nw > 1)
     p_sr = 0;
     for k = 2:nw % loop over all walls, except outer wall
         p_sr = p_sr + ...
-            o.RSlets(geom.X, walls.center(:,k), forceW(:,k-1), torqueW(k-1));
+            o.computeRotletStokesletVelocity(geom.X, walls.center(:,k), ...
+                                forceW(:,k-1), torqueW(k-1));
     end 
     
     % END TARGETS == PARTICLES
@@ -489,7 +490,8 @@ if (o.confined && nw > 1)
     w_sr = zeros(2*Nw,nw);
     for k = 2:nw % loop over all walls, except outer wall
         w_sr = w_sr +...
-            o.RSlets(walls.X, walls.center(:,k), forceW(:,k-1), torqueW(k-1));
+            o.computeRotletStokesletVelocity(walls.X, walls.center(:,k),...
+                                forceW(:,k-1), torqueW(k-1));
     end   
     
     % END TARGETS == WALLS
@@ -571,7 +573,8 @@ if o.resolve_collisions
     % ADD IN CONTRIBUTIONS TO VELOCITIES FROM PARTICLE ROTLETS AND STOKESLETS    
     for k = 1:np
         % CONTRIBUTION TO PARTICLE VELOCITY
-        v = o.RSlets(geom.X, geom.center(:,k),forceP(:,k),torqueP(k));
+        v = o.computeRotletStokesletVelocity(geom.X, geom.center(:,k),...
+                            forceP(:,k),torqueP(k));
         
         if preprocess
             start = 2*Np*(k-1)+1;
@@ -582,7 +585,8 @@ if o.resolve_collisions
         
         if o.confined
             % CONTRIBUTION TO WALL VELOCITY
-            v = o.RSlets(walls.X, geom.center(:,k),forceP(:,k),torqueP(k));
+            v = o.computeRotletStokesletVelocity(walls.X, geom.center(:,k),...
+                                forceP(:,k),torqueP(k));
             rhs(2*Np*np+1:2*Np*np+2*Nw*nw) = ...
                                 rhs(2*Np*np+1:2*Np*np+2*Nw*nw) - v(:);
         end
@@ -591,7 +595,7 @@ end
 
 end % assembleRHS
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function [etaP, etaW, u, omega, lambda, xi] = unpackSolution(o, Xn)
+function [etaP, etaW, u, omega, forceW, torqueW] = unpackSolution(o, Xn)
 % Unpack solution vector that comes from GMRES call
 
 np = o.num_particles;
@@ -629,19 +633,19 @@ for k = 1:np
 end
 
 if o.confined
-    lambda = zeros(2,nw-1);
+    forceW = zeros(2,nw-1);
     for k = 1:nw-1
-       lambda(:,k) = ...
+       forceW(:,k) = ...
            Xn(2*Np*np+2*Nw*nw+3*np+1+2*(k-1): 2*Np*np+2*Nw*nw+3*np+2*k);
     end
 
-    xi = zeros(1,nw-1);
+    torqueW = zeros(1,nw-1);
     for k = 1:nw-1
-       xi(k) = Xn(2*Np*np+2*Nw*nw+3*np+2*(nw-1)+k);
+       torqueW(k) = Xn(2*Np*np+2*Nw*nw+3*np+2*(nw-1)+k);
     end
 else
-    lambda = 0;
-    xi = 0;
+    forceW = 0;
+    torqueW = 0;
 end
 
 end % unpackSolution
@@ -707,7 +711,7 @@ end
 end % preconditioner
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function vel = RSlets(~,X,center,stokeslet,rotlet)
+function vel = computeRotletStokesletVelocity(~,X,center,stokeslet,rotlet)
 % vel = RSlets(o,X,center,stokeslet,rotlet) evaluates the velocity due
 % to the stokeslet and rotlet terms at target points X.  
 % Center of the rotlet and stokeslet is contained in center
@@ -723,22 +727,22 @@ rho2 = (x-cx).^2 + (y-cy).^2;
 
 LogTerm = -0.5*log(rho2)*stokeslet(1);
 rorTerm = 1./rho2.*((x-cx).*(x-cx)*stokeslet(1) + ...
-    (x-cx).*(y-cy)*stokeslet(2));
+                (x-cx).*(y-cy)*stokeslet(2));
 RotTerm = (y-cy)./rho2*rotlet;
-velx = 1/4/pi*(LogTerm + rorTerm) + RotTerm/(4*pi);
+velx = (LogTerm + rorTerm + RotTerm)/(4*pi);
 % x component of velocity due to the stokeslet and rotlet
 
 LogTerm = -0.5*log(rho2)*stokeslet(2);
 rorTerm = 1./rho2.*((y-cy).*(x-cx)*stokeslet(1) + ...
     (y-cy).*(y-cy)*stokeslet(2));
 RotTerm = -(x-cx)./rho2*rotlet;
-vely = 1/4/pi*(LogTerm + rorTerm) + RotTerm/(4*pi);
+vely = (LogTerm + rorTerm + RotTerm)/(4*pi);
 % y component of velocity due to the stokeslet and rotlet
 
 vel = [velx;vely];
 % velocity
 
-end % RSlets
+end % computeRotletStokesletVelocity
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function [force,torque] = computeNetForceTorque(~,eta, geom)
@@ -827,8 +831,7 @@ while(iv<0)
     fc_tot = fc_tot + fc;
 
     fc_tot_tmp = reshape(fc_tot, 2*Np, np);
-    [forceP,torqueP] = ...
-            o.getRS(geomOld.X,geomOld.sa,geomOld.center,fc_tot_tmp);
+    [forceP,torqueP] = o.computeNetForceTorque(fc_tot_tmp,geomOld);
 
     % ASSEMBLE NEW RHS WITH CONTACT FORCES
     rhs = o.assembleRHS(geomOld, walls, forceP, torqueP, true);
@@ -936,7 +939,7 @@ for i = 1:nivs
     f = jaco(i,1:2*Np*np)';
     f = reshape(f, 2*Np, np);
 
-    [forceP,torqueP] = o.getRS(geom.X,geom.sa,geom.center,full(f));
+    [forceP,torqueP] = o.computeNetForceTorque(full(f),geom);
     
     % ASSEMBLE NEW RHS WITH CONTACT FORCES
     rhs = o.assembleRHS(geom, walls, forceP, torqueP, true);
@@ -1012,21 +1015,6 @@ end
 
 vgrad = vgrad(:);
 end % adjustNormal
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function [stokeslet, rotlet] = getRS(~,X,sa,cm,eta)
-  N = size(X,1)/2;
-  n = size(X,2);
-  
-  stokeslet = zeros(2,n);
-  
-  stokeslet(1,:) = sum(eta(1:N,:).*sa)*2*pi/N;
-  stokeslet(2,:) = sum(eta(N+1:end,:).*sa)*2*pi/N;
-  
-  rotlet = sum(((X(N+1:end,:)-repmat(cm(2,:),[N,1])).*eta(1:N,:) - ...
-    (X(1:N,:)-repmat(cm(1,:),[N,1])).*eta(N+1:end,:)).*...
-    sa)*2*pi/N;
-end %getRS
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function [fc,lambda] = getColForce(~,A,b,x0,jaco)
