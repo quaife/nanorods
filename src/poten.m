@@ -337,18 +337,18 @@ end % k
 end % stokesDLmatrix
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function N0 = stokesN0matrix(~,wall)
+function N0 = stokesN0matrix(~,walls)
 % N0 = stokesN0matrix(vesicle) generates the the integral operator with 
 % kernel normal(x) \otimes normal(y) which removes the rank one defficiency 
 % of the double-layer potential.  Need this operator for solid walls
 
-normal = [wall.xt(wall.N+1:2*wall.N,:);-wall.xt(1:wall.N,:)]; % Normal vector
-normal = normal(:,ones(2*wall.N,1));
+normal = [walls.xt(walls.N+1:2*walls.N,:);-walls.xt(1:walls.N,:)]; % Normal vector
+normal = normal(:,ones(2*walls.N,1));
 
-sa = [wall.sa(:,1);wall.sa(:,1)];
-sa = sa(:,ones(2*wall.N,1));
-N0 = zeros(2*wall.N,2*wall.N,wall.n);
-N0(:,:,1) = normal.*normal'.*sa'*2*pi/wall.N;
+sa = [walls.sa(:,1);walls.sa(:,1)];
+sa = sa(:,ones(2*walls.N,1));
+N0 = zeros(2*walls.N,2*walls.N,walls.n);
+N0(:,:,1) = normal.*normal'.*sa'*2*pi/walls.N;
 % Use N0 if solving (-1/2 + DLP)\eta = f where f has no flux through
 % the boundary.  By solving (-1/2 + DLP + N0)\eta = f, we guarantee
 % that \eta also has no flux through the boundary.  This is not
