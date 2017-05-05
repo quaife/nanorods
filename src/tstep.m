@@ -575,9 +575,9 @@ else
 end
 
 if o.confined
-    rhs = [zeros(2*Np*np,1); ff(:); forceP(:); torqueP';zeros(3*(nw-1),1)];
+    rhs = [zeros(2*Np*np,1); ff(:); 2*pi*forceP(:); 2*pi*torqueP';zeros(3*(nw-1),1)];
 else
-    rhs = [-ff(:); forceP(:); torqueP'];
+    rhs = [-ff(:); 2*pi*forceP(:); 2*pi*torqueP'];
 end
 
 
@@ -1077,6 +1077,43 @@ end
 totalPts = sum(Ns);
 
 end % preColCheck
+
+-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+-function [vgrad] = f_smooth(~,vgrad,N,nv)
+-  vgrad = reshape(vgrad,2*N,nv);
+-  M = ceil(N/4);
+-  gw = gausswin(N,10);
+-  gw = gw/sum(gw);
+-  for nvi = 1:nv
+-    fc_x = vgrad(1:N,nvi);
+-    fc_tmp = ifft(fft(fc_x).*fft(gw));
+-%    Idx = ifftshift(-N/2:N/2+1);
+-%    Idx = abs(Idx) >= N/4;
+-%    coeffx = fft(fc_x).*fft(gw);
+-%    norm(coeffx(Idx));
+-    fc_x = [fc_tmp(N/2:N);fc_tmp(1:N/2-1)];
+-%    coeffx = fft(fc_x);
+-%    norm(coeffx(Idx));
+-
+-    %coef = fft(fc_x);
+-    %coef(M+1:N/2+1) = 0;
+-    %coef(N/2+2:N-M+1) = 0;
+-    %fc_x = ifft(coef);
+-
+-    fc_y = vgrad(N+1:2*N,nvi);
+-    fc_tmp = ifft(fft(fc_y).*fft(gw));
+-%    coeffx = fft(fc_y).*fft(gw);
+-%    norm(coeffx(Idx));
+-    fc_y = [fc_tmp(N/2:N);fc_tmp(1:N/2-1)];
+-    %coef = fft(fc_y);
+-    %coef(M+1:N/2+1) = 0;
+-    %coef(N/2+2:N-M+1) = 0;
+-    %fc_y = ifft(coef);
+-
+-    vgrad(1:N,nvi) = fc_x;
+-    vgrad(N+1:2*N,nvi) = fc_y;
+-  end
+-end % f_smooth
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function vInf = bgFlow(~,X,options)
