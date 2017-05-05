@@ -274,10 +274,10 @@ end
 
 % SOLVE SYSTEM USING GMRES TO GET CANDIDATE TIME STEP
 if o.use_precond
-  [Xn,iflag,res,I] = gmres(@(X) o.timeMatVec(X,geom,walls,true),rhs,[],...
+  [Xn,iflag,res,I] = gmres(@(X) o.timeMatVec(X,geom,walls,false),rhs,[],...
       o.gmres_tol,o.gmres_max_it,@o.preconditionerBD,[], rhs);
 else
-  [Xn,iflag,res,I] = gmres(@(X) o.timeMatVec(X,geom,walls,true),rhs,[],...
+  [Xn,iflag,res,I] = gmres(@(X) o.timeMatVec(X,geom,walls,false),rhs,[],...
       o.gmres_tol, o.gmres_max_it);
 end
 
@@ -335,7 +335,7 @@ end % timeStep
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function Tx = timeMatVec(o,Xn,geom,walls,include_far_field)
+function Tx = timeMatVec(o,Xn,geom,walls,preprocess)
 % Tx = timeMatVec(Xn,geom) does a matvec for GMRES 
 if o.profile
     tMatvec = tic;
@@ -387,7 +387,7 @@ end
 velParticles = velParticles + ...
     pot_particles.exactStokesDLdiag(geom, o.Dp, etaP);
 
-if o.confined
+if o.confined && ~preprocess
     velWalls = velWalls + pot_walls.exactStokesDLdiag(walls, o.Dw, etaW);
 end
 
@@ -435,7 +435,7 @@ end
 
 % START OF SOURCE == WALLS
 % START OF TARGET == PARTICLES
-if o.confined && np > 0
+if o.confined && np > 0 && ~preprocess
    
    if o.fmm
         kernel = @pot_particles.exactStokesDLfmm;       
@@ -474,7 +474,7 @@ end
 % END OF TARGET == WALLS
 % END OF SOURCE == WALLS
 
-if (o.confined && nw > 1)
+if (o.confined && nw > 1 && ~preprocess)
     % START SOURCE == ROTLETS AND STOKESLETS
     % START TARGETS == PARTICLES
     p_sr = 0;
@@ -513,7 +513,7 @@ end
 % EVALUATE TOTAL VELOCITY ON PARTICLES
 
 % ADD CONTRIBUTIONS FROM OTHER BODIES
-if include_far_field
+if ~preprocess
     velParticles = velParticles + p_sr + pp_dlp + pw_dlp;
 end
 
@@ -531,7 +531,7 @@ for k = 1:np
 end
 
 % EVALUATE VELOCITY ON WALLS
-if o.confined
+if o.confined && ~preprocess
     velWalls = velWalls + ww_dlp + wp_dlp + w_sr;
     velWalls(:,1) = velWalls(:,1)...
                     + pot_walls.exactStokesN0diag(walls, o.N0w, etaW(:,1));
@@ -541,8 +541,12 @@ end
 [forceP, torqueP] = o.computeNetForceTorque(etaP, geom);
 
 % CONSTRUCT OUTPUT VECTOR
-Tx = [velParticles(:); velWalls(:); forceP(:); torqueP(:); ...
+if ~preprocess
+    Tx = [velParticles(:); velWalls(:); forceP(:); torqueP(:); ...
                                 forceW(:)', torqueW(:)'];
+else % ignore walls
+    Tx = [velParticles(:); forceP(:); torqueP(:)];
+end
 
 if o.profile
     o.om.writeMessage(['Matvec assembly completed in ', ....
@@ -831,7 +835,6 @@ while(iv<0)
     
     vgrad = vgrad(1:2*Np*np);
 
-    %disp(max(abs(vgrad(1:Np))));
     ids = ids(1:2*Np*np);
     vols = vols(1:2*Np*np);
 
@@ -841,7 +844,9 @@ while(iv<0)
 
     % CALCULATE FORCE AND TORQUES ON PARTICLES
     [fc, ~] = o.getColForce(A,ivs/o.dt,ivs*0,jacoSmooth);
-    fc_tot = fc_tot + fc;
+    
+    fc = o.f_smooth(full(fc),Np,np);
+    fc_tot = fc_tot + fc(:);
 
     fc_tot_tmp = reshape(fc_tot, 2*Np, np);
     [forceP,torqueP] = o.computeNetForceTorque(fc_tot_tmp,geomOld);
@@ -851,10 +856,10 @@ while(iv<0)
 
     % SOLVE SYSTEM
     if o.use_precond
-      Xn = gmres(@(X) o.timeMatVec(X,geomOld,walls,true),rhs,[],o.gmres_tol,...
+      Xn = gmres(@(X) o.timeMatVec(X,geomOld,walls,false),rhs,[],o.gmres_tol,...
           o.gmres_max_it,@o.preconditionerBD,[]);
     else
-      Xn = gmres(@(X) o.timeMatVec(X,geomOld,walls,true),rhs,[],o.gmres_tol,...
+      Xn = gmres(@(X) o.timeMatVec(X,geomOld,walls,false),rhs,[],o.gmres_tol,...
           o.gmres_max_it);
     end 
 
@@ -950,6 +955,8 @@ for i = 1:nivs
     S = find(vtoiv(:,i)~=0); 
     
     f = jaco(i,1:2*Np*np)';
+    f = o.f_smooth(full(f),Np,np);
+    
     f = reshape(f, 2*Np, np);
 
     [forceP,torqueP] = o.computeNetForceTorque(full(f),geom);
@@ -957,22 +964,12 @@ for i = 1:nivs
     % ASSEMBLE NEW RHS WITH CONTACT FORCES
     rhs = o.assembleRHS(geom, walls, forceP, torqueP, true);
     
-    % REMOVE BACKGROUND FLOW
-%     if (o.confined)
-%         ff = o.far_field(walls.X);
-%         start = 2*Np*np+1;
-%         rhs(start:start+2*Nw*nw-1) = rhs(start:start+2*Nw*nw-1) - ff(:);
-%     else
-%         ff = o.far_field(geom.X);
-%         rhs(1:2*Np*np) = rhs(1:2*Np*np) + ff(:);
-%     end
-
     % SOLVE SYSTEM WITH FAR FIELD NEGLECTED
     if o.use_precond
-      Xn = gmres(@(X) o.timeMatVec(X,geom,walls,false),rhs,[],o.gmres_tol,...
+      Xn = gmres(@(X) o.timeMatVec(X,geom,walls,true),rhs,[],o.gmres_tol,...
           o.gmres_max_it,@o.preconditionerBD,[]);
     else
-      Xn = gmres(@(X) o.timeMatVec(X,geom,walls,false),rhs,[],o.gmres_tol,...
+      Xn = gmres(@(X) o.timeMatVec(X,geom,walls,true),rhs,[],o.gmres_tol,...
           o.gmres_max_it);
     end 
     
@@ -1078,42 +1075,43 @@ totalPts = sum(Ns);
 
 end % preColCheck
 
--%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
--function [vgrad] = f_smooth(~,vgrad,N,nv)
--  vgrad = reshape(vgrad,2*N,nv);
--  M = ceil(N/4);
--  gw = gausswin(N,10);
--  gw = gw/sum(gw);
--  for nvi = 1:nv
--    fc_x = vgrad(1:N,nvi);
--    fc_tmp = ifft(fft(fc_x).*fft(gw));
--%    Idx = ifftshift(-N/2:N/2+1);
--%    Idx = abs(Idx) >= N/4;
--%    coeffx = fft(fc_x).*fft(gw);
--%    norm(coeffx(Idx));
--    fc_x = [fc_tmp(N/2:N);fc_tmp(1:N/2-1)];
--%    coeffx = fft(fc_x);
--%    norm(coeffx(Idx));
--
--    %coef = fft(fc_x);
--    %coef(M+1:N/2+1) = 0;
--    %coef(N/2+2:N-M+1) = 0;
--    %fc_x = ifft(coef);
--
--    fc_y = vgrad(N+1:2*N,nvi);
--    fc_tmp = ifft(fft(fc_y).*fft(gw));
--%    coeffx = fft(fc_y).*fft(gw);
--%    norm(coeffx(Idx));
--    fc_y = [fc_tmp(N/2:N);fc_tmp(1:N/2-1)];
--    %coef = fft(fc_y);
--    %coef(M+1:N/2+1) = 0;
--    %coef(N/2+2:N-M+1) = 0;
--    %fc_y = ifft(coef);
--
--    vgrad(1:N,nvi) = fc_x;
--    vgrad(N+1:2*N,nvi) = fc_y;
--  end
--end % f_smooth
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+function [vgrad] = f_smooth(~,vgrad,N,nv)
+    
+vgrad = reshape(vgrad,2*N,nv);
+M = ceil(N/4);
+gw = gausswin(N,10);
+gw = gw/sum(gw);
+for nvi = 1:nv
+    fc_x = vgrad(1:N,nvi);
+    fc_tmp = ifft(fft(fc_x).*fft(gw));
+    %    Idx = ifftshift(-N/2:N/2+1);
+    %    Idx = abs(Idx) >= N/4;
+    %    coeffx = fft(fc_x).*fft(gw);
+    %    norm(coeffx(Idx));
+    fc_x = [fc_tmp(N/2:N);fc_tmp(1:N/2-1)];
+    %    coeffx = fft(fc_x);
+    %    norm(coeffx(Idx));
+
+    %coef = fft(fc_x);
+    %coef(M+1:N/2+1) = 0;
+    %coef(N/2+2:N-M+1) = 0;
+    %fc_x = ifft(coef);
+
+    fc_y = vgrad(N+1:2*N,nvi);
+    fc_tmp = ifft(fft(fc_y).*fft(gw));
+    %    coeffx = fft(fc_y).*fft(gw);
+    %    norm(coeffx(Idx));
+    fc_y = [fc_tmp(N/2:N);fc_tmp(1:N/2-1)];
+    %coef = fft(fc_y);
+    %coef(M+1:N/2+1) = 0;
+    %coef(N/2+2:N-M+1) = 0;
+    %fc_y = ifft(coef);
+
+    vgrad(1:N,nvi) = fc_x;
+    vgrad(N+1:2*N,nvi) = fc_y;
+end
+end % f_smooth
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function vInf = bgFlow(~,X,options)
