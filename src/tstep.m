@@ -211,7 +211,7 @@ Nw = o.points_per_wall;
 forceP = zeros(2,np);
 torqueP = zeros(1,np);
 
-rhs = o.assembleRHS(geom, walls, forceP, torqueP, false);
+rhs = o.assembleRHS(geom, walls, forceP, torqueP, true, false);
 
 % CREATE NEAR SINGULAR INTEGRATION STRUCTURES
 if o.near_singular
@@ -458,7 +458,7 @@ end
 % END OF TARGET == PARTICLES
 
 % START OF TARGET == WALLS
-if o.confined
+if o.confined && ~preprocess
     
     if o.fmm
         kernel = @pot_walls.exactStokesDLfmm;
@@ -474,7 +474,7 @@ end
 % END OF TARGET == WALLS
 % END OF SOURCE == WALLS
 
-if (o.confined && nw > 1 && ~preprocess)
+if o.confined && nw > 1 && ~preprocess
     % START SOURCE == ROTLETS AND STOKESLETS
     % START TARGETS == PARTICLES
     p_sr = 0;
@@ -543,7 +543,7 @@ end
 % CONSTRUCT OUTPUT VECTOR
 if ~preprocess
     Tx = [velParticles(:); velWalls(:); forceP(:); torqueP(:); ...
-                                forceW(:)', torqueW(:)'];
+                                forceW(:); torqueW(:)];
 else % ignore walls
     Tx = [velParticles(:); forceP(:); torqueP(:)];
 end
@@ -556,7 +556,8 @@ end
 end % timeMatVec
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function rhs = assembleRHS(o, geom, walls, forceP, torqueP, preprocess)
+function rhs = assembleRHS(o, geom, walls, forceP, torqueP, ...
+                    include_far_field, preprocess)
 % Assemble right hand side
 
 np = o.num_particles;
@@ -564,22 +565,22 @@ nw = o.num_walls;
 Np = o.points_per_particle;
 Nw = o.points_per_wall;
 
-if ~preprocess
+if include_far_field
     if o.confined
         ff = o.far_field(walls.X);
-    else    
+    else
         ff = o.far_field(geom.X);
     end
 else
-    if o.confined
-        ff = zeros(2*Nw*nw,1);
-    else
-        ff = zeros(2*Np*np,1);
-    end
+    ff = zeros(2*Np*np,1);
 end
 
 if o.confined
-    rhs = [zeros(2*Np*np,1); ff(:); 2*pi*forceP(:); 2*pi*torqueP';zeros(3*(nw-1),1)];
+    if include_far_field
+        rhs = [zeros(2*Np*np,1); ff(:); 2*pi*forceP(:); 2*pi*torqueP'; zeros(3*(nw-1),1)];
+    else
+        rhs = [-ff(:); 2*pi*forceP(:); 2*pi*torqueP'];
+    end
 else
     rhs = [-ff(:); 2*pi*forceP(:); 2*pi*torqueP'];
 end
@@ -587,7 +588,7 @@ end
 
 if o.resolve_collisions
     
-    % ADD IN CONTRIBUTIONS TO VELOCITIES FROM PARTICLE ROTLETS AND STOKESLETS    
+    % ADD IN CONTRIBUTIONS TO VELOCITIES FROM PARTICLE ROTLETS AND STOKESLETS
     for k = 1:np
         % CONTRIBUTION TO PARTICLE VELOCITY
         v = o.computeRotletStokesletVelocity(geom.X, geom.center(:,k),...
@@ -600,7 +601,7 @@ if o.resolve_collisions
             rhs(1:2*Np*np)= rhs(1:2*Np*np) - v(:);
         end
         
-        if o.confined
+        if o.confined && ~preprocess
             % CONTRIBUTION TO WALL VELOCITY
             v = o.computeRotletStokesletVelocity(walls.X, geom.center(:,k),...
                                 forceP(:,k),torqueP(k));
@@ -859,7 +860,7 @@ while(iv<0)
     [forceP,torqueP] = o.computeNetForceTorque(fc_tot_tmp,geomOld);
 
     % ASSEMBLE NEW RHS WITH CONTACT FORCES
-    rhs = o.assembleRHS(geomOld, walls, forceP, torqueP, true);
+    rhs = o.assembleRHS(geomOld, walls, forceP, torqueP, true, true);
 
     % SOLVE SYSTEM
     if o.use_precond
@@ -969,16 +970,16 @@ for i = 1:nivs
     [forceP,torqueP] = o.computeNetForceTorque(full(f),geom);
     
     % ASSEMBLE NEW RHS WITH CONTACT FORCES
-    rhs = o.assembleRHS(geom, walls, forceP, torqueP, true);
+    rhs = o.assembleRHS(geom, walls, forceP, torqueP, false, true);
     
     % SOLVE SYSTEM WITH FAR FIELD NEGLECTED
-    if o.use_precond
-      Xn = gmres(@(X) o.timeMatVec(X,geom,walls,true),rhs,[],o.gmres_tol,...
-          o.gmres_max_it,@o.preconditionerBD,[]);
-    else
+%     if o.use_precond
+%       Xn = gmres(@(X) o.timeMatVec(X,geom,walls,true),rhs,[],o.gmres_tol,...
+%           o.gmres_max_it,@o.preconditionerBD,[]);
+%     else
       Xn = gmres(@(X) o.timeMatVec(X,geom,walls,true),rhs,[],o.gmres_tol,...
           o.gmres_max_it);
-    end 
+    %end 
     
     % COMPUTE VELOCITY OF EACH POINT ON ALL RIGID PARTICLES
     [~, ~, uP, omega, ~, ~] = unpackSolution(o, Xn, true);
