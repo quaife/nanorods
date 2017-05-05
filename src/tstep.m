@@ -211,7 +211,7 @@ Nw = o.points_per_wall;
 forceP = zeros(2,np);
 torqueP = zeros(1,np);
 
-rhs = o.assembleRHS(geom, walls, forceP, torqueP, true, false);
+rhs = o.assembleRHS(geom, walls, forceP, torqueP, [1:np], true);
 
 % CREATE NEAR SINGULAR INTEGRATION STRUCTURES
 if o.near_singular
@@ -274,10 +274,10 @@ end
 
 % SOLVE SYSTEM USING GMRES TO GET CANDIDATE TIME STEP
 if o.use_precond
-  [Xn,iflag,res,I] = gmres(@(X) o.timeMatVec(X,geom,walls,false),rhs,[],...
+  [Xn,iflag,res,I] = gmres(@(X) o.timeMatVec(X,geom,walls),rhs,[],...
       o.gmres_tol,o.gmres_max_it,@o.preconditionerBD,[], rhs);
 else
-  [Xn,iflag,res,I] = gmres(@(X) o.timeMatVec(X,geom,walls,false),rhs,[],...
+  [Xn,iflag,res,I] = gmres(@(X) o.timeMatVec(X,geom,walls),rhs,[],...
       o.gmres_tol, o.gmres_max_it);
 end
 
@@ -335,7 +335,7 @@ end % timeStep
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function Tx = timeMatVec(o,Xn,geom,walls,preprocess)
+function Tx = timeMatVec(o,Xn,geom,walls)
 % Tx = timeMatVec(Xn,geom) does a matvec for GMRES 
 if o.profile
     tMatvec = tic;
@@ -364,7 +364,7 @@ velWalls = zeros(2*Nw,nw);
 % omega   : angular velocity of particles
 % forceW  : net force on walls, strength of Stokeslets
 % torqueW : net torque on walls, strength of rotlets
-[etaP, etaW, uT, omega, forceW, torqueW] = unpackSolution(o, Xn, preprocess);
+[etaP, etaW, uT, omega, forceW, torqueW] = unpackSolution(o, Xn, false);
 
 % CALCULATE VELOCITIES ON PARTICLES AND WALLS, NET FORCE AND TORQUE ON
 % WALLS
@@ -387,7 +387,7 @@ end
 velParticles = velParticles + ...
     pot_particles.exactStokesDLdiag(geom, o.Dp, etaP);
 
-if o.confined && ~preprocess
+if o.confined
     velWalls = velWalls + pot_walls.exactStokesDLdiag(walls, o.Dw, etaW);
 end
 
@@ -435,7 +435,7 @@ end
 
 % START OF SOURCE == WALLS
 % START OF TARGET == PARTICLES
-if o.confined && np > 0 && ~preprocess
+if o.confined && np > 0
    
    if o.fmm
         kernel = @pot_particles.exactStokesDLfmm;       
@@ -458,7 +458,7 @@ end
 % END OF TARGET == PARTICLES
 
 % START OF TARGET == WALLS
-if o.confined && ~preprocess
+if o.confined
     
     if o.fmm
         kernel = @pot_walls.exactStokesDLfmm;
@@ -474,7 +474,7 @@ end
 % END OF TARGET == WALLS
 % END OF SOURCE == WALLS
 
-if o.confined && nw > 1 && ~preprocess
+if o.confined && nw > 1
     % START SOURCE == ROTLETS AND STOKESLETS
     % START TARGETS == PARTICLES
     p_sr = 0;
@@ -513,9 +513,8 @@ end
 % EVALUATE TOTAL VELOCITY ON PARTICLES
 
 % ADD CONTRIBUTIONS FROM OTHER BODIES
-if ~preprocess
-    velParticles = velParticles + p_sr + pp_dlp + pw_dlp;
-end
+velParticles = velParticles + p_sr + pp_dlp + pw_dlp;
+
 
 % SUBTRACT VELOCITY ON SURFACE
 for k = 1:np
@@ -541,12 +540,8 @@ end
 [forceP, torqueP] = o.computeNetForceTorque(etaP, geom);
 
 % CONSTRUCT OUTPUT VECTOR
-if ~preprocess
-    Tx = [velParticles(:); velWalls(:); forceP(:); torqueP(:); ...
-                                forceW(:); torqueW(:)];
-else % ignore walls
-    Tx = [velParticles(:); forceP(:); torqueP(:)];
-end
+Tx = [velParticles(:); velWalls(:); forceP(:); torqueP(:); ...
+                    forceW(:); torqueW(:)];
 
 if o.profile
     o.om.writeMessage(['Matvec assembly completed in ', ....
@@ -556,8 +551,8 @@ end
 end % timeMatVec
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function rhs = assembleRHS(o, geom, walls, forceP, torqueP, ...
-                    include_far_field, preprocess)
+function rhs = assembleRHS(o, geom, walls, forceP, torqueP, bodies,...
+                    include_far_field)
 % Assemble right hand side
 
 np = o.num_particles;
@@ -589,19 +584,15 @@ end
 if o.resolve_collisions
     
     % ADD IN CONTRIBUTIONS TO VELOCITIES FROM PARTICLE ROTLETS AND STOKESLETS
-    for k = 1:np
+    for k = bodies
         % CONTRIBUTION TO PARTICLE VELOCITY
         v = o.computeRotletStokesletVelocity(geom.X, geom.center(:,k),...
                             forceP(:,k),torqueP(k));
-        
-        if preprocess
+
             start = 2*Np*(k-1)+1;
             rhs(start:start+2*Np-1) = rhs(start:start+2*Np-1) - v(:,k);
-        else
-            rhs(1:2*Np*np)= rhs(1:2*Np*np) - v(:);
-        end
         
-        if o.confined && ~preprocess
+        if o.confined
             % CONTRIBUTION TO WALL VELOCITY
             v = o.computeRotletStokesletVelocity(walls.X, geom.center(:,k),...
                                 forceP(:,k),torqueP(k));
@@ -860,14 +851,14 @@ while(iv<0)
     [forceP,torqueP] = o.computeNetForceTorque(fc_tot_tmp,geomOld);
 
     % ASSEMBLE NEW RHS WITH CONTACT FORCES
-    rhs = o.assembleRHS(geomOld, walls, forceP, torqueP, true, true);
+    rhs = o.assembleRHS(geomOld, walls, forceP, torqueP, [1:np], true);
 
     % SOLVE SYSTEM
     if o.use_precond
-      Xn = gmres(@(X) o.timeMatVec(X,geomOld,walls,false),rhs,[],o.gmres_tol,...
+      Xn = gmres(@(X) o.timeMatVec(X,geomOld,walls),rhs,[],o.gmres_tol,...
           o.gmres_max_it,@o.preconditionerBD,[]);
     else
-      Xn = gmres(@(X) o.timeMatVec(X,geomOld,walls,false),rhs,[],o.gmres_tol,...
+      Xn = gmres(@(X) o.timeMatVec(X,geomOld,walls),rhs,[],o.gmres_tol,...
           o.gmres_max_it);
     end 
 
@@ -970,19 +961,19 @@ for i = 1:nivs
     [forceP,torqueP] = o.computeNetForceTorque(full(f),geom);
     
     % ASSEMBLE NEW RHS WITH CONTACT FORCES
-    rhs = o.assembleRHS(geom, walls, forceP, torqueP, false, true);
+    rhs = o.assembleRHS(geom, walls, forceP, torqueP, S', false);
     
     % SOLVE SYSTEM WITH FAR FIELD NEGLECTED
-%     if o.use_precond
-%       Xn = gmres(@(X) o.timeMatVec(X,geom,walls,true),rhs,[],o.gmres_tol,...
-%           o.gmres_max_it,@o.preconditionerBD,[]);
-%     else
-      Xn = gmres(@(X) o.timeMatVec(X,geom,walls,true),rhs,[],o.gmres_tol,...
+    if o.use_precond
+      Xn = gmres(@(X) o.timeMatVec(X,geom,walls),rhs,[],o.gmres_tol,...
+          o.gmres_max_it,@o.preconditionerBD,[]);
+    else
+      Xn = gmres(@(X) o.timeMatVec(X,geom,walls),rhs,[],o.gmres_tol,...
           o.gmres_max_it);
-    %end 
+    end 
     
     % COMPUTE VELOCITY OF EACH POINT ON ALL RIGID PARTICLES
-    [~, ~, uP, omega, ~, ~] = unpackSolution(o, Xn, true);
+    [~, ~, uP, omega, ~, ~] = unpackSolution(o, Xn, false);
     
     b = zeros(2*Np,np);
     for k = S'
