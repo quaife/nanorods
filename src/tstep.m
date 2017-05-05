@@ -560,13 +560,26 @@ nw = o.num_walls;
 Np = o.points_per_particle;
 Nw = o.points_per_wall;
 
+if ~preprocess
+    if o.confined
+        ff = o.far_field(walls.X);
+    else    
+        ff = o.far_field(geom.X);
+    end
+else
+    if o.confined
+        ff = zeros(2*Nw*nw,1);
+    else
+        ff = zeros(2*Np*np,1);
+    end
+end
+
 if o.confined
-    ff = o.far_field(walls.X);
     rhs = [zeros(2*Np*np,1); ff(:); forceP(:); torqueP';zeros(3*(nw-1),1)];
-else    
-    ff = o.far_field(geom.X);
+else
     rhs = [-ff(:); forceP(:); torqueP'];
 end
+
 
 if o.resolve_collisions
     
@@ -740,12 +753,11 @@ vely = (LogTerm + rorTerm + RotTerm)/(4*pi);
 % y component of velocity due to the stokeslet and rotlet
 
 vel = [velx;vely];
-% velocity
 
 end % computeRotletStokesletVelocity
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function [force,torque] = computeNetForceTorque(~,eta, geom)
+function [force,torque] = computeNetForceTorque(~, eta, geom)
 % z = letsIntegrals(stokeslet,rotlet,etaM,walls) integrates the density
 % function to enforce constraints on stokeslets and rotlets
 
@@ -769,7 +781,7 @@ end
 end % computeNetForceTorque
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function solution = resolveCollisions(o,geomOld, geomProv, walls, ...
+function solution = resolveCollisions(o, geomOld, geomProv, walls, ...
                         solution, uP_m1, omega_m1, first_step)
 
 Np = o.points_per_particle;
@@ -815,10 +827,11 @@ colCount = 0;
 while(iv<0)
 
     colCount = colCount + 1;  
-
+    o.om.writeMessage(['Collision resolving iteration: ', num2str(colCount)]);
+    
     vgrad = vgrad(1:2*Np*np);
 
-    disp(max(abs(vgrad(1:Np))));
+    %disp(max(abs(vgrad(1:Np))));
     ids = ids(1:2*Np*np);
     vols = vols(1:2*Np*np);
 
@@ -945,14 +958,14 @@ for i = 1:nivs
     rhs = o.assembleRHS(geom, walls, forceP, torqueP, true);
     
     % REMOVE BACKGROUND FLOW
-    if (o.confined)
-        ff = o.far_field(walls.X);
-        start = 2*Np*np+1;
-        rhs(start:start+2*Nw*nw-1) = rhs(start:start+2*Nw*nw-1) - ff(:);
-    else
-        ff = o.far_field(geom.X);
-        rhs(1:2*Np*np) = rhs(1:2*Np*np) + ff(:);
-    end
+%     if (o.confined)
+%         ff = o.far_field(walls.X);
+%         start = 2*Np*np+1;
+%         rhs(start:start+2*Nw*nw-1) = rhs(start:start+2*Nw*nw-1) - ff(:);
+%     else
+%         ff = o.far_field(geom.X);
+%         rhs(1:2*Np*np) = rhs(1:2*Np*np) + ff(:);
+%     end
 
     % SOLVE SYSTEM WITH FAR FIELD NEGLECTED
     if o.use_precond
