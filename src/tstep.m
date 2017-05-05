@@ -284,7 +284,7 @@ end
 iter = I(2);
 
 % UNPACK SOLUTION
-[etaP, etaW, uP, omega, forceW, torqueW] = o.unpackSolution(Xn);
+[etaP, etaW, uP, omega, forceW, torqueW] = o.unpackSolution(Xn,false);
 
 % CREATE CANDIDATE CONFIGURATION 
 if first_step % FORWARD EULER
@@ -364,7 +364,7 @@ velWalls = zeros(2*Nw,nw);
 % omega   : angular velocity of particles
 % forceW  : net force on walls, strength of Stokeslets
 % torqueW : net torque on walls, strength of rotlets
-[etaP, etaW, uT, omega, forceW, torqueW] = unpackSolution(o, Xn);
+[etaP, etaW, uT, omega, forceW, torqueW] = unpackSolution(o, Xn, preprocess);
 
 % CALCULATE VELOCITIES ON PARTICLES AND WALLS, NET FORCE AND TORQUE ON
 % WALLS
@@ -612,7 +612,8 @@ end
 
 end % assembleRHS
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function [etaP, etaW, u, omega, forceW, torqueW] = unpackSolution(o, Xn)
+function [etaP, etaW, u, omega, forceW, torqueW] = unpackSolution(...
+                            o, Xn, preprocess)
 % Unpack solution vector that comes from GMRES call
 
 np = o.num_particles;
@@ -629,7 +630,7 @@ for k = 1:np
 end
 
 % each column of etaW corresponds to the density function of a solid wall
-if o.confined
+if o.confined && ~preprocess
     etaW = zeros(2*Nw, nw);
     for k = 1:nw
        etaW(:,k) = Xn(2*Np*np+1+(k-1)*2*Nw:2*Np*np+k*2*Nw);
@@ -640,16 +641,22 @@ end
 
 % EXTRACT TRANSLATIONAL AND ROTATIONAL VELOCITIES
 u = zeros(2,np);
-for k = 1:np
-  u(:,k) = Xn(2*Np*np+2*Nw*nw+(k-1)*2+1:2*Np*np+2*Nw*nw+k*2);
-end
-
 omega = zeros(1,np);
-for k = 1:np
-  omega(k) = Xn(2*Np*np+2*Nw*nw+2*np+k);
+if ~preprocess
+    for k = 1:np
+        u(:,k) = Xn(2*Np*np+2*Nw*nw+(k-1)*2+1:2*Np*np+2*Nw*nw+k*2);
+        
+        omega(k) = Xn(2*Np*np+2*Nw*nw+2*np+k);
+    end
+else
+    for k = 1:np
+        u(:,k) = Xn(2*Np*np+(k-1)*2+1:2*Np*np+k*2);
+        
+        omega(k) = Xn(2*Np*np+2*np+k);
+    end
 end
 
-if o.confined
+if o.confined && ~preprocess
     forceW = zeros(2,nw-1);
     for k = 1:nw-1
        forceW(:,k) = ...
@@ -864,7 +871,7 @@ while(iv<0)
     end 
 
     % UNPACK SOLUTION
-    [etaP, etaW, uP, omega, forceW, torqueW] = o.unpackSolution(Xn);
+    [etaP, etaW, uP, omega, forceW, torqueW] = o.unpackSolution(Xn, false);
 
     % UPDATE PARTICLE POSTIONS AND ANGLES 
     if first_step % FORWARD EULER
@@ -974,7 +981,7 @@ for i = 1:nivs
     end 
     
     % COMPUTE VELOCITY OF EACH POINT ON ALL RIGID PARTICLES
-    [~, ~, uP, omega, ~, ~] = unpackSolution(o, Xn);
+    [~, ~, uP, omega, ~, ~] = unpackSolution(o, Xn, true);
     
     b = zeros(2*Np,np);
     for k = S'
