@@ -274,17 +274,17 @@ end
 
 % SOLVE SYSTEM USING GMRES TO GET CANDIDATE TIME STEP
 if o.use_precond
-  [Xn,iflag,res,I] = gmres(@(X) o.timeMatVec(X,geom,walls),rhs,[],...
+  [Xn,iflag,res,I] = gmres(@(X) o.timeMatVec(X,geom,walls,true),rhs,[],...
       o.gmres_tol,o.gmres_max_it,@o.preconditionerBD,[], rhs);
 else
-  [Xn,iflag,res,I] = gmres(@(X) o.timeMatVec(X,geom,walls),rhs,[],...
+  [Xn,iflag,res,I] = gmres(@(X) o.timeMatVec(X,geom,walls,true),rhs,[],...
       o.gmres_tol, o.gmres_max_it);
 end
 
 iter = I(2);
 
 % UNPACK SOLUTION
-[etaP, etaW, uP, omega, forceW, torqueW] = o.unpackSolution(Xn,false);
+[etaP, etaW, uP, omega, forceW, torqueW] = o.unpackSolution(Xn,true);
 
 % CREATE CANDIDATE CONFIGURATION 
 if first_step % FORWARD EULER
@@ -335,7 +335,7 @@ end % timeStep
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function Tx = timeMatVec(o,Xn,geom,walls)
+function Tx = timeMatVec(o,Xn,geom,walls,include_walls)
 % Tx = timeMatVec(Xn,geom) does a matvec for GMRES 
 if o.profile
     tMatvec = tic;
@@ -364,7 +364,7 @@ velWalls = zeros(2*Nw,nw);
 % omega   : angular velocity of particles
 % forceW  : net force on walls, strength of Stokeslets
 % torqueW : net torque on walls, strength of rotlets
-[etaP, etaW, uT, omega, forceW, torqueW] = unpackSolution(o, Xn, false);
+[etaP, etaW, uT, omega, forceW, torqueW] = unpackSolution(o, Xn, include_walls);
 
 % CALCULATE VELOCITIES ON PARTICLES AND WALLS, NET FORCE AND TORQUE ON
 % WALLS
@@ -387,7 +387,7 @@ end
 velParticles = velParticles + ...
     pot_particles.exactStokesDLdiag(geom, o.Dp, etaP);
 
-if o.confined
+if o.confined && include_walls
     velWalls = velWalls + pot_walls.exactStokesDLdiag(walls, o.Dw, etaW);
 end
 
@@ -411,7 +411,7 @@ end
 % END OF TARGET == PARTICLES
 
 % START OF TARGET == WALLS 
-if o.confined && np > 0
+if o.confined && np > 0  && include_walls
    
    if o.fmm
        kernel = @pot_walls.exactStokesDLfmm;       
@@ -435,7 +435,7 @@ end
 
 % START OF SOURCE == WALLS
 % START OF TARGET == PARTICLES
-if o.confined && np > 0
+if o.confined && np > 0  && include_walls
    
    if o.fmm
         kernel = @pot_particles.exactStokesDLfmm;       
@@ -458,7 +458,7 @@ end
 % END OF TARGET == PARTICLES
 
 % START OF TARGET == WALLS
-if o.confined
+if o.confined && include_walls
     
     if o.fmm
         kernel = @pot_walls.exactStokesDLfmm;
@@ -474,7 +474,7 @@ end
 % END OF TARGET == WALLS
 % END OF SOURCE == WALLS
 
-if o.confined && nw > 1
+if o.confined && nw > 1  && include_walls
     % START SOURCE == ROTLETS AND STOKESLETS
     % START TARGETS == PARTICLES
     p_sr = 0;
@@ -530,7 +530,7 @@ for k = 1:np
 end
 
 % EVALUATE VELOCITY ON WALLS
-if o.confined && ~preprocess
+if o.confined && include_walls
     velWalls = velWalls + ww_dlp + wp_dlp + w_sr;
     velWalls(:,1) = velWalls(:,1)...
                     + pot_walls.exactStokesN0diag(walls, o.N0w, etaW(:,1));
@@ -540,8 +540,12 @@ end
 [forceP, torqueP] = o.computeNetForceTorque(etaP, geom);
 
 % CONSTRUCT OUTPUT VECTOR
-Tx = [velParticles(:); velWalls(:); forceP(:); torqueP(:); ...
+if include_walls
+    Tx = [velParticles(:); velWalls(:); forceP(:); torqueP(:); ...
                     forceW(:); torqueW(:)];
+else
+    Tx = [velParticles(:); forceP(:); torqueP(:)];
+end
 
 if o.profile
     o.om.writeMessage(['Matvec assembly completed in ', ....
@@ -592,7 +596,7 @@ if o.resolve_collisions
             start = 2*Np*(k-1)+1;
             rhs(start:start+2*Np-1) = rhs(start:start+2*Np-1) - v(:,k);
         
-        if o.confined
+        if o.confined && include_far_field
             % CONTRIBUTION TO WALL VELOCITY
             v = o.computeRotletStokesletVelocity(walls.X, geom.center(:,k),...
                                 forceP(:,k),torqueP(k));
@@ -605,7 +609,7 @@ end
 end % assembleRHS
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function [etaP, etaW, u, omega, forceW, torqueW] = unpackSolution(...
-                            o, Xn, preprocess)
+                            o, Xn, include_walls)
 % Unpack solution vector that comes from GMRES call
 
 np = o.num_particles;
@@ -622,7 +626,7 @@ for k = 1:np
 end
 
 % each column of etaW corresponds to the density function of a solid wall
-if o.confined && ~preprocess
+if o.confined && include_walls
     etaW = zeros(2*Nw, nw);
     for k = 1:nw
        etaW(:,k) = Xn(2*Np*np+1+(k-1)*2*Nw:2*Np*np+k*2*Nw);
@@ -634,7 +638,7 @@ end
 % EXTRACT TRANSLATIONAL AND ROTATIONAL VELOCITIES
 u = zeros(2,np);
 omega = zeros(1,np);
-if ~preprocess
+if include_walls
     for k = 1:np
         u(:,k) = Xn(2*Np*np+2*Nw*nw+(k-1)*2+1:2*Np*np+2*Nw*nw+k*2);
         
@@ -648,7 +652,7 @@ else
     end
 end
 
-if o.confined && ~preprocess
+if o.confined && include_walls
     forceW = zeros(2,nw-1);
     for k = 1:nw-1
        forceW(:,k) = ...
@@ -855,15 +859,15 @@ while(iv<0)
 
     % SOLVE SYSTEM
     if o.use_precond
-      Xn = gmres(@(X) o.timeMatVec(X,geomOld,walls),rhs,[],o.gmres_tol,...
+      Xn = gmres(@(X) o.timeMatVec(X,geomOld,walls,true),rhs,[],o.gmres_tol,...
           o.gmres_max_it,@o.preconditionerBD,[]);
     else
-      Xn = gmres(@(X) o.timeMatVec(X,geomOld,walls),rhs,[],o.gmres_tol,...
+      Xn = gmres(@(X) o.timeMatVec(X,geomOld,walls,true),rhs,[],o.gmres_tol,...
           o.gmres_max_it);
     end 
 
     % UNPACK SOLUTION
-    [etaP, etaW, uP, omega, forceW, torqueW] = o.unpackSolution(Xn, false);
+    [etaP, etaW, uP, omega, forceW, torqueW] = o.unpackSolution(Xn, true);
 
     % UPDATE PARTICLE POSTIONS AND ANGLES 
     if first_step % FORWARD EULER
@@ -964,13 +968,13 @@ for i = 1:nivs
     rhs = o.assembleRHS(geom, walls, forceP, torqueP, S', false);
     
     % SOLVE SYSTEM WITH FAR FIELD NEGLECTED
-    if o.use_precond
-      Xn = gmres(@(X) o.timeMatVec(X,geom,walls),rhs,[],o.gmres_tol,...
-          o.gmres_max_it,@o.preconditionerBD,[]);
-    else
-      Xn = gmres(@(X) o.timeMatVec(X,geom,walls),rhs,[],o.gmres_tol,...
+%     if o.use_precond
+%       Xn = gmres(@(X) o.timeMatVec(X,geom,walls,false),rhs,[],o.gmres_tol,...
+%           o.gmres_max_it,@o.preconditionerBD,[]);
+%     else
+      Xn = gmres(@(X) o.timeMatVec(X,geom,walls,false),rhs,[],o.gmres_tol,...
           o.gmres_max_it);
-    end 
+    %end 
     
     % COMPUTE VELOCITY OF EACH POINT ON ALL RIGID PARTICLES
     [~, ~, uP, omega, ~, ~] = unpackSolution(o, Xn, false);
