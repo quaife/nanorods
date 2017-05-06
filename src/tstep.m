@@ -578,7 +578,8 @@ if o.confined
     if include_far_field
         rhs = [zeros(2*Np*np,1); ff(:); 2*pi*forceP(:); 2*pi*torqueP'; zeros(3*(nw-1),1)];
     else
-        rhs = [-ff(:); 2*pi*forceP(:); 2*pi*torqueP'];
+        %rhs = [-ff(:); 2*pi*forceP(:); 2*pi*torqueP'];
+        rhs = [zeros(2*Np*np,1); zeros(2*Nw*nw,1); 2*pi*forceP(:); 2*pi*torqueP'; zeros(3*(nw-1),1)];
     end
 else
     rhs = [-ff(:); 2*pi*forceP(:); 2*pi*torqueP'];
@@ -593,10 +594,11 @@ if o.resolve_collisions
         v = o.computeRotletStokesletVelocity(geom.X, geom.center(:,k),...
                             forceP(:,k),torqueP(k));
 
-            start = 2*Np*(k-1)+1;
-            rhs(start:start+2*Np-1) = rhs(start:start+2*Np-1) - v(:,k);
+        %start = 2*Np*(k-1)+1;
+%         rhs(start:start+2*Np-1) = rhs(start:start+2*Np-1) - v(:,k);
+        rhs(1:2*Np*np) =  rhs(1:2*Np*np) - v(:);
         
-        if o.confined && include_far_field
+        if o.confined %&& include_far_field
             % CONTRIBUTION TO WALL VELOCITY
             v = o.computeRotletStokesletVelocity(walls.X, geom.center(:,k),...
                                 forceP(:,k),torqueP(k));
@@ -968,13 +970,13 @@ for i = 1:nivs
     rhs = o.assembleRHS(geom, walls, forceP, torqueP, S', false);
     
     % SOLVE SYSTEM WITH FAR FIELD NEGLECTED
-%     if o.use_precond
-%       Xn = gmres(@(X) o.timeMatVec(X,geom,walls,false),rhs,[],o.gmres_tol,...
-%           o.gmres_max_it,@o.preconditionerBD,[]);
-%     else
-      Xn = gmres(@(X) o.timeMatVec(X,geom,walls,false),rhs,[],o.gmres_tol,...
+    if o.use_precond
+      Xn = gmres(@(X) o.timeMatVec(X,geom,walls,true),rhs,[],o.gmres_tol,...
+          o.gmres_max_it,@o.preconditionerBD,[]);
+    else
+      Xn = gmres(@(X) o.timeMatVec(X,geom,walls,true),rhs,[],o.gmres_tol,...
           o.gmres_max_it);
-    %end 
+    end 
     
     % COMPUTE VELOCITY OF EACH POINT ON ALL RIGID PARTICLES
     [~, ~, uP, omega, ~, ~] = unpackSolution(o, Xn, false);
