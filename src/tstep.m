@@ -211,7 +211,7 @@ Nw = o.points_per_wall;
 forceP = zeros(2,np);
 torqueP = zeros(1,np);
 
-rhs = o.assembleRHS(geom, walls, forceP, torqueP, [1:np], true);
+rhs = o.assembleRHS(geom, walls, forceP, torqueP, [1:np], false);
 
 % CREATE NEAR SINGULAR INTEGRATION STRUCTURES
 if o.near_singular
@@ -285,6 +285,7 @@ iter = I(2);
 
 % UNPACK SOLUTION
 [etaP, etaW, uP, omega, forceW, torqueW] = o.unpackSolution(Xn,true);
+omega = -omega; % test for now
 
 % CREATE CANDIDATE CONFIGURATION 
 if first_step % FORWARD EULER
@@ -364,7 +365,7 @@ velWalls = zeros(2*Nw,nw);
 % omega   : angular velocity of particles
 % forceW  : net force on walls, strength of Stokeslets
 % torqueW : net torque on walls, strength of rotlets
-[etaP, etaW, uT, omega, forceW, torqueW] = unpackSolution(o, Xn, include_walls);
+[etaP, etaW, uP, omega, forceW, torqueW] = unpackSolution(o, Xn, include_walls);
 
 % CALCULATE VELOCITIES ON PARTICLES AND WALLS, NET FORCE AND TORQUE ON
 % WALLS
@@ -518,15 +519,16 @@ velParticles = velParticles + p_sr + pp_dlp + pw_dlp;
 
 % SUBTRACT VELOCITY ON SURFACE
 for k = 1:np
-  velParticles(1:end/2,k) = velParticles(1:end/2,k) - uT(1,k);
-  velParticles(end/2+1:end,k) = velParticles(end/2+1:end,k) - uT(2,k);
+  velParticles(1:Np,k) = velParticles(1:Np,k) - uP(1,k);
+  velParticles(Np+1:end,k) = velParticles(Np+1:end,k) - uP(2,k);
 end
 
-for k = 1:np
-  velParticles(1:end/2,k) = velParticles(1:end/2,k) ...
-                - (geom.X(end/2+1:end,k) - geom.center(2,k))*omega(k);
-  velParticles(end/2+1:end,k) = velParticles(end/2+1:end,k)...
-                + (geom.X(1:end/2,k) - geom.center(1,k))*omega(k); 
+% definition of perp seems backward to me
+for k = 1:np 
+  velParticles(1:Np,k) = velParticles(1:Np,k) ...
+                - (geom.X(Np+1:end,k) - geom.center(2,k))*omega(k);
+  velParticles(Np+1:end,k) = velParticles(Np+1:end,k)...
+                + (geom.X(1:Np,k) - geom.center(1,k))*omega(k); 
 end
 
 % EVALUATE VELOCITY ON WALLS
@@ -556,33 +558,39 @@ end % timeMatVec
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function rhs = assembleRHS(o, geom, walls, forceP, torqueP, bodies,...
-                    include_far_field)
+                    preprocess)
 % Assemble right hand side
+
+forceP = 2*pi*forceP;
+torqueP = 2*pi*torqueP;
 
 np = o.num_particles;
 nw = o.num_walls;
 Np = o.points_per_particle;
 Nw = o.points_per_wall;
 
-if include_far_field
+if ~preprocess
     if o.confined
         ff = o.far_field(walls.X);
     else
-        ff = o.far_field(geom.X);
+        ff = -o.far_field(geom.X); 
     end
-else
-    ff = zeros(2*Np*np,1);
 end
 
 if o.confined
-    if include_far_field
-        rhs = [zeros(2*Np*np,1); ff(:); 2*pi*forceP(:); 2*pi*torqueP'; zeros(3*(nw-1),1)];
+    if ~preprocess
+        rhs = [zeros(2*Np*np,1); ff(:); forceP(:); ...
+                    torqueP'; zeros(3*(nw-1),1)];
     else
-        %rhs = [-ff(:); 2*pi*forceP(:); 2*pi*torqueP'];
-        rhs = [zeros(2*Np*np,1); zeros(2*Nw*nw,1); 2*pi*forceP(:); 2*pi*torqueP'; zeros(3*(nw-1),1)];
+        rhs = [zeros(2*Np*np,1); zeros(2*Nw*nw,1); forceP(:); ...
+                        torqueP'; zeros(3*(nw-1),1)];
     end
 else
-    rhs = [-ff(:); 2*pi*forceP(:); 2*pi*torqueP'];
+    if ~preprocess
+        rhs = [ff(:); forceP(:); torqueP(:)];
+    else
+        rhs = [zeros(2*Np*np,1); forceP(:); torqueP(:)];
+    end
 end
 
 
@@ -590,15 +598,14 @@ if o.resolve_collisions
     
     % ADD IN CONTRIBUTIONS TO VELOCITIES FROM PARTICLE ROTLETS AND STOKESLETS
     for k = bodies
+        
         % CONTRIBUTION TO PARTICLE VELOCITY
         v = o.computeRotletStokesletVelocity(geom.X, geom.center(:,k),...
-                            forceP(:,k),torqueP(k));
-
-        %start = 2*Np*(k-1)+1;
-%         rhs(start:start+2*Np-1) = rhs(start:start+2*Np-1) - v(:,k);
-        rhs(1:2*Np*np) =  rhs(1:2*Np*np) - v(:);
+            forceP(:,k),torqueP(k));
         
-        if o.confined %&& include_far_field
+        rhs(1:2*Np*np) = rhs(1:2*Np*np) - v(:);
+        
+        if o.confined && ~preprocess
             % CONTRIBUTION TO WALL VELOCITY
             v = o.computeRotletStokesletVelocity(walls.X, geom.center(:,k),...
                                 forceP(:,k),torqueP(k));
@@ -750,6 +757,8 @@ rho2 = (x-cx).^2 + (y-cy).^2;
 LogTerm = -0.5*log(rho2)*stokeslet(1);
 rorTerm = 1./rho2.*((x-cx).*(x-cx)*stokeslet(1) + ...
                 (x-cx).*(y-cy)*stokeslet(2));
+
+% perp term looks backwards to me
 RotTerm = (y-cy)./rho2*rotlet;
 velx = (LogTerm + rorTerm + RotTerm)/(4*pi);
 % x component of velocity due to the stokeslet and rotlet
@@ -757,6 +766,7 @@ velx = (LogTerm + rorTerm + RotTerm)/(4*pi);
 LogTerm = -0.5*log(rho2)*stokeslet(2);
 rorTerm = 1./rho2.*((y-cy).*(x-cx)*stokeslet(1) + ...
     (y-cy).*(y-cy)*stokeslet(2));
+
 RotTerm = -(x-cx)./rho2*rotlet;
 vely = (LogTerm + rorTerm + RotTerm)/(4*pi);
 % y component of velocity due to the stokeslet and rotlet
@@ -780,11 +790,12 @@ for k = 1:n
 
   force(1,k) =  sum(eta(1:N,k).*geom.sa(:,k))*2*pi/N;
   force(2,k) =  sum(eta(N+1:2*N,k).*geom.sa(:,k))*2*pi/N;
-  
-  torque(k) = sum(((geom.X(N+1:2*N,k)).*eta(1:N,k) - ...
-    (geom.X(1:N,k)).*eta(N+1:2*N,k)).*...
-    geom.sa(:,k))*2*pi/N;
 
+  torque(k) = sum(((geom.X(N+1:2*N,k) - geom.center(2,k)).*eta(1:N,k) - ...
+    (geom.X(1:N,k) - geom.center(1,k)).*eta(N+1:2*N,k)).*geom.sa(:,k))*2*pi/N;
+% 
+%   force(:,k) = force(:,k)/(2*pi);
+%   torque(k) = torque(k)/(2*pi);  
 end
 
 end % computeNetForceTorque
@@ -838,26 +849,27 @@ while(iv<0)
     colCount = colCount + 1;  
     o.om.writeMessage(['Collision resolving iteration: ', num2str(colCount)]);
     
-    vgrad = vgrad(1:2*Np*np);
+    %vgrad = vgrad(1:2*Np*np);
 
     ids = ids(1:2*Np*np);
     vols = vols(1:2*Np*np);
 
     vgrad(1:2*Np*np) = o.adjustNormal(vgrad(1:2*Np*np),Np,np,geomOld,...
                                 edgelength,colCount);
-    [A,~,ivs,~,jacoSmooth] = o.preprocessRigid(vgrad,ids,vols,geomOld,walls);
-
+    [A,~,ivs,~,jacoSmooth] = o.preprocessRigid(vgrad,ids,vols,geomOld,...
+                    walls);
+    
     % CALCULATE FORCE AND TORQUES ON PARTICLES
     [fc, ~] = o.getColForce(A,ivs/o.dt,ivs*0,jacoSmooth);
     
-    fc = o.f_smooth(full(fc),Np,np);
-    fc_tot = fc_tot + fc(:);
+    %fc = o.f_smooth(full(fc),Np,np);
+    fc_tot = fc_tot + fc;
 
     fc_tot_tmp = reshape(fc_tot, 2*Np, np);
     [forceP,torqueP] = o.computeNetForceTorque(fc_tot_tmp,geomOld);
 
     % ASSEMBLE NEW RHS WITH CONTACT FORCES
-    rhs = o.assembleRHS(geomOld, walls, forceP, torqueP, [1:np], true);
+    rhs = o.assembleRHS(geomOld, walls, forceP, torqueP, [1:np], false);
 
     % SOLVE SYSTEM
     if o.use_precond
@@ -871,6 +883,7 @@ while(iv<0)
     % UNPACK SOLUTION
     [etaP, etaW, uP, omega, forceW, torqueW] = o.unpackSolution(Xn, true);
 
+    omega = -omega;
     % UPDATE PARTICLE POSTIONS AND ANGLES 
     if first_step % FORWARD EULER
         xc_new = solution.xc_old + o.dt*uP;
@@ -922,7 +935,6 @@ function [A,jaco,ivs,listnv,jacoSmooth] = preprocessRigid(o,vgrad,ids,...
                 
 Np = o.points_per_particle;
 np = o.num_particles;
-Nw = o.points_per_wall;
 nw = o.num_walls;
 
 nivs = max(ids);
@@ -960,15 +972,15 @@ for i = 1:nivs
     S = find(vtoiv(:,i)~=0); 
     
     f = jaco(i,1:2*Np*np)';
-    f = o.f_smooth(full(f),Np,np);
+    %f = o.f_smooth(full(f),Np,np);
     
     f = reshape(f, 2*Np, np);
 
     [forceP,torqueP] = o.computeNetForceTorque(full(f),geom);
     
     % ASSEMBLE NEW RHS WITH CONTACT FORCES
-    rhs = o.assembleRHS(geom, walls, forceP, torqueP, S', false);
-    
+    rhs = o.assembleRHS(geom, walls, forceP, torqueP, S', true);
+
     % SOLVE SYSTEM WITH FAR FIELD NEGLECTED
     if o.use_precond
       Xn = gmres(@(X) o.timeMatVec(X,geom,walls,true),rhs,[],o.gmres_tol,...
@@ -981,7 +993,8 @@ for i = 1:nivs
     % COMPUTE VELOCITY OF EACH POINT ON ALL RIGID PARTICLES
     [~, ~, uP, omega, ~, ~] = unpackSolution(o, Xn, false);
     
-    b = zeros(2*Np,np);
+    %omega = -omega;
+    b = zeros(2*Np,np); 
     for k = S'
         b(:,k) = [uP(1,k)*ones(Np,1); uP(2,k)*ones(Np,1)] + ... %translational
             omega(k)*[geom.X(Np+1:end,k) - geom.center(2,k); ...% + rotational
@@ -1158,7 +1171,7 @@ if options.confined
 else
     switch options.far_field
         case 'shear'
-            vInf = [-3*y;zeros(Np,np)];
+            vInf = [y;zeros(Np,np)];
 
         case 'extensional'
             vInf = [x;-y];
@@ -1167,7 +1180,10 @@ else
             vInf = [1 - y.^2; zeros(Np,np)];
                          
         case 'taylor-green'
-            vInf = [cos(x).*sin(y); -sin(x).*cos(y)];
+            vInf = [cos(x).*sin(y); -sin(x).*cos(y)];            
+            
+        case 'irrotational-vortex'
+            vInf = [-y; x];
             
         otherwise
             vInf = [ones(Np,np);zeros(Np,np)];
