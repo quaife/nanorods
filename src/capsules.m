@@ -57,9 +57,9 @@ else if length(varargin) == 2 % centres and orientation angles
                 o.X(:,k) = [x_square*cos(tau(k)) - y_square*sin(tau(k)) + xc(1,k);
                     x_square*sin(tau(k)) + y_square*cos(tau(k)) + xc(2,k)];
                 
-                for i = 1:2
-                    o.X(:,k) = oc.redistributeArcLength(o.X(:,k));
-                end
+%                 for i = 1:2
+%                     o.X(:,k) = oc.redistributeArcLength(o.X(:,k));
+%                 end
             end
         else
             o.X = [];
