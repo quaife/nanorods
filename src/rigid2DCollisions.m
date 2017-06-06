@@ -39,13 +39,17 @@ while time < prams.T
     
     if options.display_solution
         fill(geom.X(1:end/2,:),geom.X(end/2+1:end,:),'k');
+
         axis equal
+%         xlim([-2.5,2.5])
+%         ylim([-2.5,2.5])
         
         if options.confined
             hold on
             for k = 1:prams.nw
                 plot(xWalls(1:end/2,k),xWalls(end/2+1:end,k), 'r', 'linewidth', 2);
             end
+            
             hold off
         end
         drawnow
@@ -91,5 +95,6 @@ if (om.profile)
    profsave(profile('info'), om.profileFile);
 end
 
+disp(['Total matvecs:', num2str(tt.matvecs)]);
 
 end %rigid2D
