@@ -36,6 +36,8 @@ resolve_collisions      % flag to indicate whether to resolve collisions
 prams
 minimum_separation
 display_solution
+debug
+matvecs
 
 end % properties
 
@@ -59,7 +61,7 @@ o.display_solution = options.display_solution;
 o.resolve_collisions = options.resolve_collisions;
 o.dt = prams.T/prams.number_steps;                  
 o.gmres_tol = options.gmres_tol;             
-o.gmres_max_it = 2*(prams.np*prams.Np + prams.nw*prams.Nw);
+o.gmres_max_it = 50;%2*(prams.np*prams.Np + prams.nw*prams.Nw);
 
 o.far_field = @(X) o.bgFlow(X,options); 
 o.om = om;
@@ -69,6 +71,8 @@ o.num_particles = prams.np;
 o.num_walls = prams.nw;
 o.points_per_particle = prams.Np;
 o.points_per_wall = prams.Nw;
+o.debug = options.debug;
+o.matvecs = 0;
 
 np = o.num_particles;
 nw = o.num_walls;
@@ -288,13 +292,13 @@ iter = I(2);
 omega = -omega; % test for now
 
 % CREATE CANDIDATE CONFIGURATION 
-if first_step % FORWARD EULER
+%if first_step % FORWARD EULER
     xc_new = xc + o.dt*uP;
     tau_new = tau + o.dt*omega;
-else %ADAMS_BASHFORTH
-    xc_new = xc + (3/2)*o.dt*uP - (1/2)*o.dt*uP_m1;
-    tau_new = tau + (3/2)*o.dt*omega - (1/2)*o.dt*omega_m1;
-end
+% else %ADAMS_BASHFORTH
+%     xc_new = xc + (3/2)*o.dt*uP - (1/2)*o.dt*uP_m1;
+%     tau_new = tau + (3/2)*o.dt*omega - (1/2)*o.dt*omega_m1;
+% end
 
 geomProv = capsules(o.prams, xc_new, tau_new);
     
@@ -341,6 +345,8 @@ function Tx = timeMatVec(o,Xn,geom,walls,include_walls)
 if o.profile
     tMatvec = tic;
 end
+
+o.matvecs = o.matvecs + 1;
 
 np = o.num_particles;
 nw = o.num_walls;
@@ -561,8 +567,8 @@ function rhs = assembleRHS(o, geom, walls, forceP, torqueP, bodies,...
                     preprocess)
 % Assemble right hand side
 
-forceP = 2*pi*forceP;
-torqueP = 2*pi*torqueP;
+% forceP = 2*pi*forceP;
+% torqueP = 2*pi*torqueP;
 
 np = o.num_particles;
 nw = o.num_walls;
@@ -601,7 +607,7 @@ if o.resolve_collisions
         
         % CONTRIBUTION TO PARTICLE VELOCITY
         v = o.computeRotletStokesletVelocity(geom.X, geom.center(:,k),...
-            forceP(:,k),torqueP(k));
+            forceP(:,k)/(2*pi),torqueP(k)/(2*pi));
         
         rhs(1:2*Np*np) = rhs(1:2*Np*np) - v(:);
         
@@ -758,9 +764,9 @@ LogTerm = -0.5*log(rho2)*stokeslet(1);
 rorTerm = 1./rho2.*((x-cx).*(x-cx)*stokeslet(1) + ...
                 (x-cx).*(y-cy)*stokeslet(2));
 
-% perp term looks backwards to me
 RotTerm = (y-cy)./rho2*rotlet;
-velx = (LogTerm + rorTerm + RotTerm)/(4*pi);
+%velx = (LogTerm + rorTerm + RotTerm)/(4*pi);
+velx = 1/4/pi*(LogTerm + rorTerm) + RotTerm;
 % x component of velocity due to the stokeslet and rotlet
 
 LogTerm = -0.5*log(rho2)*stokeslet(2);
@@ -768,7 +774,8 @@ rorTerm = 1./rho2.*((y-cy).*(x-cx)*stokeslet(1) + ...
     (y-cy).*(y-cy)*stokeslet(2));
 
 RotTerm = -(x-cx)./rho2*rotlet;
-vely = (LogTerm + rorTerm + RotTerm)/(4*pi);
+%vely = (LogTerm + rorTerm + RotTerm)/(4*pi);
+vely = 1/4/pi*(LogTerm + rorTerm) + RotTerm;
 % y component of velocity due to the stokeslet and rotlet
 
 vel = [velx;vely];
@@ -793,9 +800,9 @@ for k = 1:n
 
   torque(k) = sum(((geom.X(N+1:2*N,k) - geom.center(2,k)).*eta(1:N,k) - ...
     (geom.X(1:N,k) - geom.center(1,k)).*eta(N+1:2*N,k)).*geom.sa(:,k))*2*pi/N;
-% 
-%   force(:,k) = force(:,k)/(2*pi);
-%   torque(k) = torque(k)/(2*pi);  
+
+  force(:,k) = force(:,k)/(2*pi);
+  torque(k) = torque(k)/(2*pi);  
 end
 
 end % computeNetForceTorque
@@ -861,13 +868,19 @@ while(iv<0)
     
     % CALCULATE FORCE AND TORQUES ON PARTICLES
     [fc, ~] = o.getColForce(A,ivs/o.dt,ivs*0,jacoSmooth);
+%     
+%     lambda = -(iv/o.dt)/A;
+%     fc = lambda*vgrad;
     
     %fc = o.f_smooth(full(fc),Np,np);
     fc_tot = fc_tot + fc;
 
     fc_tot_tmp = reshape(fc_tot, 2*Np, np);
     [forceP,torqueP] = o.computeNetForceTorque(fc_tot_tmp,geomOld);
-
+    
+    forceP = forceP*2*pi;
+    torqueP = -torqueP*2*pi;
+    
     % ASSEMBLE NEW RHS WITH CONTACT FORCES
     rhs = o.assembleRHS(geomOld, walls, forceP, torqueP, [1:np], false);
 
@@ -885,13 +898,13 @@ while(iv<0)
 
     omega = -omega;
     % UPDATE PARTICLE POSTIONS AND ANGLES 
-    if first_step % FORWARD EULER
+%    if first_step % FORWARD EULER
         xc_new = solution.xc_old + o.dt*uP;
         tau_new = solution.tau_old + o.dt*omega;
-    else %ADAMS_BASHFORTH
-        xc_new = solution.xc_old + (3/2)*o.dt*uP - (1/2)*o.dt*uP_m1;
-        tau_new = solution.tau_old + (3/2)*o.dt*omega - (1/2)*o.dt*omega_m1;
-    end
+%     else %ADAMS_BASHFORTH
+%         xc_new = solution.xc_old + (3/2)*o.dt*uP - (1/2)*o.dt*uP_m1;
+%         tau_new = solution.tau_old + (3/2)*o.dt*omega - (1/2)*o.dt*omega_m1;
+%     end
     
     % FIX FORCE BALANCE, TOTAL FORCE IN SYSTEM SHOULD BE 0
 %     for k = 1:size(ids,1)
@@ -978,6 +991,9 @@ for i = 1:nivs
 
     [forceP,torqueP] = o.computeNetForceTorque(full(f),geom);
     
+    forceP = forceP*2*pi;
+    torqueP = -torqueP*2*pi;
+    
     % ASSEMBLE NEW RHS WITH CONTACT FORCES
     rhs = o.assembleRHS(geom, walls, forceP, torqueP, S', true);
 
@@ -993,7 +1009,7 @@ for i = 1:nivs
     % COMPUTE VELOCITY OF EACH POINT ON ALL RIGID PARTICLES
     [~, ~, uP, omega, ~, ~] = unpackSolution(o, Xn, false);
     
-    %omega = -omega;
+    omega = -omega;
     b = zeros(2*Np,np); 
     for k = S'
         b(:,k) = [uP(1,k)*ones(Np,1); uP(2,k)*ones(Np,1)] + ... %translational
@@ -1002,6 +1018,14 @@ for i = 1:nivs
     end
 
     b = b(:);
+    
+    if o.debug
+        disp(['force x : ', num2str(forceP(1,:))]);
+        disp(['force y : ', num2str(forceP(2,:))]);
+        disp(['torque: ', num2str(torqueP)]);
+        figure(2)
+        plot(f)
+    end
     
     SS = find(vtoiv(k,:)~=0);
     for l = 1:numel(SS)
@@ -1050,7 +1074,7 @@ function [fc,lambda] = getColForce(~,A,b,x0,jaco)
 tol_rel = 0.0;
 tol_abs = 0.0;
 max_iter = 50;
-[lambda, ~, ~, ~, ~, ~] = fischer_newton(A, b, x0, ...
+[lambda, err, iter, flag, convergence, msg]  = fischer_newton(A, b, x0, ...
                 max_iter, tol_rel, tol_abs, 'perturbation', false);
             
 fc = jaco'*lambda;
@@ -1171,7 +1195,7 @@ if options.confined
 else
     switch options.far_field
         case 'shear'
-            vInf = [y;zeros(Np,np)];
+            vInf = [5*y;zeros(Np,np)];
 
         case 'extensional'
             vInf = [x;-y];
