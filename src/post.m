@@ -15,6 +15,8 @@ eta_w
 rotlets
 stokeslets
 wall_c
+force_p
+torque_p
 
 OUTPUTPATH_GIFS;
 
@@ -38,6 +40,9 @@ o.eta_p = eta_p;
 o.eta_w = eta_w;
 o.rotlets = rot;
 o.stokeslets = stokes;
+o.force_p = force_p;
+o.torque_p = torque_p;
+
 %o.wall_c = wall_c;
 
 o.OUTPUTPATH_GIFS = '../output/gifs/';
@@ -219,6 +224,131 @@ for i = 1:gif_options.stride:itmax-1
 end
 
 end % post : aimated_gif
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+function animatedGifExtended(o, gif_options)
+    
+h = figure();
+set(h,'Units','normalized');
+set(h,'Position',[0 0 1 1]);
+
+[~,~,m] = size(o.xc);
+
+% get axis limits
+if strcmp(gif_options.xmin, 'auto:all')
+    xmin = min(min(o.xc(1,:,:))) - o.prams.lengths;
+else
+    if ~strcmp(gif_options.xmin, 'auto:frame')
+        xmin = gif_options.xmin;
+    end
+end
+
+if strcmp(gif_options.xmax, 'auto:all')
+    xmax = max(max(o.xc(1,:,:))) + o.prams.lengths;
+else
+    if ~strcmp(gif_options.xmax, 'auto:frame')
+        xmax = gif_options.xmax;
+    end
+end
+
+if strcmp(gif_options.ymin, 'auto:all')
+    ymin = min(min(o.xc(2,:,:))) - o.prams.lengths;
+else
+    if ~strcmp(gif_options.ymin, 'auto:frame')
+        ymin = gif_options.ymin;
+    end
+end
+
+if strcmp(gif_options.ymax, 'auto:all')
+    ymax = max(max(o.xc(2,:,:))) + o.prams.lengths;
+else
+    if ~strcmp(gif_options.ymax, 'auto:frame')
+        ymax = gif_options.ymax;
+    end
+end
+if strcmp(gif_options.itmax, 'all')
+    itmax = m;
+else
+    itmax = gif_options.itmax;
+end
+
+% loop over all time steps
+for i = 1:gif_options.stride:itmax-1
+    
+        
+    if strcmp(gif_options.xmin, 'auto:frame')
+        xmin = min(min(o.xc(1,:,i))) - max(o.prams.lengths);
+    end
+
+    if strcmp(gif_options.xmin, 'auto:frame')
+        xmax = max(max(o.xc(1,:,i))) + max(o.prams.lengths);    
+    end
+
+    if strcmp(gif_options.xmin, 'auto:frame')
+        ymin = min(min(o.xc(2,:,i))) - max(o.prams.lengths);
+    end
+
+    if strcmp(gif_options.xmin, 'auto:frame')
+        ymax = max(max(o.xc(2,:,i))) + max(o.prams.lengths);
+    end
+    
+
+    subplot(3,2,1);
+    o.plotFibres(i);
+    axis equal
+    title(sprintf('t = %6.3f', o.times(i)));
+    
+    xlim([xmin,xmax])
+    ylim([ymin,ymax])
+    
+    if ~gif_options.axis 
+        axis off
+    end
+    
+    view(2);
+    
+    subplot(3,2,2);
+    plot(o.eta_p(:,:,i));
+            
+    subplot(3,2,3);
+    z = fftshift(fft(o.eta_p(1:end/2,1,i) + 1i*o.eta_p(end/2+1:end,1,i)));
+    semilogy(abs(z), 'b');
+    ylim([0,1e5])
+    
+    subplot(3,2,4);
+    z = fftshift(fft(o.eta_p(1:end/2,2,i) + 1i*o.eta_p(end/2+1:end,2,i)));
+    semilogy(abs(z), 'r');
+    ylim([0,1e5])
+    
+    subplot(3,2,5);
+    plot(o.force_p(:,:,i))
+
+    subplot(3,2,6);
+    plot(o.torque_p(:,i));
+
+    
+    drawnow
+    frame = getframe(h);
+    im = frame2im(frame);
+    
+    [imind, cm] = rgb2ind(im,256);
+    
+    if i == 1;
+                
+        imwrite(imind, cm, ...
+            [o.OUTPUTPATH_GIFS,  gif_options.file_name, '.gif'], ...
+            'gif', 'Loopcount',inf, 'DelayTime', 0.3);
+
+    else
+
+        imwrite(imind, cm,...
+            [o.OUTPUTPATH_GIFS,  gif_options.file_name, '.gif'], ...
+            'gif','WriteMode','append', 'DelayTime',0.3);               
+
+    end
+    
+end
+end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function u = evaluateDLP(~, geom, eta, X)

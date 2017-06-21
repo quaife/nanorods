@@ -19,6 +19,8 @@ if prams.np > 0
   prams.minimum_separation = prams.minimum_separation*max(len)/prams.Np;
 end
 
+%prams.minimum_separation = 0.032;
+
 om = monitor(options, prams, xc, tau);
 tt = tstep(options, prams, om, geom, walls, tau);
 potP = poten(geom.N,om);
@@ -38,6 +40,7 @@ while time < prams.T
     X = geom.getXY();
     
     if options.display_solution
+        subplot(2,2,1)
         fill(geom.X(1:end/2,:),geom.X(end/2+1:end,:),'k');
 
         axis equal
@@ -52,15 +55,34 @@ while time < prams.T
             
             hold off
         end
+        
+        if iT > 1
+            subplot(2,2,2);
+            plot(densityF);
+            
+            subplot(2,2,3);
+            plot(forceP)
+            
+            subplot(2,2,4);
+            plot(torqueP);
+        else
+            plot(zeros(2*prams.Np, prams.np));
+            
+            subplot(2,2,3);
+            plot(zeros(2,prams.np))
+            
+            subplot(2,2,4);
+            plot(zeros(1,prams.np));
+        end
         drawnow
     end
     
     if (iT == 0)
         [xc,tau,densityF,densityW,Up,wp,stokes,rot, ...
-                ~,~,iter,flag,res] = tt.timeStep(geom, walls, xc, tau, [], [], true);
+                forceP,torqueP,iter,flag,res] = tt.timeStep(geom, walls, xc, tau, [], [], true);
     else
         [xc,tau,densityF,densityW,Up,wp,stokes,rot, ...
-                ~,~,iter,flag,res] = tt.timeStep(geom, walls, xc, tau, Up, wp, false);
+                forceP,torqueP,iter,flag,res] = tt.timeStep(geom, walls, xc, tau, Up, wp, false);
     end
 
     time = time + tt.dt;
@@ -83,7 +105,7 @@ while time < prams.T
        om.writeMessage(['WARNING: GMRES flag = ', num2str(flag)]); 
     end
         
-    om.writeData(time, xc, tau, Up, wp, stokes, rot, densityF, densityW);   
+    om.writeData(time, xc, tau, Up, wp, stokes, rot, densityF, densityW, forceP, torqueP);   
 end
 
 Xfinal = X;

@@ -318,8 +318,8 @@ if o.resolve_collisions
     solution.omega = omega;
     solution.forceW = forceW;
     solution.torqueW = torqueW;
-    solution.forceP = 0;
-    solution.torqueP = 0;
+    solution.forceP = zeros(2,np);
+    solution.torqueP = zeros(1,np);
     
     solution =  o.resolveCollisions(geomOld, geomProv, walls, solution,...
                     uP_m1, omega_m1, first_step);
@@ -552,7 +552,7 @@ if include_walls
     Tx = [velParticles(:); velWalls(:); forceP(:); torqueP(:); ...
                     forceW(:); torqueW(:)];
 else
-    Tx = [velParticles(:); forceP(:); torqueP(:)];
+    Tx = [velParticles(:); 2*pi*forceP(:); 2*pi*torqueP(:)];
 end
 
 if o.profile
@@ -765,8 +765,8 @@ rorTerm = 1./rho2.*((x-cx).*(x-cx)*stokeslet(1) + ...
                 (x-cx).*(y-cy)*stokeslet(2));
 
 RotTerm = (y-cy)./rho2*rotlet;
-%velx = (LogTerm + rorTerm + RotTerm)/(4*pi);
-velx = 1/4/pi*(LogTerm + rorTerm) + RotTerm;
+velx = (LogTerm + rorTerm + RotTerm)/(4*pi);
+%velx = 1/4/pi*(LogTerm + rorTerm) + RotTerm;
 % x component of velocity due to the stokeslet and rotlet
 
 LogTerm = -0.5*log(rho2)*stokeslet(2);
@@ -774,8 +774,8 @@ rorTerm = 1./rho2.*((y-cy).*(x-cx)*stokeslet(1) + ...
     (y-cy).*(y-cy)*stokeslet(2));
 
 RotTerm = -(x-cx)./rho2*rotlet;
-%vely = (LogTerm + rorTerm + RotTerm)/(4*pi);
-vely = 1/4/pi*(LogTerm + rorTerm) + RotTerm;
+vely = (LogTerm + rorTerm + RotTerm)/(4*pi);
+%vely = 1/4/pi*(LogTerm + rorTerm) + RotTerm;
 % y component of velocity due to the stokeslet and rotlet
 
 vel = [velx;vely];
@@ -796,10 +796,10 @@ torque = zeros(1,n);
 for k = 1:n
 
   force(1,k) =  sum(eta(1:N,k).*geom.sa(:,k))*2*pi/N;
-  force(2,k) =  sum(eta(N+1:2*N,k).*geom.sa(:,k))*2*pi/N;
+  force(2,k) =  sum(eta(N+1:end,k).*geom.sa(:,k))*2*pi/N;
 
-  torque(k) = sum(((geom.X(N+1:2*N,k) - geom.center(2,k)).*eta(1:N,k) - ...
-    (geom.X(1:N,k) - geom.center(1,k)).*eta(N+1:2*N,k)).*geom.sa(:,k))*2*pi/N;
+  torque(k) = sum(((geom.X(N+1:end,k) - geom.center(2,k)).*eta(1:N,k) - ...
+    (geom.X(1:N,k) - geom.center(1,k)).*eta(N+1:end,k)).*geom.sa(:,k))*2*pi/N;
 
   force(:,k) = force(:,k)/(2*pi);
   torque(k) = torque(k)/(2*pi);  
@@ -879,7 +879,7 @@ while(iv<0)
     [forceP,torqueP] = o.computeNetForceTorque(fc_tot_tmp,geomOld);
     
     forceP = forceP*2*pi;
-    torqueP = -torqueP*2*pi;
+    torqueP = torqueP*2*pi;
     
     % ASSEMBLE NEW RHS WITH CONTACT FORCES
     rhs = o.assembleRHS(geomOld, walls, forceP, torqueP, [1:np], false);
@@ -992,7 +992,7 @@ for i = 1:nivs
     [forceP,torqueP] = o.computeNetForceTorque(full(f),geom);
     
     forceP = forceP*2*pi;
-    torqueP = -torqueP*2*pi;
+    torqueP = torqueP*2*pi;
     
     % ASSEMBLE NEW RHS WITH CONTACT FORCES
     rhs = o.assembleRHS(geom, walls, forceP, torqueP, S', true);
@@ -1009,7 +1009,7 @@ for i = 1:nivs
     % COMPUTE VELOCITY OF EACH POINT ON ALL RIGID PARTICLES
     [~, ~, uP, omega, ~, ~] = unpackSolution(o, Xn, false);
     
-    omega = -omega;
+    %omega = -omega;
     b = zeros(2*Np,np); 
     for k = S'
         b(:,k) = [uP(1,k)*ones(Np,1); uP(2,k)*ones(Np,1)] + ... %translational

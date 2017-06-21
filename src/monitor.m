@@ -155,7 +155,8 @@ end
 end % writeMessage
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function writeData(o, t_c, xc_c, tau_c, U_c, omega_c, stokes_c, rot_c, eta_pc, eta_wc)
+function writeData(o, t_c, xc_c, tau_c, U_c, omega_c, stokes_c, rot_c, ...
+                eta_pc, eta_wc, force_pc, torque_pc)
 % writeData(t, xc, tau, U, omega, etaF, etaW) writes centre point and orientation of each fibre
 % to a mat file. This file can be read in to Matlab later for
 % postprocessing.
@@ -174,7 +175,9 @@ if (length(t) > 2)
     U(:,:,end+1) = U_c;
     omega = [omega;omega_c];
     eta_p(:,:,end+1) = eta_pc;
-
+    force_p(:,:,end+1) = force_pc;
+    torque_p(:,end+1) = torque_pc;
+    
     if o.options.confined
         eta_w(:,:,end+1) = eta_wc;
 
@@ -187,7 +190,9 @@ else
     U(:,:,1) = U_c;
     omega = omega_c;
     eta_p(:,:,1) = eta_pc;
-
+    force_p(:,:,1) = force_pc;
+    torque_p(:,1) = torque_pc;
+    
     if o.options.confined
         eta_w(:,:,1) = eta_wc;
 
@@ -199,7 +204,7 @@ else
 end
 
 save(o.data_file, 'prams', 'options', 't', 'xc', 'tau', 'U', 'omega',...
-                        'stokes', 'rot', 'eta_w', 'eta_p');
+                        'stokes', 'rot', 'eta_w', 'eta_p','force_p','torque_p');
 
 end % writeData
 
