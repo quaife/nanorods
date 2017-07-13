@@ -37,6 +37,7 @@ prams
 minimum_separation
 display_solution
 debug
+explicit
 matvecs
 
 end % properties
@@ -48,6 +49,7 @@ function o = tstep(options, prams, om, geom, walls, tau0)
 % o.tstep(options,prams): constructor.  Initialize class.  Take all
 % elements of options and prams needed by the time stepper
 
+o.gmres_tol = 1e-6;
 o.tstep_order = options.tstep_order;        
 o.fmm = options.fmm;                  
 o.near_singular = options.near_singular;                
@@ -57,11 +59,12 @@ o.confined = options.confined;
 o.prams = prams;
 o.minimum_separation = prams.minimum_separation;
 o.display_solution = options.display_solution;
+o.explicit = true;
 
 o.resolve_collisions = options.resolve_collisions;
 o.dt = prams.T/prams.number_steps;                  
 o.gmres_tol = options.gmres_tol;             
-o.gmres_max_it = 50;%2*(prams.np*prams.Np + prams.nw*prams.Nw);
+o.gmres_max_it = 2*(prams.np*prams.Np + prams.nw*prams.Nw);
 
 o.far_field = @(X) o.bgFlow(X,options); 
 o.om = om;
@@ -100,16 +103,17 @@ end
 % CREATE UPSAMPLED MATRICES
 % FIBRE-FIBRE
 if ~isempty(geom.X)
-    Xsou = geom.X; 
-    Nup = Np*ceil(sqrt(Np));
-
-    Xup = [interpft(Xsou(1:Np,:),Nup);...
-       interpft(Xsou(Np+1:2*Np,:),Nup)];
-
-    geomUp = capsules([],Xup);
-    o.Dup = o.potp.stokesDLmatrix(geomUp);
+%     Xsou = geom.X; 
+%     Nup = Np*ceil(sqrt(Np));
+% 
+%     Xup = [interpft(Xsou(1:Np,:),Nup);...
+%        interpft(Xsou(Np+1:2*Np,:),Nup)];
+% 
+%     geomUp = capsules([],Xup);
+    %o.Dup = o.potp.stokesDLmatrix(geomUp);
+    o.Dup = o.Dp;
 else
-    o.Duw = [];
+    o.Dup = [];
 end
 
 % WALL-WALL
@@ -142,12 +146,12 @@ if o.use_precond
             lu([-1/2*eye(2*Np)+o.Dp(:,:,k) ...
             [-ones(Np,1);zeros(Np,1)] ...
             [zeros(Np,1);-ones(Np,1)] ...
-            [geom.X(end/2+1:end,k)-geom.center(2,k); ...
-                -geom.X(1:end/2,k)+geom.center(1,k)];...
-            [-geom.sa(:,k)'*2*pi/Np zeros(1,Np) 0 0 0];
-            [zeros(1,Np) -geom.sa(:,k)'*2*pi/np 0 0 0];
-            [(-geom.X(end/2+1:end,k)'+geom.center(2,k)).*geom.sa(:,k)'*2*pi/Np ...
-            (geom.X(1:end/2,k)'-geom.center(1,k)).*geom.sa(:,k)'*2*pi/Np 0 0 0]]);
+            [-(geom.X(end/2+1:end,k)-geom.center(2,k)); ...
+                (geom.X(1:end/2,k)-geom.center(1,k))];...
+            [geom.sa(:,k)'*2*pi/Np/(2*pi) zeros(1,Np) 0 0 0];
+            [zeros(1,Np) geom.sa(:,k)'*2*pi/np/(2*pi) 0 0 0];
+            [(geom.X(end/2+1:end,k)'-geom.center(2,k)).*geom.sa(:,k)'*2*pi/Np ...
+            -(geom.X(1:end/2,k)'-geom.center(1,k)).*geom.sa(:,k)'*2*pi/Np 0 0 0]/(2*pi)]);
     end
     
     if o.confined
@@ -199,7 +203,8 @@ end % constructor: tstep
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function [xc_new,tau_new,etaP,etaW,uP,omega,forceW,torqueW,forceP,....
                 torqueP,iter,iflag,res] = timeStep(o,geom,walls,xc,tau,...
-                uP_m1,omega_m1,first_step)
+                uP_m1,omega_m1,first_step,forceP_old, torqueP_old, etaP_old, ...
+                etaW_old)
 % timeStep(geom, walls, xc, tau) takes a single time step and returns the
 % angles and velocities of the particles at the next time step as well as
 % the density functions on the particles and walls, the translational and
@@ -215,7 +220,7 @@ Nw = o.points_per_wall;
 forceP = zeros(2,np);
 torqueP = zeros(1,np);
 
-rhs = o.assembleRHS(geom, walls, forceP, torqueP, [1:np], false);
+explicit_time_step = o.explicit; % && ~first_step;
 
 % CREATE NEAR SINGULAR INTEGRATION STRUCTURES
 if o.near_singular
@@ -235,70 +240,97 @@ if o.near_singular
     end
 end
 
+if explicit_time_step
+    rhs = o.assembleRHS_explicit(geom, walls, forceP, torqueP, ...
+                    forceP_old, torqueP_old, etaP_old, etaW_old, 1:np, false);
+else
+    rhs = o.assembleRHS(geom, walls, forceP, torqueP, 1:np, false);
+end
+
 % ROTATE FIBRE-FIBRE DLP AND FIBRE-FIBRE PRECONDITIONER
 Nup = Np*ceil(sqrt(Np));
 dtau = tau - o.tau0;
 o.tau0 = tau;
 
-% create diagonal blocks without rotation
-% Xup = [interpft(geom.X(1:N,:),Nup);...
-%        interpft(geom.X(N+1:2*N,:),Nup)];
-% 
-% geomUp = capsules([],Xup);
-% o.Dupf = o.opFibers.stokesDLmatrix(geomUp);
-% 
-% o.Df = o.opFibers.stokesDLmatrix(geom);
-% o.Dupf = o.opFibers.stokesDLmatrix(geomUp);
+Xsou = geom.X; 
+Nup = Np*ceil(sqrt(Np));
 
-for i = 1:np
 
-    R = spdiags([sin(dtau(i))*ones(2*Np,1), cos(dtau(i))*ones(2*Np,1)...
-                -sin(dtau(i))*ones(2*Np,1)], [-Np, 0, Np], zeros(2*Np, 2*Np));
-    
-    Rup = spdiags([sin(dtau(i))*ones(2*Nup,1), cos(dtau(i))*ones(2*Nup,1)...
-                -sin(dtau(i))*ones(2*Nup,1)], [-Nup, 0, Nup], zeros(2*Nup, 2*Nup));  
-            
-    o.Dp(:,:,i) = R*o.Dp(:,:,i)*R';
-    o.Dup(:,:,i) = Rup*o.Dup(:,:,i)*Rup';
-    
-    if o.use_precond
-        
-        [o.precop.L(:,:,i),o.precop.U(:,:,i)] =...
-            lu([-1/2*eye(2*Np)+o.Dp(:,:,i) ...
-            [-ones(Np,1);zeros(Np,1)] ...
-            [zeros(Np,1);-ones(Np,1)] ...
-            [geom.X(end/2+1:end,i)-geom.center(2,i);...
-                    -geom.X(1:end/2,i)+geom.center(1,i)];...
-            [-geom.sa(:,i)'*2*pi/Np zeros(1,Np) 0 0 0];
-            [zeros(1,Np) -geom.sa(:,i)'*2*pi/Np 0 0 0];
-            [(-geom.X(end/2+1:end,i)'+geom.center(2,i)).*geom.sa(:,i)'*2*pi/Np ...
-            (geom.X(1:end/2,i)'-geom.center(1,i)).*geom.sa(:,i)'*2*pi/Np 0 0 0]]);
-    end    
+% BUILD NEW PARTICLE-PARTICLE PRECONDITIONER
+Xup = [interpft(Xsou(1:Np,:),Nup);...
+    interpft(Xsou(Np+1:2*Np,:),Nup)];
+
+geomUp = capsules([],Xup);
+o.Dp = o.potp.stokesDLmatrix(geom);
+%o.Dup = o.potp.stokesDLmatrix(geomUp);
+o.Dup = o.Dp;
+
+o.precop.L = zeros(2*Np+3,2*Np+3,np);
+o.precop.U = zeros(2*Np+3,2*Np+3,np);
+for k = 1:np
+    [o.precop.L(:,:,k),o.precop.U(:,:,k)] =...
+        lu([-1/2*eye(2*Np)+o.Dp(:,:,k) ...
+        [-ones(Np,1);zeros(Np,1)] ...
+        [zeros(Np,1);-ones(Np,1)] ...
+        [-(geom.X(end/2+1:end,k)-geom.center(2,k)); ...
+            (geom.X(1:end/2,k)-geom.center(1,k))];...
+        [geom.sa(:,k)'*2*pi/Np/(2*pi) zeros(1,Np) 0 0 0];
+        [zeros(1,Np) geom.sa(:,k)'*2*pi/Np/(2*pi) 0 0 0];
+        [(geom.X(end/2+1:end,k)'-geom.center(2,k)).*geom.sa(:,k)'*2*pi/Np ...
+        -(geom.X(1:end/2,k)'-geom.center(1,k)).*geom.sa(:,k)'*2*pi/Np 0 0 0]/(2*pi)]);
 end
+    
+
+% ROTATE EXISTING PRECONDITIONER
+%for i = 1:np
+
+%     R = spdiags([sin(dtau(i))*ones(2*Np,1), cos(dtau(i))*ones(2*Np,1)...
+%                 -sin(dtau(i))*ones(2*Np,1)], [-Np, 0, Np], zeros(2*Np, 2*Np));
+%     
+%     Rup = spdiags([sin(dtau(i))*ones(2*Nup,1), cos(dtau(i))*ones(2*Nup,1)...
+%                 -sin(dtau(i))*ones(2*Nup,1)], [-Nup, 0, Nup], zeros(2*Nup, 2*Nup));  
+%             
+%     o.Dp(:,:,i) = R*o.Dp(:,:,i)*R';
+%     o.Dup(:,:,i) = Rup*o.Dup(:,:,i)*Rup';
+%     
+%     if o.use_precond
+%         
+%         [o.precop.L(:,:,i),o.precop.U(:,:,i)] =...
+%             lu([-1/2*eye(2*Np)+o.Dp(:,:,i) ...
+%             [-ones(Np,1);zeros(Np,1)] ...
+%             [zeros(Np,1);-ones(Np,1)] ...
+%             [geom.X(end/2+1:end,i)-geom.center(2,i);...
+%                     -geom.X(1:end/2,i)+geom.center(1,i)];...
+%             [geom.sa(:,i)'*2*pi/Np/(2*pi) zeros(1,Np) 0 0 0];
+%             [zeros(1,Np) geom.sa(:,i)'*2*pi/Np/(2*pi) 0 0 0];
+%             [(geom.X(end/2+1:end,i)'-geom.center(2,i)).*geom.sa(:,i)'*2*pi/Np ...
+%             -(geom.X(1:end/2,i)'-geom.center(1,i)).*geom.sa(:,i)'*2*pi/Np 0 0 0]/(2*pi)]);
+%     end    
+%end
 
 % SOLVE SYSTEM USING GMRES TO GET CANDIDATE TIME STEP
 if o.use_precond
-  [Xn,iflag,res,I] = gmres(@(X) o.timeMatVec(X,geom,walls,true),rhs,[],...
-      o.gmres_tol,o.gmres_max_it,@o.preconditionerBD,[], rhs);
+  [Xn,iflag,res,I] = gmres(@(X) o.timeMatVec(X,geom,walls,true,explicit_time_step),rhs,[],...
+      o.gmres_tol,o.gmres_max_it,@o.preconditionerBD,[],rhs);
 else
-  [Xn,iflag,res,I] = gmres(@(X) o.timeMatVec(X,geom,walls,true),rhs,[],...
-      o.gmres_tol, o.gmres_max_it);
+  [Xn,iflag,res,I] = gmres(@(X) o.timeMatVec(X,geom,walls,true,explicit_time_step),rhs,[],...
+      o.gmres_tol, o.gmres_max_it, [], [],rhs);
 end
 
 iter = I(2);
 
 % UNPACK SOLUTION
 [etaP, etaW, uP, omega, forceW, torqueW] = o.unpackSolution(Xn,true);
-omega = -omega; % test for now
+omega = -omega;
 
 % CREATE CANDIDATE CONFIGURATION 
-%if first_step % FORWARD EULER
+if first_step || o.tstep_order == 1 % FORWARD EULER
     xc_new = xc + o.dt*uP;
     tau_new = tau + o.dt*omega;
-% else %ADAMS_BASHFORTH
-%     xc_new = xc + (3/2)*o.dt*uP - (1/2)*o.dt*uP_m1;
-%     tau_new = tau + (3/2)*o.dt*omega - (1/2)*o.dt*omega_m1;
-% end
+else %ADAMS_BASHFORTH
+    xc_new = xc + (3/2)*o.dt*uP - (1/2)*o.dt*uP_m1;
+    tau_new = tau + (3/2)*o.dt*omega - (1/2)*o.dt*omega_m1;
+end
 
 geomProv = capsules(o.prams, xc_new, tau_new);
     
@@ -306,7 +338,7 @@ geomProv = capsules(o.prams, xc_new, tau_new);
 if o.resolve_collisions
     
     % REASSEMBLE OLD CONFIGURATION
-    geomOld = capsules(o.prams,xc, tau);
+    geomOld = geom;
     
     solution.xc_old = xc;
     solution.tau_old = tau;
@@ -320,6 +352,10 @@ if o.resolve_collisions
     solution.torqueW = torqueW;
     solution.forceP = zeros(2,np);
     solution.torqueP = zeros(1,np);
+    solution.forceP_old = forceP_old;
+    solution.torqueP_old = torqueP_old;
+    solution.etaP_old = etaP_old;
+    solution.etaW_old = etaW_old;
     
     solution =  o.resolveCollisions(geomOld, geomProv, walls, solution,...
                     uP_m1, omega_m1, first_step);
@@ -340,7 +376,7 @@ end % timeStep
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function Tx = timeMatVec(o,Xn,geom,walls,include_walls)
+function Tx = timeMatVec(o,Xn,geom,walls,include_walls,explicit)
 % Tx = timeMatVec(Xn,geom) does a matvec for GMRES 
 if o.profile
     tMatvec = tic;
@@ -520,8 +556,9 @@ end
 % EVALUATE TOTAL VELOCITY ON PARTICLES
 
 % ADD CONTRIBUTIONS FROM OTHER BODIES
-velParticles = velParticles + p_sr + pp_dlp + pw_dlp;
-
+if ~explicit
+    velParticles = velParticles + p_sr + pp_dlp + pw_dlp;
+end
 
 % SUBTRACT VELOCITY ON SURFACE
 for k = 1:np
@@ -529,7 +566,6 @@ for k = 1:np
   velParticles(Np+1:end,k) = velParticles(Np+1:end,k) - uP(2,k);
 end
 
-% definition of perp seems backward to me
 for k = 1:np 
   velParticles(1:Np,k) = velParticles(1:Np,k) ...
                 - (geom.X(Np+1:end,k) - geom.center(2,k))*omega(k);
@@ -552,7 +588,7 @@ if include_walls
     Tx = [velParticles(:); velWalls(:); forceP(:); torqueP(:); ...
                     forceW(:); torqueW(:)];
 else
-    Tx = [velParticles(:); 2*pi*forceP(:); 2*pi*torqueP(:)];
+    Tx = [velParticles(:); forceP(:); torqueP(:)];
 end
 
 if o.profile
@@ -566,10 +602,6 @@ end % timeMatVec
 function rhs = assembleRHS(o, geom, walls, forceP, torqueP, bodies,...
                     preprocess)
 % Assemble right hand side
-
-% forceP = 2*pi*forceP;
-% torqueP = 2*pi*torqueP;
-
 np = o.num_particles;
 nw = o.num_walls;
 Np = o.points_per_particle;
@@ -607,9 +639,21 @@ if o.resolve_collisions
         
         % CONTRIBUTION TO PARTICLE VELOCITY
         v = o.computeRotletStokesletVelocity(geom.X, geom.center(:,k),...
-            forceP(:,k)/(2*pi),torqueP(k)/(2*pi));
-        
-        rhs(1:2*Np*np) = rhs(1:2*Np*np) - v(:);
+            forceP(:,k),torqueP(k));
+%         
+%         if preprocess
+%           rhs((k-1)*2*Np+1:k*2*Np) = rhs((k-1)*2*Np+1:k*2*Np) - v(:,k); 
+%         else
+          rhs(1:2*Np*np) = rhs(1:2*Np*np) - v(:);
+%        end
+%         if preprocess % only subtract velocities for particles in contact
+%             for j = bodies
+%                rhs((j-1)*2*Np + 1: 2*j*Np) =  ...
+%                         rhs((j-1)*2*Np + 1: 2*j*Np) - v(:,j);
+%             end
+%         else % subtract velocities on all bodies
+%            rhs(1:2*Np*np) = rhs(1:2*Np*np) - v(:);
+        %end
         
         if o.confined && ~preprocess
             % CONTRIBUTION TO WALL VELOCITY
@@ -622,6 +666,98 @@ if o.resolve_collisions
 end
 
 end % assembleRHS
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+function rhs = assembleRHS_explicit(o, geom, walls, forceP, torqueP, ...
+                forceP_old, torqueP_old, etaP_old, etaW_old, bodies, preprocess)
+% Assemble right hand side
+
+np = o.num_particles;
+nw = o.num_walls;
+Np = o.points_per_particle;
+Nw = o.points_per_wall;
+
+if ~preprocess
+    if o.confined
+        ff = o.far_field(walls.X);
+    else
+        ff = -o.far_field(geom.X); 
+    end
+end
+
+if o.confined
+    if ~preprocess
+        rhs = [zeros(2*Np*np,1); ff(:); forceP(:); ...
+                    torqueP'; zeros(3*(nw-1),1)];
+    else
+        rhs = [zeros(2*Np*np,1); zeros(2*Nw*nw,1); forceP(:); ...
+                        torqueP'; zeros(3*(nw-1),1)];
+    end
+else
+    if ~preprocess
+        rhs = [ff(:); forceP(:); torqueP(:)];
+    else
+        rhs = [zeros(2*Np*np,1); forceP(:); torqueP(:)];
+    end
+end
+
+% APPLY VELCOITY FROM OLD DENSITY FUNCTION TO ALL OTHER BODIES
+if ~preprocess
+    pot_particles = o.potp;
+    if o.fmm
+      kernel = @pot_particles.exactStokesDLfmm;
+    else
+      kernel = @pot_particles.exactStokesDL;
+    end
+
+    kernelDirect = @pot_particles.exactStokesDL;
+
+    if o.near_singular 
+        DLP = @(X) pot_particles.exactStokesDLdiag(geom,o.Dp,X) - 1/2*X;
+        pp_dlp = pot_particles.nearSingInt(geom, etaP_old, DLP, o.Dup, ...
+            o.near_structff ,kernel, kernelDirect, geom, true, false);
+    else
+        pp_dlp = kernel(geom, etaP_old, o.Dp);
+    end
+    
+    rhs(1:2*np*Np) = rhs(1:2*np*Np) - pp_dlp(:);
+end
+
+if o.resolve_collisions
+    
+    % ADD IN CONTRIBUTIONS TO VELOCITIES FROM PARTICLE ROTLETS AND STOKESLETS
+    for k = bodies
+        
+        % CONTRIBUTION TO PARTICLE VELOCITY
+        v = o.computeRotletStokesletVelocity(geom.X, geom.center(:,k),...
+            forceP(:,k),torqueP(k));
+        
+        % SUBTRACT VELOCITY DUE TO CURRENT FORCE ON SELF
+        rhs(2*Np*(k-1)+1:2*Np*k) = rhs(2*Np*(k-1)+1:2*Np*k) - v(:,k);
+
+        if ~preprocess
+           % SUBTRACT OFF VELOCITY DUE TO OLD FORCE FROM ALL OTHER BODIES 
+           
+           v = o.computeRotletStokesletVelocity(geom.X, geom.center(:,k),...
+                    forceP_old(:,k),torqueP_old(k));
+           
+           % intra-particle interactions have already been considered     
+           v(:,k) = 0;
+           rhs(1:2*Np*np) = rhs(1:2*Np*np) - v(:);
+        end
+        
+        if o.confined && ~preprocess
+            % CONTRIBUTION TO WALL VELOCITY
+            v = o.computeRotletStokesletVelocity(walls.X, geom.center(:,k),...
+                                forceP(:,k),torqueP(k));
+            rhs(2*Np*np+1:2*Np*np+2*Nw*nw) = ...
+                                rhs(2*Np*np+1:2*Np*np+2*Nw*nw) - v(:);
+        end
+    end
+end
+
+end % assembleRHS
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function [etaP, etaW, u, omega, forceW, torqueW] = unpackSolution(...
                             o, Xn, include_walls)
@@ -760,22 +896,23 @@ oc = curve;
 rho2 = (x-cx).^2 + (y-cy).^2;
 % distance squared
 
+
 LogTerm = -0.5*log(rho2)*stokeslet(1);
 rorTerm = 1./rho2.*((x-cx).*(x-cx)*stokeslet(1) + ...
-                (x-cx).*(y-cy)*stokeslet(2));
+                    (x-cx).*(y-cy)*stokeslet(2));
 
-RotTerm = (y-cy)./rho2*rotlet;
-velx = (LogTerm + rorTerm + RotTerm)/(4*pi);
-%velx = 1/4/pi*(LogTerm + rorTerm) + RotTerm;
+RotTerm = ((y-cy)./rho2)*rotlet;
+velx = (LogTerm + rorTerm)/(4*pi) + RotTerm;
+%velx = 1/4/pi*(LogTerm + rorTerm + RotTerm);
 % x component of velocity due to the stokeslet and rotlet
 
 LogTerm = -0.5*log(rho2)*stokeslet(2);
 rorTerm = 1./rho2.*((y-cy).*(x-cx)*stokeslet(1) + ...
-    (y-cy).*(y-cy)*stokeslet(2));
+                 (y-cy).*(y-cy)*stokeslet(2));
 
-RotTerm = -(x-cx)./rho2*rotlet;
-vely = (LogTerm + rorTerm + RotTerm)/(4*pi);
-%vely = 1/4/pi*(LogTerm + rorTerm) + RotTerm;
+RotTerm = -((x-cx)./rho2)*rotlet;
+vely = (LogTerm + rorTerm)/(4*pi) + RotTerm;
+%vely = 1/4/pi*(LogTerm + rorTerm + RotTerm);
 % y component of velocity due to the stokeslet and rotlet
 
 vel = [velx;vely];
@@ -863,11 +1000,12 @@ while(iv<0)
 
     vgrad(1:2*Np*np) = o.adjustNormal(vgrad(1:2*Np*np),Np,np,geomOld,...
                                 edgelength,colCount);
+                            
     [A,~,ivs,~,jacoSmooth] = o.preprocessRigid(vgrad,ids,vols,geomOld,...
                     walls);
     
     % CALCULATE FORCE AND TORQUES ON PARTICLES
-    [fc, ~] = o.getColForce(A,ivs/o.dt,ivs*0,jacoSmooth);
+    [fc, lambda] = o.getColForce(A,ivs/o.dt,ivs*0,jacoSmooth);
 %     
 %     lambda = -(iv/o.dt)/A;
 %     fc = lambda*vgrad;
@@ -878,18 +1016,24 @@ while(iv<0)
     fc_tot_tmp = reshape(fc_tot, 2*Np, np);
     [forceP,torqueP] = o.computeNetForceTorque(fc_tot_tmp,geomOld);
     
-    forceP = forceP*2*pi;
-    torqueP = torqueP*2*pi;
+%     forceP = forceP*0;
+%     torqueP = torqueP*0;
     
     % ASSEMBLE NEW RHS WITH CONTACT FORCES
-    rhs = o.assembleRHS(geomOld, walls, forceP, torqueP, [1:np], false);
-
+    if o.explicit
+        rhs = o.assembleRHS_explicit(geomOld, walls, forceP, torqueP, ...
+            solution.forceP_old, solution.torqueP_old, solution.etaP_old, ...
+            solution.etaW_old, 1:np, false);
+    else
+        rhs = o.assembleRHS(geomOld, walls, forceP, torqueP, [1:np], false);
+    end
+    
     % SOLVE SYSTEM
     if o.use_precond
-      Xn = gmres(@(X) o.timeMatVec(X,geomOld,walls,true),rhs,[],o.gmres_tol,...
+      Xn = gmres(@(X) o.timeMatVec(X,geomOld,walls,true,o.explicit),rhs,[],o.gmres_tol,...
           o.gmres_max_it,@o.preconditionerBD,[]);
     else
-      Xn = gmres(@(X) o.timeMatVec(X,geomOld,walls,true),rhs,[],o.gmres_tol,...
+      Xn = gmres(@(X) o.timeMatVec(X,geomOld,walls,true,o.explicit),rhs,[],o.gmres_tol,...
           o.gmres_max_it);
     end 
 
@@ -898,13 +1042,13 @@ while(iv<0)
 
     omega = -omega;
     % UPDATE PARTICLE POSTIONS AND ANGLES 
-%    if first_step % FORWARD EULER
+    if first_step || o.tstep_order == 1% FORWARD EULER
         xc_new = solution.xc_old + o.dt*uP;
         tau_new = solution.tau_old + o.dt*omega;
-%     else %ADAMS_BASHFORTH
-%         xc_new = solution.xc_old + (3/2)*o.dt*uP - (1/2)*o.dt*uP_m1;
-%         tau_new = solution.tau_old + (3/2)*o.dt*omega - (1/2)*o.dt*omega_m1;
-%     end
+    else %ADAMS_BASHFORTH
+        xc_new = solution.xc_old + (3/2)*o.dt*uP - (1/2)*o.dt*uP_m1;
+        tau_new = solution.tau_old + (3/2)*o.dt*omega - (1/2)*o.dt*omega_m1;
+    end
     
     % FIX FORCE BALANCE, TOTAL FORCE IN SYSTEM SHOULD BE 0
 %     for k = 1:size(ids,1)
@@ -921,9 +1065,9 @@ while(iv<0)
     [Ns,totalnp,Xstart,Xend,totalPts] = o.preColCheck(geomOld.X,geomProv.X,...
         walls,wallupSamp);
 
-    [vgrad, iv, ids, vols] = getCollision(Ns, totalnp, Xstart, Xend, minSep, ...
-      maxIter, totalPts, c_tol, np, nw, Np*upSampleFactor, ...
-      Nw*wallupSamp, nexten, max(cellSize,minSep));
+    [vgrad, iv, ids, vols] = getCollision(Ns, totalnp, Xstart, Xend, minSep,... 
+        maxIter, totalPts, c_tol, np, nw, Np*upSampleFactor, Nw*wallupSamp,...
+        nexten, max(cellSize,minSep));
 
     solution.xc_new = xc_new;
     solution.tau_new = tau_new;
@@ -991,33 +1135,36 @@ for i = 1:nivs
 
     [forceP,torqueP] = o.computeNetForceTorque(full(f),geom);
     
-    forceP = forceP*2*pi;
-    torqueP = torqueP*2*pi;
-    
     % ASSEMBLE NEW RHS WITH CONTACT FORCES
-    rhs = o.assembleRHS(geom, walls, forceP, torqueP, S', true);
-
+    if o.explicit 
+        rhs = o.assembleRHS_explicit(geom, walls, forceP, torqueP, ...
+                [], [], [], [], S', true);
+    else
+        rhs = o.assembleRHS(geom, walls, forceP, torqueP, S', true);
+    end
+    
     % SOLVE SYSTEM WITH FAR FIELD NEGLECTED
     if o.use_precond
-      Xn = gmres(@(X) o.timeMatVec(X,geom,walls,true),rhs,[],o.gmres_tol,...
+      Xn = gmres(@(X) o.timeMatVec(X,geom,walls,true,o.explicit),rhs,[],o.gmres_tol,...
           o.gmres_max_it,@o.preconditionerBD,[]);
     else
-      Xn = gmres(@(X) o.timeMatVec(X,geom,walls,true),rhs,[],o.gmres_tol,...
+      Xn = gmres(@(X) o.timeMatVec(X,geom,walls,true,o.explicit),rhs,[],o.gmres_tol,...
           o.gmres_max_it);
     end 
     
     % COMPUTE VELOCITY OF EACH POINT ON ALL RIGID PARTICLES
-    [~, ~, uP, omega, ~, ~] = unpackSolution(o, Xn, false);
-    
-    %omega = -omega;
-    b = zeros(2*Np,np); 
+    [etaP, ~, uP, omega, ~, ~] = unpackSolution(o, Xn, false);
+
     for k = S'
-        b(:,k) = [uP(1,k)*ones(Np,1); uP(2,k)*ones(Np,1)] + ... %translational
+        b = [uP(1,k)*ones(Np,1); uP(2,k)*ones(Np,1)] + ... %translational
             omega(k)*[geom.X(Np+1:end,k) - geom.center(2,k); ...% + rotational
             -(geom.X(1:Np,k) - geom.center(1,k))];
+        
+        SS = find(vtoiv(k,:)~=0);
+        for l = 1:numel(SS)
+            A(SS(l),i) = A(SS(l),i) + dot(jaco(SS(l),1+(k-1)*2*Np:2*Np+(k-1)*2*Np),b);
+        end 
     end
-
-    b = b(:);
     
     if o.debug
         disp(['force x : ', num2str(forceP(1,:))]);
@@ -1026,11 +1173,12 @@ for i = 1:nivs
         figure(2)
         plot(f)
     end
-    
-    SS = find(vtoiv(k,:)~=0);
-    for l = 1:numel(SS)
-        A(SS(l),i) = A(SS(l),i) + dot(jaco(SS(l),:),b);
-    end
+
+
+    %     SS = find(vtoiv(k,:)~=0);
+    %     for l = 1:numel(SS)
+    %         A(SS(l),i) = A(SS(l),i) + dot(jaco(SS(l),:),b);
+    %     end
 end
 
 end % preprocessRigid
@@ -1235,20 +1383,39 @@ function M = build_matrix(o, geom, walls)
     M = zeros(Ntotal);
     
     for k = 1:Ntotal
-       M(:,k) = o.timeMatVec(I(:,k),geom,walls,true);
+       M(:,k) = o.timeMatVec(I(:,k),geom,walls,true,o.explicit);
     end    
 end % build_matrix
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+function P = build_particle_preconditioner(o)
+    
+    np = o.num_particles;
+    Np = o.points_per_particle;
+    
+    P = zeros(2*Np*np + 3*np,2*Np*np + 3*np);
+    
+    for k = 1:np
+       A = o.precop.L(:,:,k)*o.precop.U(:,:,k);
+       P((k-1)*2*Np + 1: k*2*Np, (k-1)*2*Np + 1: k*2*Np) = A(1:2*Np,1:2*Np);
+       P(2*Np*np + 3*(k-1)+1:2*Np*np + 3*k,(k-1)*2*Np + 1:k*2*Np) = A(end-2:end,1:end-3);
+       P((k-1)*2*Np + 1:k*2*Np, 2*Np*np + 3*(k-1)+1:2*Np*np + 3*k) = A(1:end-3,end-2:end);
+    end
+
+end
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function M = build_preconditioner_matrix(o, geom, walls)
 
-    [Np,np] = size(geom.X);
-    [Nw,nw] = size(walls.X);
+    np = o.num_particles;
+    nw = o.num_walls;
+    Np = o.points_per_particle;
+    Nw = o.points_per_wall;
     
-    Np = Np/2;
-    Nw = Nw/2;
-    
-    Ntotal = 2*Np*np + 2*Nw*nw + 3*np + 3*(nw-1);
+    Ntotal = 2*Np*np + 3*np;
+    if nw > 0
+        Ntotal = Ntotal + 2*Nw*nw +3*(nw-1);
+    end
     
     M = zeros(Ntotal,Ntotal);
     
@@ -1256,7 +1423,7 @@ function M = build_preconditioner_matrix(o, geom, walls)
     for k = 1:np
         start_row = 1+(k-1)*2*Np;
         M(start_row:start_row+2*Np-1,start_row:start_row+2*Np-1) ...
-                            =  -1/2*eye(2*Np)+o.Df(:,:,k);
+                            =  -1/2*eye(2*Np)+o.Dp(:,:,k);
     end
     
     % wall-wall
@@ -1273,13 +1440,13 @@ function M = build_preconditioner_matrix(o, geom, walls)
         start_col = 2*Np*(k-1)+1;
         
         M(start_row:start_row+1,start_col:start_col+2*Np-1) = ...
-            [[-geom.sa(:,k)'*2*pi/Np, zeros(1,Np)];...
-            [zeros(1,Np), -geom.sa(:,k)'*2*pi/Np]];
+            [[geom.sa(:,k)'*2*pi/Np, zeros(1,Np)];...
+            [zeros(1,Np), geom.sa(:,k)'*2*pi/Np]]/(2*pi);
         
         start_row = 2*Np*np+2*Nw*nw+2*np+k;
         M(start_row,start_col:start_col+2*Np-1) = ...
-            [(-geom.X(end/2+1:end,k)'+geom.center(2,k)).*geom.sa(:,k)'*2*pi/Np ...
-            (geom.X(1:end/2,k)'-geom.center(1,k)).*geom.sa(:,k)'*2*pi/Np];
+            [(geom.X(end/2+1:end,k)'-geom.center(2,k)).*geom.sa(:,k)'*2*pi/Np ...
+            -(geom.X(1:end/2,k)'-geom.center(1,k)).*geom.sa(:,k)'*2*pi/Np]/(2*pi);
         
         start_row = 2*Np*(k-1)+1;
         start_col = 2*Np*np+2*Nw*nw+2*(k-1)+1;
@@ -1290,48 +1457,48 @@ function M = build_preconditioner_matrix(o, geom, walls)
         
         start_col = 2*Np*np + 2*Nw*nw+2*np+k;
         M(start_row:start_row+2*Np-1,start_col) = ...
-            [geom.X(end/2+1:end,k)-geom.center(2,k); ...
-            -geom.X(1:end/2,k)+geom.center(1,k)];
+            [-(geom.X(end/2+1:end,k)-geom.center(2,k)); ...
+            geom.X(1:end/2,k)-geom.center(1,k)];
     end
     
-    
-    % stokeslets and rotlets
-    oc = curve;
-    sa = walls.sa;
-    [x,y] = oc.getXY(walls.X);
-    [cx,cy] = oc.getXY(walls.center);
-    
-    for k = 1:nw-1
-        r = [x(:,k+1) - cx(k+1), y(:,k+1) - cy(k+1)];
-        rho2 = (x(:,k+1) - cx(k+1)).^2 + (y(:,k+1) - cy(k+1)).^2;
+    if o.confined
+        % stokeslets and rotlets
+        oc = curve;
+        sa = walls.sa;
+        [x,y] = oc.getXY(walls.X);
+        [cx,cy] = oc.getXY(walls.center);
         
-        col_stokes1 = [-0.5*log(rho2) + r(:,1).*r(:,1)./rho2; ...
-                        r(:,2).*r(:,1)./rho2]/(4*pi);
-        col_stokes2 = [r(:,2).*r(:,1)./rho2; -0.5*log(rho2)...
-                        + r(:,2).*r(:,2)./rho2]/(4*pi);
-        col_rot = [r(:,2)./rho2; -r(:,1)./rho2];
-        
-        int_stokes = 2*pi*sa(:,k+1)'/Nw;
-        int_rot = 2*pi*[(y(:,k+1).*sa(:,k+1))', -(x(:,k+1).*sa(:,k+1))']/Nw;
-        
-        start_row = 2*Np*np+2*Nw*nw+3*np+1;
-        start_col = 2*Np*np+2*Nw*k+1;
-        
-        M(start_row:start_row+2,start_col:start_col+2*Nw-1) = ...
-                    [int_stokes, zeros(1,Nw);...
-                    zeros(1,Nw), int_stokes;...
-                    int_rot];
-        
-        start_col = 2*Np*np+2*Nw*nw+3*np+(k-1)+1;
-        M(start_row:start_row+2,start_col:start_col+2) = -2*pi*eye(3);
-        
-        start_row =  2*Np*np+2*Nw*k+1;
-        start_col = 2*Np*np+2*Nw*nw+3*np+1 +3*(k-1);
-        
-        M(start_row:start_row+2*Nw-1,start_col:start_col+2) ...
-                            = [col_stokes1, col_stokes2, col_rot];
+        for k = 1:nw-1
+            r = [x(:,k+1) - cx(k+1), y(:,k+1) - cy(k+1)];
+            rho2 = (x(:,k+1) - cx(k+1)).^2 + (y(:,k+1) - cy(k+1)).^2;
+            
+            col_stokes1 = [-0.5*log(rho2) + r(:,1).*r(:,1)./rho2; ...
+                r(:,2).*r(:,1)./rho2]/(4*pi);
+            col_stokes2 = [r(:,2).*r(:,1)./rho2; -0.5*log(rho2)...
+                + r(:,2).*r(:,2)./rho2]/(4*pi);
+            col_rot = [r(:,2)./rho2; -r(:,1)./rho2];
+            
+            int_stokes = 2*pi*sa(:,k+1)'/Nw;
+            int_rot = 2*pi*[(y(:,k+1).*sa(:,k+1))', -(x(:,k+1).*sa(:,k+1))']/Nw;
+            
+            start_row = 2*Np*np+2*Nw*nw+3*np+1;
+            start_col = 2*Np*np+2*Nw*k+1;
+            
+            M(start_row:start_row+2,start_col:start_col+2*Nw-1) = ...
+                [int_stokes, zeros(1,Nw);...
+                zeros(1,Nw), int_stokes;...
+                int_rot];
+            
+            start_col = 2*Np*np+2*Nw*nw+3*np+(k-1)+1;
+            M(start_row:start_row+2,start_col:start_col+2) = -2*pi*eye(3);
+            
+            start_row =  2*Np*np+2*Nw*k+1;
+            start_col = 2*Np*np+2*Nw*nw+3*np+1 +3*(k-1);
+            
+            M(start_row:start_row+2*Nw-1,start_col:start_col+2) ...
+                = [col_stokes1, col_stokes2, col_rot];
+        end
     end
-    
 end % build_preconditioner_matrix
 
 end % methods

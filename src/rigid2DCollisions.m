@@ -19,7 +19,7 @@ if prams.np > 0
   prams.minimum_separation = prams.minimum_separation*max(len)/prams.Np;
 end
 
-%prams.minimum_separation = 0.032;
+prams.minimum_separation = 0.032;
 
 om = monitor(options, prams, xc, tau);
 tt = tstep(options, prams, om, geom, walls, tau);
@@ -44,8 +44,8 @@ while time < prams.T
         fill(geom.X(1:end/2,:),geom.X(end/2+1:end,:),'k');
 
         axis equal
-%         xlim([-2.5,2.5])
-%         ylim([-2.5,2.5])
+        xlim([-2,2])
+        ylim([-2,2])
         
         if options.confined
             hold on
@@ -66,7 +66,6 @@ while time < prams.T
             subplot(2,2,4);
             plot(torqueP);
         else
-            plot(zeros(2*prams.Np, prams.np));
             
             subplot(2,2,3);
             plot(zeros(2,prams.np))
@@ -78,11 +77,16 @@ while time < prams.T
     end
     
     if (iT == 0)
+        densityF = zeros(2*prams.Np,prams.np);
+        densityW = zeros(2*prams.Nw,prams.nw);
+        forceP = zeros(2,prams.np);
+        torqueP = zeros(1,prams.np);
+        
         [xc,tau,densityF,densityW,Up,wp,stokes,rot, ...
-                forceP,torqueP,iter,flag,res] = tt.timeStep(geom, walls, xc, tau, [], [], true);
+                forceP,torqueP,iter,flag,res] = tt.timeStep(geom, walls, xc, tau, [], [], true, forceP, torqueP, densityF, densityW);
     else
         [xc,tau,densityF,densityW,Up,wp,stokes,rot, ...
-                forceP,torqueP,iter,flag,res] = tt.timeStep(geom, walls, xc, tau, Up, wp, false);
+                forceP,torqueP,iter,flag,res] = tt.timeStep(geom, walls, xc, tau, Up, wp, false, forceP, torqueP, densityF, densityW);
     end
 
     time = time + tt.dt;
