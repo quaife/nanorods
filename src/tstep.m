@@ -59,7 +59,7 @@ o.confined = options.confined;
 o.prams = prams;
 o.minimum_separation = prams.minimum_separation;
 o.display_solution = options.display_solution;
-o.explicit = true;
+o.explicit = options.explicit;
 
 o.resolve_collisions = options.resolve_collisions;
 o.dt = prams.T/prams.number_steps;                  
@@ -436,20 +436,26 @@ end
 
 % START OF SOURCE == PARTICLES
 % START OF TARGET == PARTICLES
-if o.fmm
-  kernel = @pot_particles.exactStokesDLfmm;
-else
-  kernel = @pot_particles.exactStokesDL;
-end
 
-kernelDirect = @pot_particles.exactStokesDL;
-
-if o.near_singular 
-  DLP = @(X) pot_particles.exactStokesDLdiag(geom,o.Dp,X) - 1/2*X;
-  pp_dlp = pot_particles.nearSingInt(geom, etaP, DLP, o.Dup, ...
-      o.near_structff ,kernel, kernelDirect, geom, true, false);
+if ~o.explicit
+    if o.fmm
+        kernel = @pot_particles.exactStokesDLfmm;
+    else
+        kernel = @pot_particles.exactStokesDL;
+    end
+    
+    kernelDirect = @pot_particles.exactStokesDL;
+    
+    if o.near_singular
+        DLP = @(X) pot_particles.exactStokesDLdiag(geom,o.Dp,X) - 1/2*X;
+        pp_dlp = pot_particles.nearSingInt(geom, etaP, DLP, o.Dup, ...
+            o.near_structff ,kernel, kernelDirect, geom, true, false);
+    else
+        pp_dlp = kernel(geom, etaP, o.Dp);
+    end
+    
 else
-  pp_dlp = kernel(geom, etaP, o.Dp);
+    pp_dlp = zeros(2*Np,np);
 end
 % END OF TARGET == PARTICLES
 
@@ -556,9 +562,9 @@ end
 % EVALUATE TOTAL VELOCITY ON PARTICLES
 
 % ADD CONTRIBUTIONS FROM OTHER BODIES
-if ~explicit
+%if ~explicit
     velParticles = velParticles + p_sr + pp_dlp + pw_dlp;
-end
+%end
 
 % SUBTRACT VELOCITY ON SURFACE
 for k = 1:np
