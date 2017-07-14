@@ -248,72 +248,73 @@ else
 end
 
 % ROTATE FIBRE-FIBRE DLP AND FIBRE-FIBRE PRECONDITIONER
-Nup = Np*ceil(sqrt(Np));
+%Nup = Np*ceil(sqrt(Np));
 dtau = tau - o.tau0;
 o.tau0 = tau;
 
-Xsou = geom.X; 
-Nup = Np*ceil(sqrt(Np));
-
-
-% BUILD NEW PARTICLE-PARTICLE PRECONDITIONER
-Xup = [interpft(Xsou(1:Np,:),Nup);...
-    interpft(Xsou(Np+1:2*Np,:),Nup)];
-
-geomUp = capsules([],Xup);
-o.Dp = o.potp.stokesDLmatrix(geom);
-%o.Dup = o.potp.stokesDLmatrix(geomUp);
-o.Dup = o.Dp;
-
-o.precop.L = zeros(2*Np+3,2*Np+3,np);
-o.precop.U = zeros(2*Np+3,2*Np+3,np);
-for k = 1:np
-    [o.precop.L(:,:,k),o.precop.U(:,:,k)] =...
-        lu([-1/2*eye(2*Np)+o.Dp(:,:,k) ...
-        [-ones(Np,1);zeros(Np,1)] ...
-        [zeros(Np,1);-ones(Np,1)] ...
-        [-(geom.X(end/2+1:end,k)-geom.center(2,k)); ...
-            (geom.X(1:end/2,k)-geom.center(1,k))];...
-        [geom.sa(:,k)'*2*pi/Np/(2*pi) zeros(1,Np) 0 0 0];
-        [zeros(1,Np) geom.sa(:,k)'*2*pi/Np/(2*pi) 0 0 0];
-        [(geom.X(end/2+1:end,k)'-geom.center(2,k)).*geom.sa(:,k)'*2*pi/Np ...
-        -(geom.X(1:end/2,k)'-geom.center(1,k)).*geom.sa(:,k)'*2*pi/Np 0 0 0]/(2*pi)]);
-end
+% Xsou = geom.X; 
+% Nup = Np*ceil(sqrt(Np));
+% 
+% 
+% % BUILD NEW PARTICLE-PARTICLE PRECONDITIONER
+% Xup = [interpft(Xsou(1:Np,:),Nup);...
+%     interpft(Xsou(Np+1:2*Np,:),Nup)];
+% 
+% geomUp = capsules([],Xup);
+% o.Dp = o.potp.stokesDLmatrix(geom);
+% %o.Dup = o.potp.stokesDLmatrix(geomUp);
+% o.Dup = o.Dp;
+% 
+% o.precop.L = zeros(2*Np+3,2*Np+3,np);
+% o.precop.U = zeros(2*Np+3,2*Np+3,np);
+% for k = 1:np
+%     [o.precop.L(:,:,k),o.precop.U(:,:,k)] =...
+%         lu([-1/2*eye(2*Np)+o.Dp(:,:,k) ...
+%         [-ones(Np,1);zeros(Np,1)] ...
+%         [zeros(Np,1);-ones(Np,1)] ...
+%         [-(geom.X(end/2+1:end,k)-geom.center(2,k)); ...
+%             (geom.X(1:end/2,k)-geom.center(1,k))];...
+%         [geom.sa(:,k)'*2*pi/Np/(2*pi) zeros(1,Np) 0 0 0];
+%         [zeros(1,Np) geom.sa(:,k)'*2*pi/Np/(2*pi) 0 0 0];
+%         [(geom.X(end/2+1:end,k)'-geom.center(2,k)).*geom.sa(:,k)'*2*pi/Np ...
+%         -(geom.X(1:end/2,k)'-geom.center(1,k)).*geom.sa(:,k)'*2*pi/Np 0 0 0]/(2*pi)]);
+% end
     
 
 % ROTATE EXISTING PRECONDITIONER
-%for i = 1:np
+for i = 1:np
 
-%     R = spdiags([sin(dtau(i))*ones(2*Np,1), cos(dtau(i))*ones(2*Np,1)...
-%                 -sin(dtau(i))*ones(2*Np,1)], [-Np, 0, Np], zeros(2*Np, 2*Np));
-%     
+    R = spdiags([sin(dtau(i))*ones(2*Np,1), cos(dtau(i))*ones(2*Np,1)...
+                -sin(dtau(i))*ones(2*Np,1)], [-Np, 0, Np], zeros(2*Np, 2*Np));
+    
 %     Rup = spdiags([sin(dtau(i))*ones(2*Nup,1), cos(dtau(i))*ones(2*Nup,1)...
 %                 -sin(dtau(i))*ones(2*Nup,1)], [-Nup, 0, Nup], zeros(2*Nup, 2*Nup));  
 %             
-%     o.Dp(:,:,i) = R*o.Dp(:,:,i)*R';
-%     o.Dup(:,:,i) = Rup*o.Dup(:,:,i)*Rup';
-%     
-%     if o.use_precond
-%         
-%         [o.precop.L(:,:,i),o.precop.U(:,:,i)] =...
-%             lu([-1/2*eye(2*Np)+o.Dp(:,:,i) ...
-%             [-ones(Np,1);zeros(Np,1)] ...
-%             [zeros(Np,1);-ones(Np,1)] ...
-%             [geom.X(end/2+1:end,i)-geom.center(2,i);...
-%                     -geom.X(1:end/2,i)+geom.center(1,i)];...
-%             [geom.sa(:,i)'*2*pi/Np/(2*pi) zeros(1,Np) 0 0 0];
-%             [zeros(1,Np) geom.sa(:,i)'*2*pi/Np/(2*pi) 0 0 0];
-%             [(geom.X(end/2+1:end,i)'-geom.center(2,i)).*geom.sa(:,i)'*2*pi/Np ...
-%             -(geom.X(1:end/2,i)'-geom.center(1,i)).*geom.sa(:,i)'*2*pi/Np 0 0 0]/(2*pi)]);
-%     end    
-%end
+    o.Dp(:,:,i) = R*o.Dp(:,:,i)*R';
+    %o.Dup(:,:,i) = Rup*o.Dup(:,:,i)*Rup';
+    o.Dup(:,:,i) = o.Dp(:,:,i);
+    
+    if o.use_precond
+        
+        [o.precop.L(:,:,i),o.precop.U(:,:,i)] =...
+            lu([-1/2*eye(2*Np)+o.Dp(:,:,i) ...
+            [-ones(Np,1);zeros(Np,1)] ...
+            [zeros(Np,1);-ones(Np,1)] ...
+            [-(geom.X(end/2+1:end,i)-geom.center(2,i));...
+                    geom.X(1:end/2,i)-geom.center(1,i)];...
+            [geom.sa(:,i)'*2*pi/Np/(2*pi) zeros(1,Np) 0 0 0];
+            [zeros(1,Np) geom.sa(:,i)'*2*pi/Np/(2*pi) 0 0 0];
+            [(geom.X(end/2+1:end,i)'-geom.center(2,i)).*geom.sa(:,i)'*2*pi/Np ...
+            -(geom.X(1:end/2,i)'-geom.center(1,i)).*geom.sa(:,i)'*2*pi/Np 0 0 0]/(2*pi)]);
+    end    
+end
 
 % SOLVE SYSTEM USING GMRES TO GET CANDIDATE TIME STEP
 if o.use_precond
-  [Xn,iflag,res,I] = gmres(@(X) o.timeMatVec(X,geom,walls,true,explicit_time_step),rhs,[],...
+  [Xn,iflag,res,I] = gmres(@(X) o.timeMatVec(X,geom,walls,true),rhs,[],...
       o.gmres_tol,o.gmres_max_it,@o.preconditionerBD,[],rhs);
 else
-  [Xn,iflag,res,I] = gmres(@(X) o.timeMatVec(X,geom,walls,true,explicit_time_step),rhs,[],...
+  [Xn,iflag,res,I] = gmres(@(X) o.timeMatVec(X,geom,walls,true),rhs,[],...
       o.gmres_tol, o.gmres_max_it, [], [],rhs);
 end
 
@@ -376,7 +377,7 @@ end % timeStep
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function Tx = timeMatVec(o,Xn,geom,walls,include_walls,explicit)
+function Tx = timeMatVec(o,Xn,geom,walls,include_walls)
 % Tx = timeMatVec(Xn,geom) does a matvec for GMRES 
 if o.profile
     tMatvec = tic;
@@ -1011,7 +1012,7 @@ while(iv<0)
                     walls);
     
     % CALCULATE FORCE AND TORQUES ON PARTICLES
-    [fc, lambda] = o.getColForce(A,ivs/o.dt,ivs*0,jacoSmooth);
+    [fc, ~] = o.getColForce(A,ivs/o.dt,ivs*0,jacoSmooth);
 %     
 %     lambda = -(iv/o.dt)/A;
 %     fc = lambda*vgrad;
@@ -1036,10 +1037,10 @@ while(iv<0)
     
     % SOLVE SYSTEM
     if o.use_precond
-      Xn = gmres(@(X) o.timeMatVec(X,geomOld,walls,true,o.explicit),rhs,[],o.gmres_tol,...
+      Xn = gmres(@(X) o.timeMatVec(X,geomOld,walls,true),rhs,[],o.gmres_tol,...
           o.gmres_max_it,@o.preconditionerBD,[]);
     else
-      Xn = gmres(@(X) o.timeMatVec(X,geomOld,walls,true,o.explicit),rhs,[],o.gmres_tol,...
+      Xn = gmres(@(X) o.timeMatVec(X,geomOld,walls,true),rhs,[],o.gmres_tol,...
           o.gmres_max_it);
     end 
 
@@ -1151,15 +1152,15 @@ for i = 1:nivs
     
     % SOLVE SYSTEM WITH FAR FIELD NEGLECTED
     if o.use_precond
-      Xn = gmres(@(X) o.timeMatVec(X,geom,walls,true,o.explicit),rhs,[],o.gmres_tol,...
+      Xn = gmres(@(X) o.timeMatVec(X,geom,walls,true),rhs,[],o.gmres_tol,...
           o.gmres_max_it,@o.preconditionerBD,[]);
     else
-      Xn = gmres(@(X) o.timeMatVec(X,geom,walls,true,o.explicit),rhs,[],o.gmres_tol,...
+      Xn = gmres(@(X) o.timeMatVec(X,geom,walls,true),rhs,[],o.gmres_tol,...
           o.gmres_max_it);
     end 
     
     % COMPUTE VELOCITY OF EACH POINT ON ALL RIGID PARTICLES
-    [etaP, ~, uP, omega, ~, ~] = unpackSolution(o, Xn, false);
+    [~, ~, uP, omega, ~, ~] = unpackSolution(o, Xn, false);
 
     for k = S'
         b = [uP(1,k)*ones(Np,1); uP(2,k)*ones(Np,1)] + ... %translational
