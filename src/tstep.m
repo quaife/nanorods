@@ -11,6 +11,7 @@ num_walls               % number of walls
 points_per_particle     % points per particle
 points_per_wall         % points per wall
 Dp                      % Stokes double-layer potential for fiber-fiber interaction
+Dp_old                  % Stokes double-layer potential for fiber-fiber interaction from previous time step
 Dw                      % Stokes double-layer potential for wall-wall interaction
 Dup                     % Upsampled Stokes double-layer potential matrix for fibers
 Duw                     % Upsampled Stokes double-layer potential matrix for walls
@@ -97,20 +98,13 @@ end
 % WALL-WALL SELF INTERACTIONS
 if ~isempty(geom.X)
     o.Dp = o.potp.stokesDLmatrix(geom);
+    o.Dp_old = zeros(size(o.Dp));
 else
     o.Dp = [];
 end
 % CREATE UPSAMPLED MATRICES
 % FIBRE-FIBRE
 if ~isempty(geom.X)
-%     Xsou = geom.X; 
-%     Nup = Np*ceil(sqrt(Np));
-% 
-%     Xup = [interpft(Xsou(1:Np,:),Nup);...
-%        interpft(Xsou(Np+1:2*Np,:),Nup)];
-% 
-%     geomUp = capsules([],Xup);
-    %o.Dup = o.potp.stokesDLmatrix(geomUp);
     o.Dup = o.Dp;
 else
     o.Dup = [];
@@ -213,8 +207,6 @@ function [xc_new,tau_new,etaP,etaW,uP,omega,forceW,torqueW,forceP,....
 
 np = o.num_particles;
 Np = o.points_per_particle;
-nw = o.num_walls;
-Nw = o.points_per_wall;
 
 % ASSEMBLE RHS WITH NO FORCE AND TORQUE ON PARTICLES
 forceP = zeros(2,np);
@@ -252,17 +244,10 @@ end
 dtau = tau - o.tau0;
 o.tau0 = tau;
 
-% Xsou = geom.X; 
-% Nup = Np*ceil(sqrt(Np));
-% 
-% 
-% % BUILD NEW PARTICLE-PARTICLE PRECONDITIONER
-% Xup = [interpft(Xsou(1:Np,:),Nup);...
-%     interpft(Xsou(Np+1:2*Np,:),Nup)];
-% 
-% geomUp = capsules([],Xup);
+o.Dp_old = o.Dp;
+
+% BUILD NEW PARTICLE-PARTICLE PRECONDITIONER
 % o.Dp = o.potp.stokesDLmatrix(geom);
-% %o.Dup = o.potp.stokesDLmatrix(geomUp);
 % o.Dup = o.Dp;
 % 
 % o.precop.L = zeros(2*Np+3,2*Np+3,np);
@@ -286,12 +271,8 @@ for i = 1:np
 
     R = spdiags([sin(dtau(i))*ones(2*Np,1), cos(dtau(i))*ones(2*Np,1)...
                 -sin(dtau(i))*ones(2*Np,1)], [-Np, 0, Np], zeros(2*Np, 2*Np));
-    
-%     Rup = spdiags([sin(dtau(i))*ones(2*Nup,1), cos(dtau(i))*ones(2*Nup,1)...
-%                 -sin(dtau(i))*ones(2*Nup,1)], [-Nup, 0, Nup], zeros(2*Nup, 2*Nup));  
-%             
-    o.Dp(:,:,i) = R*o.Dp(:,:,i)*R';
-    %o.Dup(:,:,i) = Rup*o.Dup(:,:,i)*Rup';
+          
+    o.Dp(:,:,i) = R*o.Dp_old(:,:,i)*R';
     o.Dup(:,:,i) = o.Dp(:,:,i);
     
     if o.use_precond
@@ -453,8 +434,7 @@ if ~o.explicit
             o.near_structff ,kernel, kernelDirect, geom, true, false);
     else
         pp_dlp = kernel(geom, etaP, o.Dp);
-    end
-    
+    end    
 else
     pp_dlp = zeros(2*Np,np);
 end
@@ -563,9 +543,7 @@ end
 % EVALUATE TOTAL VELOCITY ON PARTICLES
 
 % ADD CONTRIBUTIONS FROM OTHER BODIES
-%if ~explicit
-    velParticles = velParticles + p_sr + pp_dlp + pw_dlp;
-%end
+velParticles = velParticles + p_sr + pp_dlp + pw_dlp;
 
 % SUBTRACT VELOCITY ON SURFACE
 for k = 1:np
@@ -606,8 +584,7 @@ end
 end % timeMatVec
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function rhs = assembleRHS(o, geom, walls, forceP, torqueP, bodies,...
-                    preprocess)
+function rhs = assembleRHS(o, geom, walls, forceP, torqueP, bodies, preprocess)
 % Assemble right hand side
 np = o.num_particles;
 nw = o.num_walls;
@@ -638,7 +615,6 @@ else
     end
 end
 
-
 if o.resolve_collisions
     
     % ADD IN CONTRIBUTIONS TO VELOCITIES FROM PARTICLE ROTLETS AND STOKESLETS
@@ -647,21 +623,9 @@ if o.resolve_collisions
         % CONTRIBUTION TO PARTICLE VELOCITY
         v = o.computeRotletStokesletVelocity(geom.X, geom.center(:,k),...
             forceP(:,k),torqueP(k));
-%         
-%         if preprocess
-%           rhs((k-1)*2*Np+1:k*2*Np) = rhs((k-1)*2*Np+1:k*2*Np) - v(:,k); 
-%         else
-          rhs(1:2*Np*np) = rhs(1:2*Np*np) - v(:);
-%        end
-%         if preprocess % only subtract velocities for particles in contact
-%             for j = bodies
-%                rhs((j-1)*2*Np + 1: 2*j*Np) =  ...
-%                         rhs((j-1)*2*Np + 1: 2*j*Np) - v(:,j);
-%             end
-%         else % subtract velocities on all bodies
-%            rhs(1:2*Np*np) = rhs(1:2*Np*np) - v(:);
-        %end
-        
+
+        rhs(1:2*Np*np) = rhs(1:2*Np*np) - v(:);
+
         if o.confined && ~preprocess
             % CONTRIBUTION TO WALL VELOCITY
             v = o.computeRotletStokesletVelocity(walls.X, geom.center(:,k),...
@@ -712,22 +676,22 @@ end
 if ~preprocess
     pot_particles = o.potp;
     if o.fmm
-      kernel = @pot_particles.exactStokesDLfmm;
+        kernel = @pot_particles.exactStokesDLfmm;
     else
-      kernel = @pot_particles.exactStokesDL;
+        kernel = @pot_particles.exactStokesDL;
     end
-
+    
     kernelDirect = @pot_particles.exactStokesDL;
-
-    if o.near_singular 
+    
+    if o.near_singular
         DLP = @(X) pot_particles.exactStokesDLdiag(geom,o.Dp,X) - 1/2*X;
-        pp_dlp = pot_particles.nearSingInt(geom, etaP_old, DLP, o.Dup, ...
-            o.near_structff ,kernel, kernelDirect, geom, true, false);
+        pp_dlp = pot_particles.nearSingInt(geom, etaP_old, DLP, o.Dp, ...
+            o.near_structff, kernel, kernelDirect, geom, true, false);
     else
         pp_dlp = kernel(geom, etaP_old, o.Dp);
     end
     
-    rhs(1:2*np*Np) = rhs(1:2*np*Np) - pp_dlp(:);
+    rhs(1:2*np*Np) = rhs(1:2*np*Np) - pp_dlp(:);    
 end
 
 if o.resolve_collisions
@@ -1024,7 +988,7 @@ while(iv<0)
     [forceP,torqueP] = o.computeNetForceTorque(fc_tot_tmp,geomOld);
     
 %     forceP = forceP*0;
-%     torqueP = torqueP*0;
+%    torqueP = -torqueP;
     
     % ASSEMBLE NEW RHS WITH CONTACT FORCES
     if o.explicit
@@ -1032,7 +996,7 @@ while(iv<0)
             solution.forceP_old, solution.torqueP_old, solution.etaP_old, ...
             solution.etaW_old, 1:np, false);
     else
-        rhs = o.assembleRHS(geomOld, walls, forceP, torqueP, [1:np], false);
+        rhs = o.assembleRHS(geomOld, walls, forceP, torqueP, 1:np, false);
     end
     
     % SOLVE SYSTEM
@@ -1180,12 +1144,6 @@ for i = 1:nivs
         figure(2)
         plot(f)
     end
-
-
-    %     SS = find(vtoiv(k,:)~=0);
-    %     for l = 1:numel(SS)
-    %         A(SS(l),i) = A(SS(l),i) + dot(jaco(SS(l),:),b);
-    %     end
 end
 
 end % preprocessRigid
