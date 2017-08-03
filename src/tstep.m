@@ -232,12 +232,6 @@ if o.near_singular
     end
 end
 
-if explicit_time_step
-    rhs = o.assembleRHS_explicit(geom, walls, forceP, torqueP, ...
-                    forceP_old, torqueP_old, etaP_old, etaW_old, 1:np, false);
-else
-    rhs = o.assembleRHS(geom, walls, forceP, torqueP, 1:np, false);
-end
 
 % ROTATE FIBRE-FIBRE DLP AND FIBRE-FIBRE PRECONDITIONER
 %Nup = Np*ceil(sqrt(Np));
@@ -288,6 +282,13 @@ for i = 1:np
             [(geom.X(end/2+1:end,i)'-geom.center(2,i)).*geom.sa(:,i)'*2*pi/Np ...
             -(geom.X(1:end/2,i)'-geom.center(1,i)).*geom.sa(:,i)'*2*pi/Np 0 0 0]/(2*pi)]);
     end    
+end
+
+if explicit_time_step
+    rhs = o.assembleRHS_explicit(geom, walls, forceP, torqueP, ...
+                    forceP_old, torqueP_old, etaP_old, etaW_old, 1:np, false);
+else
+    rhs = o.assembleRHS(geom, walls, forceP, torqueP, 1:np, false);
 end
 
 % SOLVE SYSTEM USING GMRES TO GET CANDIDATE TIME STEP
@@ -619,7 +620,7 @@ if o.resolve_collisions
     
     % ADD IN CONTRIBUTIONS TO VELOCITIES FROM PARTICLE ROTLETS AND STOKESLETS
     for k = bodies
-        
+
         % CONTRIBUTION TO PARTICLE VELOCITY
         v = o.computeRotletStokesletVelocity(geom.X, geom.center(:,k),...
             forceP(:,k),torqueP(k));
@@ -684,19 +685,18 @@ if ~preprocess
     kernelDirect = @pot_particles.exactStokesDL;
     
     if o.near_singular
-        DLP = @(X) pot_particles.exactStokesDLdiag(geom,o.Dp,X) - 1/2*X;
-        pp_dlp = pot_particles.nearSingInt(geom, etaP_old, DLP, o.Dp, ...
+        DLP = @(X) pot_particles.exactStokesDLdiag(geom,o.Dp_old,X) - 1/2*X;
+        pp_dlp = pot_particles.nearSingInt(geom, etaP_old, DLP, o.Dp_old, ...
             o.near_structff, kernel, kernelDirect, geom, true, false);
     else
-        pp_dlp = kernel(geom, etaP_old, o.Dp);
+        pp_dlp = kernel(geom, etaP_old, o.Dp_old);
     end
     
-    rhs(1:2*np*Np) = rhs(1:2*np*Np) - pp_dlp(:);    
+    rhs(1:2*np*Np) = rhs(1:2*np*Np) - pp_dlp(:);
 end
 
 if o.resolve_collisions
     
-    % ADD IN CONTRIBUTIONS TO VELOCITIES FROM PARTICLE ROTLETS AND STOKESLETS
     for k = bodies
         
         % CONTRIBUTION TO PARTICLE VELOCITY
@@ -705,29 +705,47 @@ if o.resolve_collisions
         
         % SUBTRACT VELOCITY DUE TO CURRENT FORCE ON SELF
         rhs(2*Np*(k-1)+1:2*Np*k) = rhs(2*Np*(k-1)+1:2*Np*k) - v(:,k);
-
-        if ~preprocess
-           % SUBTRACT OFF VELOCITY DUE TO OLD FORCE FROM ALL OTHER BODIES 
-           
-           v = o.computeRotletStokesletVelocity(geom.X, geom.center(:,k),...
-                    forceP_old(:,k),torqueP_old(k));
-           
-           % intra-particle interactions have already been considered     
-           v(:,k) = 0;
-           rhs(1:2*Np*np) = rhs(1:2*Np*np) - v(:);
-        end
         
-        if o.confined && ~preprocess
-            % CONTRIBUTION TO WALL VELOCITY
-            v = o.computeRotletStokesletVelocity(walls.X, geom.center(:,k),...
-                                forceP(:,k),torqueP(k));
-            rhs(2*Np*np+1:2*Np*np+2*Nw*nw) = ...
-                                rhs(2*Np*np+1:2*Np*np+2*Nw*nw) - v(:);
+        if ~preprocess
+            
+            % SUBTRACT OFF VELOCITY FROM ROTLETS INDUCED BY etaP_old
+            [force_tmp, torque_tmp] = o.computeNetForceTorque(etaP_old, geom);
+
+            v = o.computeRotletStokesletVelocity(geom.X, geom.center(:,k),...
+                force_tmp(:,k),torque_tmp(k));
+            
+            % intra-particle interactions have already been considered
+            v(:,k) = 0;
+            
+            rhs(1:2*Np*np) = rhs(1:2*Np*np) - v(:);
+            
+            %     % ADD IN CONTRIBUTIONS TO VELOCITIES FROM PARTICLE ROTLETS AND STOKESLETS
+            %     for k = bodies
+            %
+            
+            %         if ~preprocess
+            %            % SUBTRACT OFF VELOCITY DUE TO OLD FORCE FROM ALL OTHER BODIES
+            %
+            %            v = o.computeRotletStokesletVelocity(geom.X, geom.center(:,k),...
+            %                     forceP_old(:,k),torqueP_old(k));
+            %
+            %            % intra-particle interactions have already been considered
+            %            v(:,k) = 0;
+            %            rhs(1:2*Np*np) = rhs(1:2*Np*np) - v(:);
+            %         end
+            
+            if o.confined
+                % CONTRIBUTION TO WALL VELOCITY
+                v = o.computeRotletStokesletVelocity(walls.X, geom.center(:,k),...
+                    forceP(:,k),torqueP(k));
+                rhs(2*Np*np+1:2*Np*np+2*Nw*nw) = ...
+                    rhs(2*Np*np+1:2*Np*np+2*Nw*nw) - v(:);
+            end
         end
     end
 end
 
-end % assembleRHS
+end % assembleRHS_explicit
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function [etaP, etaW, u, omega, forceW, torqueW] = unpackSolution(...
@@ -775,7 +793,7 @@ else
 end
 
 if o.confined && include_walls
-    forceW = zeros(2,nw-1);
+    forceW = zeros(2,nw-1);o.computeNetForceTorque(solution.etaP,geomProv);
     for k = 1:nw-1
        forceW(:,k) = ...
            Xn(2*Np*np+2*Nw*nw+3*np+1+2*(k-1): 2*Np*np+2*Nw*nw+3*np+2*k);
@@ -946,9 +964,18 @@ c_tol = 1e-12;
 minSep = o.minimum_separation;
 maxIter = 1000;
 
+% load explicit_dv1
+% Xs = Xstart;
+% Xf = Xend;
+%     
 % CHECK FOR COLLISION
 [Ns,totalnp,Xstart,Xend,totalPts] = o.preColCheck(geomOld.X,geomProv.X,...
                                         walls,wallupSamp);
+                                    
+% [vgrad1, iv1, ids1, vols1] = getCollision(Ns, totalnp, Xs, Xf, minSep, ...
+%         maxIter, totalPts, c_tol, np, nw, Np*upSampleFactor, ...
+%         Nw*wallupSamp, nexten, max(cellSize,minSep));
+%     
 [vgrad, iv, ids, vols] = getCollision(Ns, totalnp, Xstart, Xend, minSep, ...
         maxIter, totalPts, c_tol, np, nw, Np*upSampleFactor, ...
         Nw*wallupSamp, nexten, max(cellSize,minSep));
@@ -959,7 +986,7 @@ fc_tot = zeros(2*Np*np,1);
 colCount = 0;
 
 % RESOLVE COLLISION
-while(iv<0)
+while(iv < 0)
 
     colCount = colCount + 1;  
     o.om.writeMessage(['Collision resolving iteration: ', num2str(colCount)]);
@@ -976,20 +1003,24 @@ while(iv<0)
                     walls);
     
     % CALCULATE FORCE AND TORQUES ON PARTICLES
-    [fc, ~] = o.getColForce(A,ivs/o.dt,ivs*0,jacoSmooth);
+   [fc, lambda1] = o.getColForce(A,ivs/o.dt,ivs*0,jacoSmooth);
 %     
 %     lambda = -(iv/o.dt)/A;
-%     fc = lambda*vgrad;
+    lambda = -A\(ivs/o.dt);
+    fc = jacoSmooth'*lambda;
+%     fc = zeros(size(vgrad));
+%     for i = 1:size(lambda,1)
+%         k = listnp(i);
+%         fc(1 + (k-1)*2*Np: k*2*Np) = lambda(k)*vgrad(1 + (k-1)*2*Np: k*2*Np);
+%     end
+    %fc = lambda*vgrad;
     
     %fc = o.f_smooth(full(fc),Np,np);
     fc_tot = fc_tot + fc;
 
     fc_tot_tmp = reshape(fc_tot, 2*Np, np);
     [forceP,torqueP] = o.computeNetForceTorque(fc_tot_tmp,geomOld);
-    
-%     forceP = forceP*0;
-%    torqueP = -torqueP;
-    
+
     % ASSEMBLE NEW RHS WITH CONTACT FORCES
     if o.explicit
         rhs = o.assembleRHS_explicit(geomOld, walls, forceP, torqueP, ...
@@ -1048,9 +1079,9 @@ while(iv<0)
     solution.omega = omega;
     solution.forceW = forceW;
     solution.torqueW = torqueW;
-    solution.forceP = forceP;
-    solution.torqueP = torqueP;
-
+%     solution.forceP = forceP;
+%     solution.torqueP = torqueP;
+    [solution.forceP, solution.torqueP] = o.computeNetForceTorque(solution.etaP,geomProv);
     o.om.writeMessage(['ivolume: ' num2str(iv)],'%s\n');
 end
 
