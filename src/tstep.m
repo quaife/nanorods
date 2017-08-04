@@ -293,10 +293,10 @@ end
 
 % SOLVE SYSTEM USING GMRES TO GET CANDIDATE TIME STEP
 if o.use_precond
-  [Xn,iflag,res,I] = gmres(@(X) o.timeMatVec(X,geom,walls,true),rhs,[],...
+  [Xn,iflag,res,I] = gmres(@(X) o.timeMatVec(X,geom,walls,true,1:np),rhs,[],...
       o.gmres_tol,o.gmres_max_it,@o.preconditionerBD,[],rhs);
 else
-  [Xn,iflag,res,I] = gmres(@(X) o.timeMatVec(X,geom,walls,true),rhs,[],...
+  [Xn,iflag,res,I] = gmres(@(X) o.timeMatVec(X,geom,walls,true,1:np),rhs,[],...
       o.gmres_tol, o.gmres_max_it, [], [],rhs);
 end
 
@@ -359,7 +359,7 @@ end % timeStep
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function Tx = timeMatVec(o,Xn,geom,walls,include_walls)
+function Tx = timeMatVec(o,Xn,geom,walls,include_walls,bodies)
 % Tx = timeMatVec(Xn,geom) does a matvec for GMRES 
 if o.profile
     tMatvec = tic;
@@ -435,7 +435,13 @@ if ~o.explicit
             o.near_structff ,kernel, kernelDirect, geom, true, false);
     else
         pp_dlp = kernel(geom, etaP, o.Dp);
-    end    
+    end
+    
+    for k = 1:np
+       if max(k == bodies) == 0
+           pp_dlp(:,k) = 0;
+       end
+    end
 else
     pp_dlp = zeros(2*Np,np);
 end
@@ -626,7 +632,7 @@ if o.resolve_collisions
             forceP(:,k),torqueP(k));
 
         rhs(1:2*Np*np) = rhs(1:2*Np*np) - v(:);
-
+        
         if o.confined && ~preprocess
             % CONTRIBUTION TO WALL VELOCITY
             v = o.computeRotletStokesletVelocity(walls.X, geom.center(:,k),...
@@ -1003,11 +1009,13 @@ while(iv < 0)
                     walls);
     
     % CALCULATE FORCE AND TORQUES ON PARTICLES
-   [fc, lambda1] = o.getColForce(A,ivs/o.dt,ivs*0,jacoSmooth);
-%     
-%     lambda = -(iv/o.dt)/A;
     lambda = -A\(ivs/o.dt);
     fc = jacoSmooth'*lambda;
+    
+    if min(lambda < 0)
+        [fc, lambda1] = o.getColForce(A,ivs/o.dt,-lambda,jacoSmooth);
+    end
+
 %     fc = zeros(size(vgrad));
 %     for i = 1:size(lambda,1)
 %         k = listnp(i);
@@ -1032,10 +1040,10 @@ while(iv < 0)
     
     % SOLVE SYSTEM
     if o.use_precond
-      Xn = gmres(@(X) o.timeMatVec(X,geomOld,walls,true),rhs,[],o.gmres_tol,...
+      Xn = gmres(@(X) o.timeMatVec(X,geomOld,walls,true,1:np),rhs,[],o.gmres_tol,...
           o.gmres_max_it,@o.preconditionerBD,[]);
     else
-      Xn = gmres(@(X) o.timeMatVec(X,geomOld,walls,true),rhs,[],o.gmres_tol,...
+      Xn = gmres(@(X) o.timeMatVec(X,geomOld,walls,true,1:np),rhs,[],o.gmres_tol,...
           o.gmres_max_it);
     end 
 
@@ -1147,10 +1155,10 @@ for i = 1:nivs
     
     % SOLVE SYSTEM WITH FAR FIELD NEGLECTED
     if o.use_precond
-      Xn = gmres(@(X) o.timeMatVec(X,geom,walls,true),rhs,[],o.gmres_tol,...
+      Xn = gmres(@(X) o.timeMatVec(X,geom,walls,true,S'),rhs,[],o.gmres_tol,...
           o.gmres_max_it,@o.preconditionerBD,[]);
     else
-      Xn = gmres(@(X) o.timeMatVec(X,geom,walls,true),rhs,[],o.gmres_tol,...
+      Xn = gmres(@(X) o.timeMatVec(X,geom,walls,true,S'),rhs,[],o.gmres_tol,...
           o.gmres_max_it);
     end 
     
