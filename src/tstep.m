@@ -1129,9 +1129,9 @@ for i = 1:nivs
     S = find(vtoiv(:,i)~=0); 
     
     f = jaco(i,1:2*Np*np)';
-    %f = o.f_smooth(full(f),Np,np);
+    f = o.f_smooth(full(f),Np,np);
     
-    f = reshape(f, 2*Np, np);
+    %f = reshape(f, 2*Np, np);
 
     [forceP,torqueP] = o.computeNetForceTorque(full(f),geom);
     geomTmp = capsules(o.prams, geom.X(:,S'));
@@ -1164,8 +1164,8 @@ for i = 1:nivs
             omega(k)*[geomTmp.X(Np+1:end,k) - geomTmp.center(2,k); ...% + rotational
             -(geomTmp.X(1:Np,k) - geomTmp.center(1,k))];
         
-        SS = find(vtoiv(k,:)~=0);
         j = S(k);
+        SS = find(vtoiv(j,:)~=0);
         for l = 1:numel(SS)
             A(SS(l),i) = A(SS(l),i) + dot(jaco(SS(l),1+(j-1)*2*Np:2*Np+(j-1)*2*Np),b);
         end 
