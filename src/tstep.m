@@ -625,24 +625,43 @@ else
 end
 
 if o.resolve_collisions
-    
+
+    %m_found = false;
+    %m = bodies(1);
+    %total_force = [0;0];
+ 
     % ADD IN CONTRIBUTIONS TO VELOCITIES FROM PARTICLE ROTLETS AND STOKESLETS
     for k = bodies
-
+	
+	%if max(abs(forceP(:,k))) > 1e-12 && ~m_found
+        %       m_found = true;
+        %       m = k;
+        %else
         % CONTRIBUTION TO PARTICLE VELOCITY
         v = o.computeRotletStokesletVelocity(geom.X, geom.center(:,k),...
-            forceP(:,k),torqueP(k));
+            	forceP(:,k),torqueP(k));
 
-        rhs(1:2*Np*np) = rhs(1:2*Np*np) - v(:);
-        
+           % total_force = total_force + forceP(:,k);
+
+	    rhs(1:2*Np*np) = rhs(1:2*Np*np) - v(:);
+        %end
+
         if o.confined && ~preprocess
             % CONTRIBUTION TO WALL VELOCITY
             v = o.computeRotletStokesletVelocity(walls.X, geom.center(:,k),...
                                 forceP(:,k),torqueP(k));
+
             rhs(2*Np*np+1:2*Np*np+2*Nw*nw) = ...
                                 rhs(2*Np*np+1:2*Np*np+2*Nw*nw) - v(:);
         end
     end
+
+    % ENSURE NET FORCE IS 0
+    %v = o.computeRotletStokesletVelocity(geom.X, geom.center(:,m), ...
+    %		-total_force, torqueP(m));
+
+    %rhs(1:2*Np*np) = rhs(1:2*Np*np) - v(:);
+    %rhs(2*Np*np + 2*(m-1) + 1: 2*Np*np + 2*m) = -total_force;
 end
 
 end % assembleRHS
@@ -652,9 +671,9 @@ function rhs = assembleRHS_explicit(o, geom, walls, forceP, torqueP, ...
                 forceP_old, torqueP_old, etaP_old, etaW_old, bodies, preprocess)
 % Assemble right hand side
 
-np = o.num_particles;
+np = geom.n;
 nw = o.num_walls;
-Np = o.points_per_particle;
+Np = geom.N;
 Nw = o.points_per_wall;
 
 if ~preprocess
@@ -988,6 +1007,8 @@ o.om.writeMessage(['ivolume: ' num2str(iv)],'%s\n');
 fc_tot = zeros(2*Np*np,1);
 colCount = 0;
 
+forceP = zeros(2, np);
+
 % RESOLVE COLLISION
 while(iv < 0)
 
@@ -1002,22 +1023,27 @@ while(iv < 0)
     vgrad(1:2*Np*np) = o.adjustNormal(vgrad(1:2*Np*np),Np,np,geomOld,...
                                 edgelength,colCount);
                             
-    [A,~,ivs,~,jacoSmooth] = o.preprocessRigid(vgrad,ids,vols,geomOld,...
+    [A,~,ivs,~,jacoSmooth, vtoiv] = o.preprocessRigid(vgrad,ids,vols,geomOld,...
                     walls);
     
     % CALCULATE FORCE AND TORQUES ON PARTICLES
     lambda = -A\(ivs/o.dt);
     fc = jacoSmooth'*lambda;
     
-    if min(lambda < 0)
+    if min(lambda)< 0
         [fc, lambda1] = o.getColForce(A,ivs/o.dt,-lambda,jacoSmooth);
     end
     
     %fc = o.f_smooth(full(fc),Np,np);
-    fc_tot = fc_tot + fc;
+    %fc_tot = fc_tot + fc;
 
-    fc_tot_tmp = reshape(fc_tot, 2*Np, np);
-    [forceP,torqueP] = o.computeNetForceTorque(fc_tot_tmp,geomOld);
+    %fc_tot_tmp = reshape(fc_tot, 2*Np, np);
+    fc_tmp = reshape(fc, 2*Np, np);
+    [forceP_tmp,torqueP] = o.computeNetForceTorque(fc_tmp,geomOld);
+    
+    forceP = forceP + o.balance_force(forceP_tmp, vtoiv);
+%     forceP(1,:) = o.zero_net_vector(forceP(1,:),true);
+%     forceP(2,:) = o.zero_net_vector(forceP(2,:),true);
 
     % ASSEMBLE NEW RHS WITH CONTACT FORCES
     if o.explicit
@@ -1087,7 +1113,7 @@ end
 end % resolveCollision
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function [A,jaco,ivs,listnv,jacoSmooth] = preprocessRigid(o,vgrad,ids,...
+function [A,jaco,ivs,listnv,jacoSmooth, vtoiv] = preprocessRigid(o,vgrad,ids,...
                     vols,geom,walls)
                 
 Np = o.points_per_particle;
@@ -1135,13 +1161,18 @@ for i = 1:nivs
 
     [forceP,torqueP] = o.computeNetForceTorque(full(f),geom);
     geomTmp = capsules(o.prams, geom.X(:,S'));
+
+    forceP = o.balance_force(forceP, vtoiv);
     
+%     forceP(1,S') = o.zero_net_vector(forceP(1,S'),true);
+%     forceP(2,S') = o.zero_net_vector(forceP(2,S'),true);
+ 
     % ASSEMBLE NEW RHS WITH CONTACT FORCES
     if o.explicit 
-        rhs = o.assembleRHS_explicit(geom, walls, forceP(:,S'), torqueP(S'), ...
-                [], [], [], [], S', true);
+        rhs = o.assembleRHS_explicit(geomTmp, walls, forceP(:,S'), torqueP(S'), ...
+                [], [], [], [], 1:length(S), true);
     else
-        rhs = o.assembleRHS(geomTmp, walls, forceP(:,S'), torqueP(S'), 1:2, true);  
+        rhs = o.assembleRHS(geomTmp, walls, forceP(:,S'), torqueP(S'), 1:length(S), true);  
         
         %rhs = o.assembleRHS(geom, walls, forceP, torqueP, S', true);
     end
@@ -1157,7 +1188,7 @@ for i = 1:nivs
     %end 
     
     % COMPUTE VELOCITY OF EACH POINT ON ALL RIGID PARTICLES
-    [~, ~, uP, omega, ~, ~] = unpackSolution(o, Xn, false,2);
+    [~, ~, uP, omega, ~, ~] = unpackSolution(o, Xn, false, length(S));
 
     for k = 1:2
         b = [uP(1,k)*ones(Np,1); uP(2,k)*ones(Np,1)] + ... %translational
@@ -1181,6 +1212,70 @@ for i = 1:nivs
 end
 
 end % preprocessRigid
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+function F = balance_force(~, F, vtoiv)
+    
+n_vols = size(vtoiv,2);
+for v = 1:n_vols
+    
+    S = find(vtoiv(:,v)~=0); 
+    fv = F(:,S);
+    
+    [~, max_id] = max(sum(fv.^2));
+    
+    f_total = [0;0];
+    for i = 1:size(fv,2)
+        if i~=max_id
+            f_total = f_total + fv(:,i);
+        end
+    end
+    
+    F(:,S(max_id)) = -f_total;    
+end
+    
+    
+end % balance_force
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+function F = zero_net_vector(~, F, preprocess)
+
+if preprocess
+    F(2) = -F(1);
+    %mu = mean(F);
+    %np = length(F);
+
+    %for k = 1:np
+    %	F(k) = F(k) - mu;
+    %end
+
+else
+
+    if nnz(F) > 0
+
+        np = length(F);
+        max_iter = 100;
+        iter = 0;
+
+        while abs(mean(F(F~=0))) > 1e-12 && iter < max_iter
+            iter = iter + 1;	
+            fnz = F(F~=0);
+            mu = mean(fnz);
+            n_skipped = length(fnz(sign(fnz) ~= sign(mu) | abs(fnz) < abs(mu)));
+
+            offset = mu * length(fnz)/ (length(fnz) - n_skipped);
+
+            for k = 1:np
+
+                if F(k) ~= 0 && sign(F(k)) == sign(mu) && abs(F(k)) > abs(offset)
+
+                    F(k) = F(k) - offset;
+                end	
+            end
+
+        end
+    end
+end
+end % zero_net_vector
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function [vgrad] = adjustNormal(~,vgrad,N,n,geom,edgelength,colCount)
