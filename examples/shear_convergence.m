@@ -13,6 +13,7 @@ prams.T = 15;
 prams.number_steps = 300; % number of time steps
 prams.rounding_order = 2;
 prams.tracker_fnc = @(t) [20*cos(t),20*sin(t);5*cos(t),5*sin(t)];
+prams.minimum_separation = 0.1;
 
 options.far_field = 'shear';
 options.save = true;
@@ -26,6 +27,8 @@ options.profile = false;
 options.tstep_order = 2;
 options.confined = false;
 options.resolve_collisions = false;
+options.debug = false;
+options.display_solution = true;
 
 [options,prams] = initRigid2D(options,prams);
 xWalls = [];
