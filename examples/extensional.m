@@ -1,9 +1,9 @@
 close all
 
-prams.Np = 32; % points per body
+prams.Np = 64; % points per body
 prams.np = 2; % number of bodies
 prams.T = 10; % time horizon
-prams.number_steps = 100; % number of time steps
+prams.number_steps = 200; % number of time steps
 prams.lengths = 1;
 prams.widths = 0.125;
 prams.rounding_order = 2;
@@ -14,7 +14,7 @@ options.save = true;
 options.file_base = 'extensional_rk45';
 options.append = false;
 options.near_singular = true;
-options.use_precond = true;
+options.use_precond = false;
 options.fmm = true;
 options.verbose = true;
 options.profile = false;
@@ -36,7 +36,7 @@ options.explicit = false;
 % tau = [pi/2,pi/2,pi/2,pi/2,pi/2,pi/2,pi/2];
 % xc = [0,0,0,0 ;2.5, 0.6, 0, -2.5];
 tau = [pi/2, 0];
-xc = [0,0;0.65, 0];
+xc = [0,0;0.5627, 0];
 %xc = [-1, -1, -0.5, -0.5, 0, 0, 0.5, 0.5, 1, 1; -0.5, 0.5, -0.5, 0.5, -0.5, 0.5, -0.5, 0.5, -0.5, 0.5];
 %tau = [-1,1,-1,1,-1,1,-1,1,-1,1]*2*pi/5;
 % xc = [1;0];

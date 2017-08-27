@@ -887,7 +887,7 @@ end
 end % exactStokesDL
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function [stokesDLP,stokesDLPtar] = exactStokesDLfmm(o,geom,f, ~, Xtar,K)
+function [stokesDLP,stokesDLPtar] = exactStokesDLfmm(o,geom,f, D, Xtar,K)
 % [stokesDLP,stokeDLPtar] = exactStokesDLfmm(geom,f,Xtar,K) uses the
 % FMM to compute the double-layer potential due to all geoms except
 % itself geom is a class of object capsules and f is the density
@@ -934,34 +934,24 @@ else
   % Wrap the output of the FMM into the usual 
   % [[x1;y1] [x2;y2] ...] format
   
-  %diagDL = o.exactStokesDLdiag(geom, D, f);
+  diagDL = o.exactStokesDLdiag(geom, D, f);
 
-%   oc = curve;
-%   [tx,ty] = oc.getXY(geom.xt);
+  oc = curve;
+  [tx,ty] = oc.getXY(geom.xt);
   
   if o.profile
       tfmmLoop = tic;
   end
   
   for k = 1:geom.n %in principle this could be done using a parfor loop 
+      txk = tx(:,k); tyk = ty(:,k);
+      sa = geom.sa(:,k);
+      cur = geom.cur(:,k);
+       
+      fDotTau = txk.*f(1:end/2,k) + tyk.*f(end/2+1:end,k);
+      diag = -[fDotTau.*cur.*sa.*txk; fDotTau.*cur.*sa.*tyk]/geom.N;
       
-      % compute diagonal term
-%       txk = tx(:,k); tyk = ty(:,k);
-%       sa = geom.sa(:,k);
-%       cur = geom.cur(:,k);
-%       
-%       fDotTau = txk.*f(1:end/2,k) + tyk.*f(end/2+1:end,k);
-      %diag = -[fDotTau.*cur.*sa.*txk; fDotTau.*cur.*sa.*tyk]/geom.N;
-      
-      % compute self interaction using FMM
-      dip1 = 0.25/pi*(fy - 1i*fx).*(nx + 1i*ny);
-      dip2 = -1i*0.5/pi*(fx.*nx + fy.*ny);
-      vel = stokesDLPfmm(dip1(:,k),dip2(:,k),x(:,k),y(:,k));
-      
-      u = -imag(vel);
-      v = real(vel);
-      stokesDLP(:,k) = stokesDLP(:,k) - ([u;v]);
-      %stokesDLP(:,k) = stokesDLP(:,k) - (diagDL(:,k) - diag);
+      stokesDLP(:,k) = stokesDLP(:,k) - (diagDL(:,k) - diag);
   end
   
   if o.profile
