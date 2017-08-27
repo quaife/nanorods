@@ -50,7 +50,6 @@ function o = tstep(options, prams, om, geom, walls, tau0)
 % o.tstep(options,prams): constructor.  Initialize class.  Take all
 % elements of options and prams needed by the time stepper
 
-o.gmres_tol = 1e-6;
 o.tstep_order = options.tstep_order;        
 o.fmm = options.fmm;                  
 o.near_singular = options.near_singular;                
@@ -304,7 +303,7 @@ iter = I(2);
 
 % UNPACK SOLUTION
 [etaP, etaW, uP, omega, forceW, torqueW] = o.unpackSolution(Xn,true,np);
-omega = -omega;
+%omega = -omega;
 
 % CREATE CANDIDATE CONFIGURATION 
 if first_step || o.tstep_order == 1 % FORWARD EULER
@@ -373,7 +372,7 @@ Np = geom.N;
 Nw = o.points_per_wall;
 
 pot_walls = o.potw;
-pot_particles = poten(np, o.om);
+pot_particles = poten(Np, o.om);
 
 if length(bodies) ~= o.num_particles
     Dp = pot_particles.stokesDLmatrix(geom);
@@ -381,6 +380,15 @@ else
     Dp = o.Dp;
 end
 
+Xsou = geom.X; 
+Nup = Np*ceil(sqrt(Np));
+
+Xup = [interpft(Xsou(1:Np,:),Nup);...
+   interpft(Xsou(Np+1:2*Np,:),Nup)];
+
+geomUp = capsules([],Xup);
+Dup =  pot_particles.stokesDLmatrix(geomUp);
+    
 % PREALLOCATE OUTPUT VECTORS
 % velParticles : velocity of particles
 % velWalls     : velocity of particles
@@ -439,7 +447,7 @@ if ~o.explicit
         near_structff = geom.getZone([],1);
         
         DLP = @(X) pot_particles.exactStokesDLdiag(geom,Dp,X) - 1/2*X;
-        pp_dlp = pot_particles.nearSingInt(geom, etaP, DLP, Dp, ...
+        pp_dlp = pot_particles.nearSingInt(geom, etaP, DLP, Dup, ...
             near_structff ,kernel, kernelDirect, geom, true, false);
     else
         pp_dlp = kernel(geom, etaP, Dp);
@@ -562,9 +570,9 @@ end
 
 for k = 1:np 
   velParticles(1:Np,k) = velParticles(1:Np,k) ...
-                - (geom.X(Np+1:end,k) - geom.center(2,k))*omega(k);
+                + (geom.X(Np+1:end,k) - geom.center(2,k))*omega(k);
   velParticles(Np+1:end,k) = velParticles(Np+1:end,k)...
-                + (geom.X(1:Np,k) - geom.center(1,k))*omega(k); 
+                - (geom.X(1:Np,k) - geom.center(1,k))*omega(k); 
 end
 
 % EVALUATE VELOCITY ON WALLS
