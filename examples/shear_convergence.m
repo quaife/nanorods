@@ -38,7 +38,7 @@ xc = [linspace(0,10,prams.np);zeros(1,prams.np)];
 tau  = pi/2*ones(1,prams.np);
 
 % create fine solution
-prams.Np = 512; % points per body
+prams.Np = 256; % points per body
 tic;
 Xfinal = rigid2DCollisions(options, prams, xc, tau, xWalls);
 t_fine = toc;
@@ -47,7 +47,7 @@ pp = post(['../output/data/',options.file_base, '.mat']);
 xc_fine = pp.xc;
 tau_fine = pp.tau;
 
-N = [8,16,32,64,128,256];
+N = [8,16,32,64];
 xc_err = zeros(1,length(N));
 tau_err = zeros(1,length(N));
 times = zeros(1,length(N));
