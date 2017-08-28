@@ -380,14 +380,14 @@ else
     Dp = o.Dp;
 end
 
-Xsou = geom.X; 
-Nup = Np*ceil(sqrt(Np));
-
-Xup = [interpft(Xsou(1:Np,:),Nup);...
-   interpft(Xsou(Np+1:2*Np,:),Nup)];
-
-geomUp = capsules([],Xup);
-Dup =  pot_particles.stokesDLmatrix(geomUp);
+% Xsou = geom.X; 
+% Nup = Np*ceil(sqrt(Np));
+% 
+% Xup = [interpft(Xsou(1:Np,:),Nup);...
+%    interpft(Xsou(Np+1:2*Np,:),Nup)];
+% 
+% geomUp = capsules([],Xup);
+% Dup =  pot_particles.stokesDLmatrix(geomUp);
     
 % PREALLOCATE OUTPUT VECTORS
 % velParticles : velocity of particles
@@ -447,7 +447,7 @@ if ~o.explicit
         near_structff = geom.getZone([],1);
         
         DLP = @(X) pot_particles.exactStokesDLdiag(geom,Dp,X) - 1/2*X;
-        pp_dlp = pot_particles.nearSingInt(geom, etaP, DLP, Dup, ...
+        pp_dlp = pot_particles.nearSingInt(geom, etaP, DLP, Dp, ...
             near_structff ,kernel, kernelDirect, geom, true, false);
     else
         pp_dlp = kernel(geom, etaP, Dp);
@@ -1010,7 +1010,7 @@ while(iv < 0)
         [fc, lambda1] = o.getColForce(A,ivs/o.dt,-lambda,jacoSmooth);
     end
     
-    %fc = o.f_smooth(full(fc),Np,np);
+    %fc_tmp = o.f_smooth(full(fc),Np,np);
     %fc_tot = fc_tot + fc;
 
     %fc_tot_tmp = reshape(fc_tot, 2*Np, np);
@@ -1145,9 +1145,9 @@ for i = 1:nivs
     S = find(vtoiv(:,i)~=0); 
     
     f = jaco(i,1:2*Np*np)';
-    f = o.f_smooth(full(f),Np,np);
+    %f = o.f_smooth(full(f),Np,np);
     
-    %f = reshape(f, 2*Np, np);
+    f = reshape(f, 2*Np, np);
 
     [forceP,torqueP] = o.computeNetForceTorque(full(f),geom);
     geomTmp = capsules(o.prams, geom.X(:,S'));
@@ -1322,11 +1322,6 @@ for i = 1:length(C)
 end
 
 end % find_clusters
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function neighbor_count(~, k, vtoiv)
-    
-end % neighbor_count
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function [vgrad] = adjustNormal(~,vgrad,N,n,geom,edgelength,colCount)
