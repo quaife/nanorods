@@ -1277,6 +1277,25 @@ end
 end % balance_force
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+function [C, volumes] = add_particle_to_cluster(o, C, S, k, volumes)
+    
+n_vols = length(S);
+
+for i = 1:n_vols
+    if ~max(i == volumes)
+        if max(S{i} == k)
+            volumes(end+1) = i;
+            C = [C; S{i}];
+
+            for k1 = S{i}'
+                [C, volumes] = o.add_particle_to_cluster(C, S, k1, volumes);
+            end
+        end
+    end
+end
+end
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function C = determine_clusters(o, vtoiv)
     
 n_vols = size(vtoiv,2);
