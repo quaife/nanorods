@@ -1,0 +1,98 @@
+\documentclass[preprint, 10pt]{elsarticle}
+
+\newcommand{\mcaption}[2]{\caption{\small \em #1}\label{#2}}
+\newcommand{\secref}[1]{\ref{#1}}
+
+\input{preambles.tex}
+\begin{document}
+
+\title{Methods paper for rigid bodies}
+
+\author[Lukas]{Lukas Bystircky}
+\author[Lukas]{Sachin Shanbhag}
+\author[Bryan]{Bryan D.~Quaife}
+\address[Lukas]{Department of Scientific Computing, Florida State University, Tallahassee, FL, 32306.}
+\address[Bryan]{Department of Scientific Computing and Geophysical Fluid Dynamics Institute, Florida State University, Tallahassee, FL, 32306.}
+
+\begin{abstract} 
+We consider suspensions of rigid bodies in two dimensions \ldots
+\end{abstract}
+
+\begin{keyword}
+  Stokes flow \sep Boundary integral method \sep Rigid body suspensions 
+\end{keyword}
+
+\maketitle
+
+
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Introduction\label{s:intro}}
+
+\todo[inline]{Bryan will write this section}
+
+This is a methods paper
+\begin{itemize}
+  \item Boundary integral equation formulation
+  \item STIV
+  \item FMM
+  \item Near-singular integration
+  \item Pressure and energy dissipation calculations
+  \item Time integrator
+\end{itemize}
+
+\cite{qua-bir2014}
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Formulation\label{s:formulation}} 
+
+\begin{itemize}
+  \item Governing equations
+  \item Calculating pressure, energy dissipation, alignment angle
+  \item STIV
+  \item Unbounded and bounded geometries
+\end{itemize}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Numerical Methods\label{s:method}} 
+
+\begin{itemize}
+  \item New time integrator
+  \item Near singular integration
+  \item FMM
+  \item STIV implementation
+  \item How do we measure error so that we can do a convergence study?
+\end{itemize}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Results\label{s:results}} 
+
+\begin{itemize}
+  \item One of the main results is that the new time integrator can
+    handle higher concentrations
+  \item Two bodies in extensional
+  \item Multiple bodies in extensional and/or Taylor-Green
+  \item Couette with low and high concentration
+\end{itemize}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Conclusions\label{s:conclusions}}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{appendices}
+An appendix
+\end{appendices}
+
+
+\bibliographystyle{plainnat} 
+\bibliography{refs}
+\biboptions{sort&compress}
+\end{document}
+
+
