@@ -233,31 +233,10 @@ end
 
 
 % ROTATE FIBRE-FIBRE DLP AND FIBRE-FIBRE PRECONDITIONER
-%Nup = Np*ceil(sqrt(Np));
 dtau = tau - o.tau0;
 o.tau0 = tau;
 
-o.Dp_old = o.Dp;
-
-% BUILD NEW PARTICLE-PARTICLE PRECONDITIONER
-% o.Dp = o.potp.stokesDLmatrix(geom);
-% o.Dup = o.Dp;
-% 
-% o.precop.L = zeros(2*Np+3,2*Np+3,np);
-% o.precop.U = zeros(2*Np+3,2*Np+3,np);
-% for k = 1:np
-%     [o.precop.L(:,:,k),o.precop.U(:,:,k)] =...
-%         lu([-1/2*eye(2*Np)+o.Dp(:,:,k) ...
-%         [-ones(Np,1);zeros(Np,1)] ...
-%         [zeros(Np,1);-ones(Np,1)] ...
-%         [-(geom.X(end/2+1:end,k)-geom.center(2,k)); ...
-%             (geom.X(1:end/2,k)-geom.center(1,k))];...
-%         [geom.sa(:,k)'*2*pi/Np/(2*pi) zeros(1,Np) 0 0 0];
-%         [zeros(1,Np) geom.sa(:,k)'*2*pi/Np/(2*pi) 0 0 0];
-%         [(geom.X(end/2+1:end,k)'-geom.center(2,k)).*geom.sa(:,k)'*2*pi/Np ...
-%         -(geom.X(1:end/2,k)'-geom.center(1,k)).*geom.sa(:,k)'*2*pi/Np 0 0 0]/(2*pi)]);
-% end
-    
+o.Dp_old = o.Dp;    
 
 % ROTATE EXISTING PRECONDITIONER
 for i = 1:np
@@ -395,7 +374,11 @@ end
 % forceP       : net force on particles, strength of Stokeslets
 % torqueP      : net torque on particles, strengh of rotlets
 velParticles = zeros(2*Np,np);
-velWalls = zeros(2*Nw,nw);
+if include_walls
+    velWalls = zeros(2*Nw,nw);
+else
+    velWalls = [];
+end
 
 % UNPACK Xn
 % etaP    : denisty function on particles
@@ -419,7 +402,7 @@ velWalls = zeros(2*Nw,nw);
 % ADD JUMP IN DLP
 velParticles = velParticles - 1/2*etaP;
 
-if o.confined
+if o.confined && include_walls
    velWalls = velWalls - 1/2*etaW;
 end 
 
@@ -621,8 +604,7 @@ if o.confined
         rhs = [zeros(2*Np*np,1); ff(:); forceP(:); ...
                     torqueP'; zeros(3*(nw-1),1)];
     else
-        rhs = [zeros(2*Np*np,1); zeros(2*Nw*nw,1); forceP(:); ...
-                        torqueP'; zeros(3*(nw-1),1)];
+        rhs = [zeros(2*Np*np,1); forceP(:); torqueP'];
     end
 else
     if ~preprocess
@@ -794,7 +776,7 @@ else
 end
 
 if o.confined && include_walls
-    forceW = zeros(2,nw-1);o.computeNetForceTorque(solution.etaP,geomProv);
+    forceW = zeros(2,nw-1);
     for k = 1:nw-1
        forceW(:,k) = ...
            Xn(2*Np*np+2*Nw*nw+3*np+1+2*(k-1): 2*Np*np+2*Nw*nw+3*np+2*k);
@@ -984,6 +966,7 @@ colCount = 0;
 
 forceP = zeros(2, np);
 torqueP = zeros(1,np);
+alpha = 0.75;
 
 % RESOLVE COLLISION
 while(iv < 0)
@@ -1000,15 +983,18 @@ while(iv < 0)
                                 edgelength,colCount);
                             
     [A,~,ivs,~,jacoSmooth, vtoiv] = o.preprocessRigid(vgrad,ids,vols,geomOld,...
-                    walls, solution.uP, solution.omega);
+                    walls, uP_m1, omega_m1);
     
     % CALCULATE FORCE AND TORQUES ON PARTICLES
-    lambda = -A\(ivs/o.dt);
+    lambda = -A\(ivs/o.dt);    
     fc = jacoSmooth'*lambda;
     
     if min(lambda)< 0
         [fc, lambda1] = o.getColForce(A,ivs/o.dt,-lambda,jacoSmooth);
+        lambda1 = alpha*lambda1;
     end
+    
+    fc = alpha*fc;
     
     %fc_tmp = o.f_smooth(full(fc),Np,np);
     %fc_tot = fc_tot + fc;
@@ -1107,7 +1093,7 @@ end % resolveCollision
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function [A,jaco,ivs,listnv,jacoSmooth, vtoiv] = preprocessRigid(o,vgrad,ids,...
-                    vols,geom,walls, uP_old, omega_old)
+                    vols,geom,walls, uP_m1, omega_m1)
                 
 Np = o.points_per_particle;
 np = o.num_particles;
@@ -1155,10 +1141,10 @@ for i = 1:nivs
     [forceP,torqueP] = o.computeNetForceTorque(full(f),geom);
     geomTmp = capsules(o.prams, geom.X(:,S'));
 
-    %forceP = o.balance_force(geom, forceP, vtoiv(:,i));
+    forceP = o.balance_force(geom, forceP, vtoiv(:,i));    
     %torqueP = -torqueP;
     %torqueP = torqueP/(2*pi);
-    %torqueP = zeros(size(torqueP));
+    torqueP = zeros(size(torqueP));
  
     % ASSEMBLE NEW RHS WITH CONTACT FORCES
     if o.explicit 
@@ -1169,18 +1155,17 @@ for i = 1:nivs
     end
     
     % SOLVE SYSTEM WITH FAR FIELD NEGLECTED
-%     if o.use_precond
-% 
-%       Xn = gmres(@(X) o.timeMatVec(X,geomTmp,walls,true,1:2),rhs,[],o.gmres_tol,...
-%           4*Np,@o.preconditionerBD,[]);
-%     else
-      Xn = gmres(@(X) o.timeMatVec(X,geomTmp,walls,true,1:length(S)),rhs,[],o.gmres_tol,...
-          4*Np);
-    %end 
+    
+    Xn = gmres(@(X) o.timeMatVec(X,geomTmp,walls,false,1:length(S)),rhs,[],o.gmres_tol,...
+        4*Np);
     
     % COMPUTE VELOCITY OF EACH POINT ON ALL RIGID PARTICLES
-    [~, ~, uP, omega, ~, ~] = unpackSolution(o, Xn, false, length(S));
- 
+    [~, ~, uP, omega, ~, ~] = o.unpackSolution(Xn, false, length(S));
+    
+    if o.tstep_order == 2
+        uP = 1.5*uP - 0.5*uP_m1(:,S);
+        omega = 1.5*omega - 0.5*omega_m1(S);
+    end
     
     for k = 1:length(S)
         b = [uP(1,k)*ones(Np,1); uP(2,k)*ones(Np,1)] + ... %translational
@@ -1194,18 +1179,15 @@ for i = 1:nivs
         end
     end
     
-    %u = o.compute_velocity(geomTmp, f, forceP, torqueP);
-    
     u = zeros(2*Np,length(S));
-    for k = 1:length(S)
+    for k = S'
 
         % CONTRIBUTION TO PARTICLE VELOCITY
-        v = o.computeRotletStokesletVelocity(geomTmp.X, geomTmp.center(:,k),...
+        v = o.computeRotletStokesletVelocity(geomTmp.X, geom.center(:,k),...
             forceP(:,k),torqueP(k));
 
         u = u + v;
     end
-
 
     if o.debug
         close all
@@ -1222,8 +1204,8 @@ for i = 1:nivs
                 omega(k)*[geomTmp.X(Np+1:end,k) - geomTmp.center(2,k); ...% + rotational
                  -(geomTmp.X(1:Np,k) - geomTmp.center(1,k))];
             
-           %quiver(geom.X(1:end/2,S(k)),geom.X(end/2+1:end,S(k)), b(1:end/2),b(end/2+1:end),'k');
-           quiver(geom.X(1:end/2,S(k)),geom.X(end/2+1:end,S(k)), u(1:end/2,k),u(end/2+1:end,k),'k');
+           quiver(geom.X(1:end/2,S(k)),geom.X(end/2+1:end,S(k)), b(1:end/2),b(end/2+1:end),'k');
+           %quiver(geom.X(1:end/2,S(k)),geom.X(end/2+1:end,S(k)), u(1:end/2,k),u(end/2+1:end,k),'k');
         end
         
         axis equal
@@ -1264,14 +1246,16 @@ for ic = 1:length(C)
     % total force on this particle will be negative sum of forces on all
     % other particles in cluser
     
-    total_force = [0;0];
-    for k = C{ic}'
-        if k ~= target
-            total_force = total_force + F(:,k);
+    if length(C{ic}) > 1
+        total_force = [0;0];
+        for k = C{ic}'
+            if k ~= target
+                total_force = total_force + F(:,k);
+            end
         end
-    end
     
-    F(:,target) = -total_force;
+        F(:,target) = -total_force;
+    end
 end
 
 end % balance_force
@@ -1345,7 +1329,9 @@ for k = 1:n
     % collision resolving may get stuck
     % use surface normal instead
     if(colCount > 20)
+      %disp('Using surface normal for volume gradient');
       bnnorm = edgelength(k);
+      vgrad_mag = sqrt(vgrad(i,k)^2 + vgrad(N+i,k)^2);
       
       tangent = geom.xt;
       oc = curve;
@@ -1354,8 +1340,13 @@ for k = 1:n
       ny = -tanx;
       normal = [nx;ny];
       
-      vgrad(i,k) = normal(i,k)*bnnorm;
-      vgrad(N+i,k) = normal(i+N,k)*bnnorm;
+      normal_mag = sqrt(nx(i,k)^2 + ny(i,k)^2);
+      
+      vgrad(i,k) = vgrad_mag*normal(i,k)/normal_mag;
+      vgrad(N+i,k) = vgrad_mag*normal(i+N,k)/normal_mag;
+      
+%       vgrad(i,k) = normal(i,k)*bnnorm/vgrad_mag;
+%       vgrad(N+i,k) = normal(i+N,k)*bnnorm/vgrad_mag;
     end
   end
 end
