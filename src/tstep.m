@@ -661,8 +661,7 @@ if o.confined
         rhs = [zeros(2*Np*np,1); ff(:); forceP(:); ...
                     torqueP'; zeros(3*(nw-1),1)];
     else
-        rhs = [zeros(2*Np*np,1); zeros(2*Nw*nw,1); forceP(:); ...
-                        torqueP'; zeros(3*(nw-1),1)];
+        rhs = [zeros(2*Np*np,1); forceP(:); torqueP'];
     end
 else
     if ~preprocess
@@ -934,9 +933,10 @@ if np
 end
 
 if o.confined
-  [~,length] = oc.geomProp(walls.X);
-  walllength = max(length/Nw);
-  wallupSamp = ceil(walllength/cellSize);
+%   [~,length] = oc.geomProp(walls.X);
+%   walllength = max(length/Nw);
+  %wallupSamp = ceil(walllength/cellSize);
+  wallupSamp = 1;
 else
   wallupSamp = 1;
 end
@@ -961,12 +961,15 @@ maxIter = 1000;
     
 o.om.writeMessage(['ivolume: ' num2str(iv)],'%s\n');
 
-fc_tot = zeros(2*Np*np,1);
 colCount = 0;
 
 forceP = zeros(2, np);
 torqueP = zeros(1,np);
-alpha = 0.75;
+
+alpha0 = 0.75;
+alpha = alpha0;
+alpha_max = 10;
+alpha_min = 0.25;
 
 % RESOLVE COLLISION
 while(iv < 0)
@@ -975,23 +978,38 @@ while(iv < 0)
     o.om.writeMessage(['Collision resolving iteration: ', num2str(colCount)]);
     
     %vgrad = vgrad(1:2*Np*np);
+% 
+%     ids = ids(1:2*Np*np);
+%     vols = vols(1:2*Np*np);
 
-    ids = ids(1:2*Np*np);
-    vols = vols(1:2*Np*np);
-
-    vgrad(1:2*Np*np) = o.adjustNormal(vgrad(1:2*Np*np),Np,np,geomOld,...
-                                edgelength,colCount);
                             
     [A,~,ivs,~,jacoSmooth, vtoiv] = o.preprocessRigid(vgrad,ids,vols,geomOld,...
-                    walls, uP_m1, omega_m1);
+                    walls);
     
     % CALCULATE FORCE AND TORQUES ON PARTICLES
-    lambda = -A\(ivs/o.dt);    
+    lambda = -A\(ivs/o.dt); 
+    
+    % if all lambda values are negative, adjust vgrad and try again
+    if max(lambda) < 0
+        vgrad(1:2*Np*np) = o.adjustNormal(vgrad(1:2*Np*np),Np,np,geomOld,...
+            edgelength);
+        [A,~,ivs,~,jacoSmooth, vtoiv] = o.preprocessRigid(vgrad,ids,vols,geomOld,...
+            walls);
+        
+        lambda = -A\(ivs/o.dt);
+    end
+    
     fc = jacoSmooth'*lambda;
     
+    % if at least one of the lambda values is still negative use Fisher-Newton to
+    % solve for best positive lambdas
     if min(lambda)< 0
-        [fc, lambda1] = o.getColForce(A,ivs/o.dt,-lambda,jacoSmooth);
-        lambda1 = alpha*lambda1;
+        [fc, ~] = o.getColForce(A,ivs/o.dt,-lambda,jacoSmooth);
+    end    
+    
+    if colCount > 2
+        alpha = max(min(o.compute_alpha(alpha, alpha0, iv), alpha_max), alpha_min); 
+        disp(['alpha = ', num2str(alpha)]);              
     end
     
     fc = alpha*fc;
@@ -1000,10 +1018,16 @@ while(iv < 0)
     %fc_tot = fc_tot + fc;
     
     %fc_tot_tmp = reshape(fc_tot, 2*Np, np);
-    fc_tmp = reshape(fc, 2*Np, np);
-    [forceP_tmp, torqueP_tmp] = o.computeNetForceTorque(fc_tmp,geomOld);
+    fc_tmp_particles = reshape(fc(1:2*Np*np), 2*Np, np);
+    [forceP_tmp, torqueP_tmp] = o.computeNetForceTorque(fc_tmp_particles,geomOld);
+    
+    if o.confined
+        fc_tmp_walls = reshape(fc(2*Np*np + 1:end), 2*Nw, nw);
+        [forceW_tmp, torqueW_tmp] = o.computeNetForceTorque(fc_tmp_walls,walls);
+    end
     
     forceP = forceP + o.balance_force(geomOld,forceP_tmp, vtoiv);
+    
     torqueP = torqueP  + torqueP_tmp;
     %torqueP = zeros(size(torqueP_tmp));
     %torqueP = -torqueP;
@@ -1028,12 +1052,11 @@ while(iv < 0)
     % UNPACK SOLUTION
     [etaP, etaW, uP, omega, forceW, torqueW] = o.unpackSolution(Xn, true, np);
  
-     if o.debug
+    if o.debug
         close all
         hold on
         v = zeros(2*Np,np);
-        
-        u_max = norm(max(abs(uP), [], 2));
+
         u_max_old = norm(max(abs(solution.uP), [], 2));
         f_max = norm(max(abs(forceP), [], 2));
         
@@ -1072,7 +1095,7 @@ while(iv < 0)
     [Ns,totalnp,Xstart,Xend,totalPts] = o.preColCheck(geomOld.X,geomProv.X,...
         walls,wallupSamp);
 
-    [vgrad, iv, ids, vols] = getCollision(Ns, totalnp, Xstart, Xend, minSep,... 
+    [vgrad, iv(end+1), ids, vols] = getCollision(Ns, totalnp, Xstart, Xend, minSep,... 
         maxIter, totalPts, c_tol, np, nw, Np*upSampleFactor, Nw*wallupSamp,...
         nexten, max(cellSize,minSep));
 
@@ -1085,7 +1108,7 @@ while(iv < 0)
     solution.forceW = forceW;
     solution.torqueW = torqueW;
     [solution.forceP, solution.torqueP] = o.computeNetForceTorque(solution.etaP,geomOld);
-    o.om.writeMessage(['ivolume: ' num2str(iv)],'%s\n');
+    o.om.writeMessage(['ivolume: ' num2str(iv(end))],'%s\n');
 end
 
 
@@ -1093,11 +1116,12 @@ end % resolveCollision
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function [A,jaco,ivs,listnv,jacoSmooth, vtoiv] = preprocessRigid(o,vgrad,ids,...
-                    vols,geom,walls, uP_m1, omega_m1)
+                    vols,geom,walls)
                 
 Np = o.points_per_particle;
 np = o.num_particles;
 nw = o.num_walls;
+Nw = o.points_per_wall;
 
 nivs = max(ids);
 A = zeros(nivs,nivs);
@@ -1121,10 +1145,24 @@ for i = 1:2*Np*np
     end
 end
 
+if o.confined
+    for i = 2*Np*np + 1:length(ids)
+        if (ids(i) ~= 0)
+            k = ceil((i - 2*Np*np)/(2*Nw)) + np; % number walls after particles
+            listnv = [listnv;k]; % keep running track of all walls
+            jI = [ids(i);jI];    % keep track of all interference volumes
+            jJ = [i;jJ];         % keep track of all nodes
+            jV = [vgrad(i);jV];  % keep track of all volume gradients
+            vtoiv(k,ids(i)) = 1;
+            ivs(ids(i)) = vols(i);
+        end
+    end
+end
+
 listnv = unique(listnv);
 ivs(ivs>-1e-12) = -1e-12;
 % sparse matrix of size nivs by total number of points on particles
-jaco = sparse(jI,jJ,jV,nivs,2*Np*np); 
+jaco = sparse(jI,jJ,jV,nivs,2*Np*np+2*Nw*nw); 
 jacoSmooth = jaco*1;
 
 % LOOP OVER INTERSECTION VOLUMES
@@ -1139,34 +1177,31 @@ for i = 1:nivs
     f = reshape(f, 2*Np, np);
 
     [forceP,torqueP] = o.computeNetForceTorque(full(f),geom);
-    geomTmp = capsules(o.prams, geom.X(:,S'));
+    geomTmp = capsules(o.prams, geom.X(:,S(S<np)'));
 
-    forceP = o.balance_force(geom, forceP, vtoiv(:,i));    
-    %torqueP = -torqueP;
-    %torqueP = torqueP/(2*pi);
-    torqueP = zeros(size(torqueP));
+    % one of the "particles" in volume is a solid wall
+    if max(S) > np
+        wallsTmp = capsules(o.prams, walls.X(:, S(S > np) - np));
+    else
+        wallsTmp = [];
+    end
  
     % ASSEMBLE NEW RHS WITH CONTACT FORCES
     if o.explicit 
-        rhs = o.assembleRHS_explicit(geomTmp, walls, forceP(:,S'), torqueP(S'), ...
+        rhs = o.assembleRHS_explicit(geomTmp, wallsTmp, forceP(:,S'), torqueP(S'), ...
                 [], 1:length(S), true);
     else
-        rhs = o.assembleRHS(geomTmp, walls, forceP(:,S'), torqueP(S'), 1:length(S), true);  
+        rhs = o.assembleRHS(geomTmp, wallsTmp, forceP(:,S'), torqueP(S'), 1:length(S), true);  
     end
     
     % SOLVE SYSTEM WITH FAR FIELD NEGLECTED
     
-    Xn = gmres(@(X) o.timeMatVec(X,geomTmp,walls,false,1:length(S)),rhs,[],o.gmres_tol,...
+    Xn = gmres(@(X) o.timeMatVec(X,geomTmp,wallsTmp,false,1:length(S)),rhs,[],o.gmres_tol,...
         4*Np);
     
     % COMPUTE VELOCITY OF EACH POINT ON ALL RIGID PARTICLES
     [~, ~, uP, omega, ~, ~] = o.unpackSolution(Xn, false, length(S));
-    
-    if o.tstep_order == 2
-        uP = 1.5*uP - 0.5*uP_m1(:,S);
-        omega = 1.5*omega - 0.5*omega_m1(S);
-    end
-    
+
     for k = 1:length(S)
         b = [uP(1,k)*ones(Np,1); uP(2,k)*ones(Np,1)] + ... %translational
             omega(k)*[geomTmp.X(Np+1:end,k) - geomTmp.center(2,k); ...% + rotational
@@ -1214,6 +1249,21 @@ for i = 1:nivs
 end
 
 end % preprocessRigid
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+function alpha = compute_alpha(~, alpha, alpha0, vols)
+
+r = log(abs(vols(end)/vols(end-1)))/log(abs(vols(end-1)/vols(end-2)));
+    
+disp(['Convergence rate is ', num2str(r)]);
+    
+if r > 0
+     alpha = alpha*4/(0.5*r + 1)^2;
+else
+    alpha = alpha0;
+end
+
+end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function F = balance_force(o, geom, F, vtoiv)
@@ -1315,40 +1365,40 @@ end
 
 end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function [vgrad] = adjustNormal(~,vgrad,N,n,geom,edgelength,colCount)
+function [vgrad] = adjustNormal(~,vgrad,N,n,geom,edgelength)
 % use the normal of Xn or X?
 vgrad = reshape(vgrad,2*N,n);
 
 for k = 1:n
-  for i = 1:N
-    if(vgrad(i,k)==0 && vgrad(N+i,k)==0)
-      continue;
+    for i = 1:N
+        if(vgrad(i,k)==0 && vgrad(N+i,k)==0)
+            continue;
+        end
+        
+        % in rare case if space-time gradient is too small,
+        % collision resolving may get stuck
+        % use surface normal instead
+        
+        %disp('Using surface normal for volume gradient');
+        bnnorm = edgelength(k);
+        vgrad_mag = sqrt(vgrad(i,k)^2 + vgrad(N+i,k)^2);
+        
+        tangent = geom.xt;
+        oc = curve;
+        [tanx,tany] = oc.getXY(tangent);
+        nx = tany;
+        ny = -tanx;
+        normal = [nx;ny];
+        
+        normal_mag = sqrt(nx(i,k)^2 + ny(i,k)^2);
+        
+        vgrad(i,k) = vgrad_mag*normal(i,k)/normal_mag;
+        vgrad(N+i,k) = vgrad_mag*normal(i+N,k)/normal_mag;
+        
+%         vgrad(i,k) = normal(i,k)*bnnorm;
+%         vgrad(N+i,k) = normal(i+N,k)*bnnorm;
+        
     end
-    
-    % in rare case if space-time gradient is too small, 
-    % collision resolving may get stuck
-    % use surface normal instead
-    if(colCount > 20)
-      %disp('Using surface normal for volume gradient');
-      bnnorm = edgelength(k);
-      vgrad_mag = sqrt(vgrad(i,k)^2 + vgrad(N+i,k)^2);
-      
-      tangent = geom.xt;
-      oc = curve;
-      [tanx,tany] = oc.getXY(tangent);
-      nx = tany;
-      ny = -tanx;
-      normal = [nx;ny];
-      
-      normal_mag = sqrt(nx(i,k)^2 + ny(i,k)^2);
-      
-      vgrad(i,k) = vgrad_mag*normal(i,k)/normal_mag;
-      vgrad(N+i,k) = vgrad_mag*normal(i+N,k)/normal_mag;
-      
-%       vgrad(i,k) = normal(i,k)*bnnorm/vgrad_mag;
-%       vgrad(N+i,k) = normal(i+N,k)*bnnorm/vgrad_mag;
-    end
-  end
 end
 
 vgrad = vgrad(:);
