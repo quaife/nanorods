@@ -19,7 +19,7 @@ if prams.np > 0
   prams.minimum_separation = prams.minimum_separation*max(len)/prams.Np;
 end
 
-prams.minimum_separation = 0.032;
+%prams.minimum_separation = 0.032;
 
 om = monitor(options, prams, xc, tau);
 tt = tstep(options, prams, om, geom, walls, tau);
@@ -44,8 +44,8 @@ while time < prams.T
         fill(geom.X(1:end/2,:),geom.X(end/2+1:end,:),'k');
 
         axis equal
-        xlim([-2,2])
-        ylim([-2,2])
+        xlim([-10,10])
+        ylim([-10,10])
         
         if options.confined
             hold on
