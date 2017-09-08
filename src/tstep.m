@@ -342,6 +342,9 @@ end % timeStep
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function Tx = timeMatVec(o, Xn, geom, walls, bounding_wall, preprocess)
 % Tx = timeMatVec(Xn,geom) does a matvec for GMRES 
+% if preprocess is true, solid walls are treated as particles and an
+% angular and translational velocity are solved for
+
 if o.profile
     tMatvec = tic;
 end
@@ -373,15 +376,6 @@ if nw ~= o.num_walls && nw > 0
 else
     Dw = o.Dw;
 end
-
-% Xsou = geom.X; 
-% Nup = Np*ceil(sqrt(Np));
-% 
-% Xup = [interpft(Xsou(1:Np,:),Nup);...
-%    interpft(Xsou(Np+1:2*Np,:),Nup)];
-% 
-% geomUp = capsules([],Xup);
-% Dup =  pot_particles.stokesDLmatrix(geomUp);
     
 % PREALLOCATE OUTPUT VECTORS
 % velParticles : velocity of particles
@@ -402,7 +396,11 @@ end
 % omega   : angular velocity of particles
 % forceW  : net force on walls, strength of Stokeslets
 % torqueW : net torque on walls, strength of rotlets
-[etaP, etaW, uP, omega, forceW, torqueW] = unpackSolution(o, Xn, geom, walls, bounding_wall ~= 0);
+if ~preprocess
+    [etaP, etaW, uP, omegaP, forceW, torqueW] = unpackSolution(o, Xn, geom, walls, bounding_wall ~= 0);
+else
+    [etaP, etaW, uP, omegaP, uW, omegaW] = unpackSolution(o, Xn, geom, walls, bounding_wall ~= 0);
+end
 
 % CALCULATE VELOCITIES ON PARTICLES AND WALLS, NET FORCE AND TORQUE ON
 % WALLS
@@ -519,7 +517,7 @@ end
 % END OF TARGET == WALLS
 % END OF SOURCE == WALLS
 
-if o.confined && nw > 0
+if o.confined && nw > 0 && ~preprocess
     % START SOURCE == ROTLETS AND STOKESLETS
     % START TARGETS == PARTICLES
     p_sr = 0;
@@ -553,19 +551,20 @@ if o.confined && nw > 0
     
     % COMPUTE NET FORCE AND TORQUE ON WALLS
     [f_w, t_w] = o.computeNetForceTorque(etaW, walls);
-    
-    if preprocess
-        forceW = f_w; 
-        torqueW = t_w;
-    else
-        forceW = f_w - forceW; 
-        torqueW = t_w - torqueW;
-    end
+
+    forceW = f_w - forceW; 
+    torqueW = t_w - torqueW;
 else
-    p_sr = 0;
-    w_sr = 0;
-    forceW = [];
-    torqueW = [];
+    if nw > 0
+        [forceW, torqueW] = o.computeNetForceTorque(etaW, walls);
+        p_sr = 0;
+        w_sr = 0;
+    else
+        p_sr = 0;
+        w_sr = 0;
+        forceW = [];
+        torqueW = [];
+    end
 end
 
 % EVALUATE TOTAL VELOCITY ON PARTICLES
@@ -577,28 +576,41 @@ velParticles = velParticles + p_sr + pp_dlp + pw_dlp;
 for k = 1:np
   velParticles(1:Np,k) = velParticles(1:Np,k) - uP(1,k);
   velParticles(Np+1:end,k) = velParticles(Np+1:end,k) - uP(2,k);
-end
 
-for k = 1:np 
   velParticles(1:Np,k) = velParticles(1:Np,k) ...
-                - (geom.X(Np+1:end,k) - geom.center(2,k))*omega(k);
+      - (geom.X(Np+1:end,k) - geom.center(2,k))*omegaP(k);
   velParticles(Np+1:end,k) = velParticles(Np+1:end,k)...
-                + (geom.X(1:Np,k) - geom.center(1,k))*omega(k); 
+      + (geom.X(1:Np,k) - geom.center(1,k))*omegaP(k);
 end
 
 % EVALUATE VELOCITY ON WALLS
-if o.confined && nw > 0 && bounding_wall ~= 0
+if o.confined && nw > 0
     velWalls = velWalls + ww_dlp + wp_dlp + w_sr;
-    velWalls(:,1) = velWalls(:,1)...
-                    + pot_walls.exactStokesN0diag(walls, o.N0w, etaW(:,1));
+    
+    if bounding_wall ~= 0
+        velWalls(:,1) = velWalls(:,1)...
+            + pot_walls.exactStokesN0diag(walls, o.N0w, etaW(:,1));
+    end
+end
+
+% SUBTRACT VELOCITY OF WALL SURFACE IF NEEDED
+if preprocess
+    for k = 1:nw
+      velWalls(1:Nw,k) = velWalls(1:Nw,k) - uW(1,k);
+      velWalls(Nw+1:end,k) = velWalls(Nw+1:end,k) - uW(2,k);
+
+      velWalls(1:Nw,k) = velWalls(1:Nw,k) ...
+                    - (walls.X(Nw+1:end,k) - walls.center(2,k))*omegaW(k);
+      velWalls(Nw+1:end,k) = velWalls(Nw+1:end,k)...
+                    + (walls.X(1:Nw,k) - walls.center(1,k))*omegaW(k); 
+    end
 end
 
 % EVALUTATE FORCES ON PARTICLES
 [forceP, torqueP] = o.computeNetForceTorque(etaP, geom);
 
 % CONSTRUCT OUTPUT VECTOR
-if nw > 0
-    
+if nw > 0    
     if bounding_wall == 0
         Tx = [velParticles(:); velWalls(:); forceP(:); torqueP(:); ...
                         forceW(:); torqueW(:)];
@@ -1045,8 +1057,9 @@ o.om.writeMessage(['ivolume: ' num2str(iv)],'%s\n');
 
 colCount = 0;
 
-forceP = zeros(2, np);
+forceTotal = zeros(2, np+nw);
 torqueP = zeros(1,np);
+torqueW = zeros(1,nw);
 
 alpha0 = 0.75;
 alpha = alpha0;
@@ -1058,12 +1071,6 @@ while(iv < 0)
 
     colCount = colCount + 1;  
     o.om.writeMessage(['Collision resolving iteration: ', num2str(colCount)]);
-    
-    %vgrad = vgrad(1:2*Np*np);
-% 
-%     ids = ids(1:2*Np*np);
-%     vols = vols(1:2*Np*np);
-
                             
     [A,~,ivs,~,jacoSmooth, vtoiv] = o.preprocessRigid(vgrad,ids,vols,geomOld,...
                     walls);
@@ -1096,30 +1103,33 @@ while(iv < 0)
     
     fc = alpha*fc;
     
-    %fc_tmp = o.f_smooth(full(fc),Np,np);
-    %fc_tot = fc_tot + fc;
-    
-    %fc_tot_tmp = reshape(fc_tot, 2*Np, np);
     fc_tmp_particles = reshape(fc(1:2*Np*np), 2*Np, np);
     [forceP_tmp, torqueP_tmp] = o.computeNetForceTorque(fc_tmp_particles,geomOld);
     
     if o.confined
         fc_tmp_walls = reshape(fc(2*Np*np + 1:end), 2*Nw, nw);
         [forceW_tmp, torqueW_tmp] = o.computeNetForceTorque(fc_tmp_walls,walls);
-        
-        forceW = forceW_tmp(:,2:end);
-        torqueW = torqueW_tmp(2:end);
+        torqueW = torqueW + torqueW_tmp;
+    else
+        forceW_tmp = [];
     end
     
-    forceP = forceP + o.balance_force(geomOld,forceP_tmp, vtoiv);    
+    forceTotal = forceTotal + o.balance_force(geomOld, [forceP_tmp,forceW_tmp], vtoiv);    
+    forceP = forceTotal(:,1:np);
     torqueP = torqueP  + torqueP_tmp;
+    
+    if o.confined
+        forceW = forceTotal(:,np+1:end);
+    else
+        forceW = [];
+    end
     
     % ASSEMBLE NEW RHS WITH CONTACT FORCES
     if o.explicit
         rhs = o.assembleRHS_explicit(geomOld, walls, forceP, torqueP, ...
             solution.etaP_old, 1:np, false);
     else
-        rhs = o.assembleRHS(geomOld, walls, forceP, torqueP, forceW, torqueW, 1:np, false);
+        rhs = o.assembleRHS(geomOld, walls, forceP, torqueP, forceW(:,2:end), torqueW(2:end), 1:np, false);
     end
     
     % SOLVE SYSTEM
