@@ -53,8 +53,15 @@ end %post : constructor
 function [] = plotFibres(o, iT)
     
     geom = capsules(o.prams, o.xc(:,:,iT), o.tau(iT,:));
-    fill3(geom.X(1:end/2,:),geom.X(end/2+1:end,:),...
-                        100*ones(o.prams.Np,o.prams.np), 'k');
+    %plot([geom.X(1:end/2,:); geom.X(1,:)],[geom.X(end/2+1:end,:);geom.X(end/2+1,:)], 'b');
+    fill(geom.X(1:end/2,:), geom.X(end/2+1:end,:), 'k');
+    hold on
+    
+    contact_particles = find(max(abs(o.force_p(:,:,iT))) > 1e-8);
+    fill(geom.X(1:end/2,contact_particles), geom.X(end/2+1:end,contact_particles), 'g');
+    %plot([geom.X(1:end/2,contact_particles); geom.X(1,contact_particles)],...
+    %        [geom.X(end/2+1:end,contact_particles); geom.X(end/2+1,contact_particles)], 'g', 'linewidth', 2);
+    
     
 end % post : plot_fibres
 
@@ -71,7 +78,7 @@ function [] = plotWalls(o,iT)
             99*ones(o.prams.Nw+1, 1),'r', 'linewidth', 2);
     end
 
-    ptsTrack = o.prams.tracker_fnc(o.times(iT));
+    ptsTrack = o.prams.tracker_fnc(o.times(iT)+1.6116+0.2733+0.3676);
     
     plot3(ptsTrack(:,1),ptsTrack(:,2), 100*ones(size(ptsTrack,1),1),...
                     'b.', 'MarkerSize', 20); 
@@ -125,7 +132,7 @@ else
 end
    
 % loop over all time steps
-for i = 1:gif_options.stride:itmax-1
+for i = 1:gif_options.stride:itmax
     
     clf;
     axis equal
@@ -202,7 +209,7 @@ for i = 1:gif_options.stride:itmax-1
         
         cleanfigure();
         matlab2tikz([o.OUTPUTPATH_GIFS, gif_options.file_name, '/', ...
-                 gif_options.file_name, '-', sprintf('%03d', i), '.tikz'],...
+                 gif_options.file_name, '-', sprintf('%04d', i + 239), '.tikz'],...
                  'height', '10cm', 'width', '12cm', 'standalone', true, 'floatFormat', '%.3f');
         
     else if strcmp(gif_options.file_type, 'gif')

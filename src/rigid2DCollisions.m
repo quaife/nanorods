@@ -14,12 +14,21 @@ end
 
 % set minSep
 if prams.np > 0
-  oc = curve;
-  [~,len] = oc.geomProp(geom.X);
-  prams.minimum_separation = prams.minimum_separation*max(len)/prams.Np;
+    oc = curve;
+    [~,len] = oc.geomProp(geom.X);
+    sep_p = max(len)/prams.Np;
+    
+    if ~isempty(xWalls)
+        [~,len] = oc.geomProp(walls.X);
+        sep_w = max(len)/prams.Nw;
+    else
+        sep_w = sep_p;
+    end
+    
+    prams.minimum_separation = prams.minimum_separation*max(sep_p, sep_w);
 end
 
-%prams.minimum_separation = 0.032;
+%prams.minimum_separation = 0.019991;
 
 om = monitor(options, prams, xc, tau);
 tt = tstep(options, prams, om, geom, walls, tau);
