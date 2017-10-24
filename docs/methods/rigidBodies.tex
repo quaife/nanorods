@@ -49,45 +49,6 @@ This is a methods paper
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Formulation\label{s:formulation}} 
 
-\subsection{Problem Formulation}
-
-We will consider a collection of particles in a planar (two dimensional) flow. The fluid will be in a domain $\Omega$ with a boundary $\partial\Omega$. The boundary $\partial\Omega$ is the union of the surfaces of $N$ suspended particles each with a boundary $\Gamma_k$, $1\leq k \leq N$, the surfaces of $M$ solid walls each with boundary, $\Gamma_\ell$ $N+1\leq\ell\leq N+ M$ and optionally a containing wall  denoted $\Gamma_0$. The suspended particles are all rigid and at each time step we will solve for their translational velocity $\mathbf{u}^{\tau}_k$ and angular velocity $\omega_k$, allowing us to update their centers and orientations, $\mathbf{c}_k$ and $\theta_k$ respectively. Particles and interior walls will be undergoing a net force $\mathbf{F}_{k/\ell}$  and torque $L_{k/\ell}$. 
-
-\begin{figure}[!h]
-\begin{center}
-\includegraphics{figures/multiply_connected.pdf}
-\end{center}
-\caption{Sketch of a possible domain $\Omega$. $\Gamma_1$ and $\Gamma_2$ enclose particles, while $\Gamma_3$ encloses a solid wall. The outer boundary $\Gamma_0$ need not be present. The boundary $\partial\Omega$ is $\Gamma_0\cup\bigcup\limits_{i=1}^{N+M}\Gamma_i$. The vector $\mathbf{n}$ is the unit normal vector pointing into the fluid domain. }
-\end{figure}
-\subsection{Repulsion Forces}
-
-\begin{figure}[!h]\label{fig:collision_sketch}
-\begin{center}
-\includegraphics{figures/collisions.pdf}
-\end{center}
-\caption{Sketch of potential collisions.}
-\end{figure}
-It is well known that the exact solutions of the Stokes equations prohibit contact between particles in finite time due to lubrication forces. In theory therefore if we solve the Stokes equations accurately enough contact will be avoided. Achieving this level of accuracy however could require a prohibitively fine mesh or small time step size, in particular for dense suspensions. In order to keep computational costs reasonable we must turn to alternative approaches. 
-
-One such approach is to introduce an artificial repulsion force. There are many possible choices for the type of force. One possibility is a Leonard-Jones type force that grows exponentially as two particles become close together (need citations). This has been shown to work for dense suspensions, however the resulting ODEs become very stiff as the separation between particles decreases, thus requiring smaller time steps. In addition this type of force does guarantee no collisions. If the time step is too large collisions can still occur. An alternative approach is to choose the forces in such a way as to explicitly guarantee each time step is collision free. 
-
-The main algorithm will proceed as follows. At each time step $t^n$ the Stokes equations are solved and the particles are advanced to a candidate configuration at $t^{n+1}$. At this point we can check for collisions. If no collisions are found, the candidate configuration is accepted, otherwise it is rejected and we resolve the Stokes equations at $t^n$ with an artificial repulsion force, adjusting this force as necessary until the candidate configuration at time $t^{n+1}$ is collision free and can be accepted. The remainder of this section is dedicated to describing how this artificial repulsion force is computed. 
-
-
-\subsection{Contact definition}
-
-Before any discussion of resolving collisions we must define a metric that measures collisions. This metric will keep track of all possible pairwise collisions. If an entry of $\mathbf{V}(t)$ is less than 0 at a time $t$, then a collision has occurred and a repulsion force must be added. There are several possible choices for $\mathbf{V}(t)$, the simplest of which is simply a signed distance between all points on all particles. We will use the concept of \textit{Space-Time Interference Volumes} (STIV) introduced by Harmon et al.\cite{Harmon2011} and adapted for suspension modeling by Lu et al.\cite{Lu2017}. 
-
-Given a particle configuration $S(t)$ for which $S(t_0)$ is collision-free, for each point $\mathbf{X}(s,t)$ on $S(t)$ we define $\tau_I(s)$, $t_0 < \tau_I \leq t$ to be the first instance for which $\mathbf{X}$ comes into contact with a different point on $S(t)$. The STIV for the time interval $[t_0, t]$ is 
-\[ V(S, t) = -\int_{S(t_0)}\int_{\tau_I(s)}^t \sqrt{\epsilon^2 + (\mathbf{u}(s, \tau)\cdot\mathbf{n}(s,\tau))^2}~\text{d}\tau\text{d}s,\]
-where the constant $\epsilon$ is a smoothing parameter. The time integral in this expression ensures that no contact is missed even if one particle passes completely through another (or through a solid wall) in a single time step. This allows us to take large time steps and not be worried about missing collisions. $\mathbf{V}(S,t)$ can be interpreted as the area of the surface with coordinate $(\mathbf{X}(s,\tau),\epsilon\tau)$ for all $(s,\tau)$ such that $\tau_I(s)\leq t$. 
-
-In \cite{Lu2017} an infinitesimal version of the STIV is derived. Starting from a collision-free configuration at $t_0$, for a fixed $\tau$ the set of points $s$ such that $\tau_I(s)\leq \tau$ is the contact area. This area is a set of boundary segments. For one such segment we can let $s_1(\tau)$ and $s_2(\tau)$ be the extents of contact at time $\tau$. 
-
-\[ \mathbf{V}(\mathbf{u},t) = -\int_{s_1(t)}^{s_2(t)} \sqrt{\epsilon^2 + (\mathbf{u}(s,t)\cdot\mathbf{n}(s,t))^2}\text{d}s + \epsilon,\]
-along with the variation, 
-\[ \text{d}_{\mathbf{u}}V[\delta\mathbf{u}] = -\int_{s_1(t)}^{s_2(t)}\frac{(\mathbf{n}\cdot\mathbf{u})(\mathbf{n}\cdot\delta\mathbf{u})}{\sqrt{\epsilon^2 + (\mathbf{u}\cdot\mathbf{n})^2}}\text{d}s.\]
-
 
 \subsection{Governing Equations}\label{sec:governing}
 The governing equations for this problem are the incompressible Stokes equations,
@@ -106,41 +67,34 @@ subject to the constraint
 \end{equation}
 which is necessary for global conservation of mass and does not allow for sources or sinks.
 
-The incompressible Stokes equations can be can be restated as a minimization problem. Consider the functional,
-\[ \mathcal{J}(\mathbf{u}) = \int_{\Omega} \nabla\mathbf{u}:\nabla\mathbf{u} - 2\mathbf{f}\cdot\mathbf{u} ~\text{d}\Omega,\]
-and the associated constrained minimization problem,
-\[ \min \mathcal{J}(\mathbf{u}) ~:~ \nabla\cdot\mathbf{u} = 0 \text{ in }\Omega.\]
-Introducing $p$, a Lagrange multiplier for the incompressibility condition, we can construct a Lagrangian for this system,
-\begin{equation}\label{eq:lagrangian} \mathcal{L}(\mathbf{u},p) = \mathcal{J}(\mathbf{u}) - \int_{\Omega} 2p\nabla\cdot\mathbf{u}~\text{d}\Omega.\end{equation}
-First order optimality (KKT) conditions for $\mathcal{L}(\mathbf{u},p)$ recover the incompressible Stokes equations. For our problem, in addition to the incompressibility condition, we wish to enforce the constraint that the solution $\mathbf{u}$ at a time $t_0$ should not introduce collisions at time $t_0+\Delta t$, in other words $\mathbf{V}(t_0 + \Delta t) \geq \mathbf{0}$.
-This constraint can be incorporated in the Lagrangian \eqref{eq:lagrangian} with the introduction of a Lagrange multiplier $\pmb{\lambda}$ with one component for each possible collision volume,
-\begin{equation}\label{eq:lagrangian2} \tilde{\mathcal{L}}(\mathbf{u},p,\lambda) = \mathcal{L}(\mathbf{u},p) + \pmb{\lambda} \cdot \mathbf{V}(t_0+\Delta t).\end{equation}
-First order optimality for \eqref{eq:lagrangian2} yields the Stokes equations with a modified forcing function,
-\begin{equation}\label{eq:stokes_mod}-\Delta \mathbf{u} + \nabla p = \mathbf{f} + \int_{\Omega} \text{d}_{\mathbf{u}} \mathbf{V}^T\pmb{\lambda} ~\text{d}\Omega,\end{equation}
-subject to the constraints
-\[\nabla\cdot\mathbf{u}  =0, ~\mathbf{V}(t_0 + \Delta t) \geq 0,~\pmb{\lambda} \geq 0, ~ \pmb{\lambda}\cdot\mathbf{V}(t_0+\Delta t) = 0.	\]
 
-\subsection{Complementary Problem}
+\subsection{Problem Formulation}
 
-Given a configuration $\mathbf{q}^n$ at $t_n$ we can solve for the velocity without any repulsion $\mathbf{u}^*$ by solving the system,
-\[ \mathbf{u}^* = \mathbf{A}(\mathbf{q}^n),\]
-where $\mathbf{A}(\mathbf{q}^n)$ is some linear system arising from a discretization of the Stokes equations. To include the contributions to the velocity from the Stokes equations we can add an additional term,
-\[ \mathbf{u} = \mathbf{u}^* + \pmb{\lambda} \mathbf{B} \mathbf{f}_c,\]
-Where $\mathbf{B}$ is some linear mapping from the repulsion force $\pmb{\lambda}\mathbf{f}_c$ to an induced velocity. Once we have the velocity the configuration can be updated using an explicit Euler step,
-\[ \mathbf{q}^{n+1} = \mathbf{q}^n + \Delta t\mathbf{u}^n.\]
+We will consider a collection of particles in a planar (two dimensional) flow. The fluid will be in a domain $\Omega$ with a boundary $\partial\Omega$. The boundary $\partial\Omega$ is the union of the surfaces of $N$ suspended particles each with a boundary $\gamma_k$, $1\leq k \leq N$, the surfaces of $M$ solid walls each with boundary, $\Gamma_\ell$ $1\leq\ell\leq M$ and optionally a containing wall  denoted $\Gamma_0$. The suspended particles are all rigid and at each time step we will solve for their translational velocity $\mathbf{u}^{\tau}_k$ and angular velocity $\omega_k$, allowing us to update their centers and orientations, $\mathbf{c}_k$ and $\theta_k$ respectively. Particles and interior walls will be undergoing a net force $\mathbf{F}_{k/\ell}$  and torque $L_{k/\ell}$. 
 
-The complementary conditions can be stated as
-\[ \mathbf{V}(\mathbf{q}^n,\mathbf{u}) \geq 0 \perp \pmb{\lambda} \geq 0.\]
-Since $\mathbf{u}$ depends on $\pmb{\lambda}$, so does $\mathbf{V}$ and in general this relationship is nonlinear. To linearize this constraint we can use a first order Taylor series expansion of $\mathbf{V}$ to get
-\[ \mathbf{V}(\mathbf{q}^n,\mathbf{u}) = \mathbf{V}(\mathbf{q}^n,\mathbf{u}^* + \lambda \mathbf{B} \mathbf{f}_c) \approx \mathbf{V}(\mathbf{q}^n,\mathbf{u}^*) + \text{d}_\mathbf{u}\mathbf{V}(\mathbf{q}^n,\mathbf{u}^*)\cdot\mathbf{B}\mathbf{f}_c\pmb{\lambda}.\]
-This gives us a linear complementary problem, which we can solve for $\pmb{\lambda}$,
-\[ \mathbf{V}(\mathbf{q}^n,\mathbf{u}^*) + \text{d}_\mathbf{u}\mathbf{V}(\mathbf{q}^n,\mathbf{u}^*)\cdot\mathbf{B}\mathbf{f}_c\pmb{\lambda} \geq 0 \perp \pmb{\lambda} \geq \ 0.\]
+\begin{figure}[!h]
+\begin{center}
+\includegraphics{figures/multiply_connected.pdf}
+\end{center}
+\caption{Sketch of a possible domain $\Omega$. $\gamma_1$ and $\gamma_2$ enclose particles, while $\Gamma_3$ encloses a solid wall. The outer boundary $\Gamma_0$ need not be present. The boundary $\partial\Omega$ is $\Gamma_0\cup\bigcup\limits_{i=1}^{M}\Gamma_i\cup\bigcup\limits_{i=1}^N \gamma_i$. The vector $\mathbf{n}$ is the unit normal vector pointing into the fluid domain. }
+\end{figure}
+\subsection{Repulsion Forces}
 
+\begin{figure}[!h]\label{fig:collision_sketch}
+\begin{center}
+\includegraphics{figures/collisions.pdf}
+\end{center}
+\caption{Sketch of potential collisions.}
+\end{figure}
+It is well known that the exact solutions of the Stokes equations prohibit contact between particles in finite time due to lubrication forces. In theory therefore if we solve the Stokes equations accurately enough contact will be avoided. Achieving this level of accuracy requires a prohibitively fine mesh or small time step size, in particular for dense suspensions. In order to keep computational costs reasonable we must turn to alternative approaches. 
 
+One such approach is to introduce an artificial repulsion force. There are many possible choices for the type of force. One possibility is a Leonard-Jones type force that grows exponentially as two particles become close together\todo{Need citations}. This has been shown to work for dense suspensions, however the resulting ODEs become very stiff as the separation between particles decreases, thus requiring smaller time steps. In addition this type of force does guarantee no collisions. If the time step is too large collisions can still occur. An alternative approach is to choose the forces in such a way as to explicitly guarantee each time step is collision free. 
+
+The main algorithm will proceed as follows. At each time step $t^n$ the Stokes equations are solved and the particles are advanced to a candidate configuration at $t^{n+1}$. At this point we can check for collisions. If no collisions are found, the candidate configuration is accepted, otherwise it is rejected and we resolve the Stokes equations at $t^n$ with an artificial repulsion force, adjusting this force as necessary until the candidate configuration at time $t^{n+1}$ is collision free and can be accepted. The remainder of this section is dedicated to describing how this artificial repulsion force is computed. 
 
 \subsection{Boundary Integral Equation Representation}
 
-As discussed in section \ref{sec:governing}, the governing equations for this problem are the incompressible Stokes equations. There are many ways to solve these equations, here we will use \textit{boundary integral equations} (BIEs). For the Stokes BIEs have many advantages over other numerical methods such as finite element or finite volume methods. A discussion of the benefits of BIEs for this problem can be found in \cite{Karrila1989}. 
+As discussed in section \ref{sec:governing}, the governing equations for this problem are the incompressible Stokes equations. There are many ways to solve these equations, here we will use \textit{boundary integral equations} (BIEs). For the Stokes equations BIEs have many advantages, a discussion of which can be found in \cite{Karrila1989}. 
 
 \subsubsection{Unbounded Domains}
 
@@ -218,10 +172,76 @@ The compatibility condition \eqref{eq:compatibility} ensures that this term eval
 \end{bmatrix}
 \end{equation}
 
+\subsection{Contact definition}
+
+Before any discussion of resolving collisions we must define a metric that measures collisions. This metric tracks all pairwise collisions. If an entry of $\mathbf{V}(t)$ is less than 0 at a time $t$, then a collision has occurred and a repulsion force must be added. There are several possible choices for $\mathbf{V}(t)$, the simplest being a signed distance between all points on all particles. We use the concept of \textit{Space-Time Interference Volumes} (STIV) introduced by Harmon et al.~\cite{Harmon2011} and adapted for suspension modeling by Lu et al.~\cite{Lu2017}. 
+
+Given a particle configuration $S(t)$ for which $S(t_0)$ is collision-free, for each point $\mathbf{X}(s,t)$ on $S(t)$ we define $\tau_I(s)$, $t_0 < \tau_I \leq t$ to be the first instance for which $\mathbf{X}$ comes into contact with a different point on $S(t)$. The STIV for the time interval $[t_0, t]$ is 
+\[ V(S, t) = -\int_{S(t_0)}\int_{\tau_I(s)}^t \sqrt{\epsilon^2 + (\mathbf{u}(s, \tau)\cdot\mathbf{n}(s,\tau))^2}~\text{d}\tau\text{d}s,\]
+where the constant $\epsilon$ is a smoothing parameter. The time integral in this expression ensures that no contact is missed even if one particle passes completely through another (or through a solid wall) in a single time step. This allows us to take large time steps and not be worried about missing collisions. $\mathbf{V}(S,t)$ can be interpreted as the area of the surface with coordinate $(\mathbf{X}(s,\tau),\epsilon\tau)$ for all $(s,\tau)$ such that $\tau_I(s)\leq t$. 
+
+In \cite{Lu2017} an infinitesimal version of the STIV is derived. Starting from a collision-free configuration at $t_0$, for a fixed $\tau$ the set of points $s$ such that $\tau_I(s)\leq \tau$ is the contact area. This area is a set of boundary segments. For one such segment we can let $s_1(\tau)$ and $s_2(\tau)$ be the extents of contact at time $\tau$. 
+
+\[ \mathbf{V}(\mathbf{u},t) = -\int_{s_1(t)}^{s_2(t)} \sqrt{\epsilon^2 + (\mathbf{u}(s,t)\cdot\mathbf{n}(s,t))^2}\text{d}s + \epsilon,\]
+along with the variation, 
+\[ \text{d}_{\mathbf{u}}V[\delta\mathbf{u}] = -\int_{s_1(t)}^{s_2(t)}\frac{(\mathbf{n}\cdot\mathbf{u})(\mathbf{n}\cdot\delta\mathbf{u})}{\sqrt{\epsilon^2 + (\mathbf{u}\cdot\mathbf{n})^2}}\text{d}s.\]
+
+
+
+
+\subsection{Variational Formulation}
+
+The incompressible Stokes equations can be can be restated as a minimization problem. Consider the functional,
+\[ \mathcal{J}(\mathbf{u}) = \int_{\Omega} \nabla\mathbf{u}:\nabla\mathbf{u} - 2\mathbf{f}\cdot\mathbf{u} ~\text{d}\Omega,\]
+and the associated constrained minimization problem,
+\[ \min \mathcal{J}(\mathbf{u}) ~:~ \nabla\cdot\mathbf{u} = 0 \text{ in }\Omega.\]
+Introducing $p$, a Lagrange multiplier for the incompressibility condition, we can construct a Lagrangian for this system,
+\begin{equation}\label{eq:lagrangian} \mathcal{L}(\mathbf{u},p) = \mathcal{J}(\mathbf{u}) - \int_{\Omega} 2p\nabla\cdot\mathbf{u}~\text{d}\Omega.\end{equation}
+First order optimality (KKT) conditions for $\mathcal{L}(\mathbf{u},p)$ recover the incompressible Stokes equations. For our problem, in addition to the incompressibility condition, we wish to enforce the constraint that the solution $\mathbf{u}$ at a time $t_0$ should not introduce collisions at time $t_0+\Delta t$, in other words $\mathbf{V}(t_0 + \Delta t) \geq \mathbf{0}$.
+This constraint can be incorporated in the Lagrangian \eqref{eq:lagrangian} with the introduction of a Lagrange multiplier $\pmb{\lambda}$ with one component for each possible collision volume,
+\begin{equation}\label{eq:lagrangian2} \tilde{\mathcal{L}}(\mathbf{u},p,\lambda) = \mathcal{L}(\mathbf{u},p) + \pmb{\lambda} \cdot \mathbf{V}(t_0+\Delta t).\end{equation}
+First order optimality for \eqref{eq:lagrangian2} yields the Stokes equations with a modified forcing function,
+\begin{equation}\label{eq:stokes_mod}-\Delta \mathbf{u} + \nabla p = \mathbf{f} + \int_{\Omega} \text{d}_{\mathbf{u}} \mathbf{V}^T\pmb{\lambda} ~\text{d}\Omega,\end{equation}
+subject to the constraints
+\[ \nabla\cdot\mathbf{u}  =0, ~\mathbf{V}(t_0 + \Delta t) \geq 0,~\pmb{\lambda} \geq 0, ~ \pmb{\lambda}\cdot\mathbf{V}(t_0+\Delta t) = 0.	\]
+
+The constraints on $\mathbf{V}$ and $\pmb{\lambda}$ can be combined into a single constaint,
+\begin{equation}\label{eq:ncp_constraint} \mathbf{V}(t_0 + \Delta t)\geq \mathbf{0} \perp \pmb{\lambda}\geq \mathbf{0}.\end{equation}
+
+
 \subsection{Incorporating Repulsion Forces}
 
 The addition of a forcing term to the right hand side of the Stokes equations would normally lead to a volume integral. However, in this case since $\text{d}_{\mathbf{u}} V$ can be non-zero only on the boundary, we can capture the repulsion force by adding a net force and torque to each particle or wall as needed. The net force $\mathbf{F}^k_p$ and torque $L^k_p$ are given by,
 \[ \mathbf{F}^k_p = \int_{\Gamma_k} \text{d}_\mathbf{u}V^T\pmb{\lambda}~\text{d}s, \qquad L_p^k = \int_{\Gamma_k}  \text{d}_\mathbf{u}V^T\pmb{\lambda}\cdot(\mathbf{x}-\mathbf{c}_k)^\perp~\text{d}s.\]
+
+\subsection{Complementary Problem}
+
+To compute the repulsion forces we must first compute $\pmb{\lambda}$ for each time step such that \eqref{eq:ncp_constraint} is satisfied.
+Consider particles suspended in a fluid in an amient flow $\mathbf{u}_\infty$. This flow can be an imposed background flow or come from solid walls. In the later case this velocity field is computed by solving the appropriate resistance problem. In either case this flow can be expressed as the sum of a translational component $\mathbf{u}_{\infty}^\tau$, a rotatial compoment $\omega_{\infty}$ and a strain component $\mathbf{e}_{\infty}$,
+\[ \mathbf{u}_{\infty}(\mathbf{x}) =   \mathbf{u}_{\infty}^\tau + \omega_\infty\times \mathbf{x} + \mathbf{e}_\infty \cdot\mathbf{x}.\]
+The translational and rotational velocity as well as the density function of a collection of particles can be computed from the force, torque and strain rate\cite{Karrila1991},
+\begin{equation}\label{eq:mobility} \begin{bmatrix} \mathbf{u}_\infty^\tau - \mathbf{u}_\tau\\ \omega^\infty - \omega \\\pmb{\eta}\end{bmatrix} = \mathcal{M}\begin{bmatrix}\mathbf{F}\\\mathbf{L}\\\mathbf{e}_\infty\end{bmatrix},\end{equation}
+where $\mathcal{M}$ is the \textit{mobility tensor} and depends only on the particle configuration $\mathbf{q}^0$. at some time $t^0$ Assuming the only force and torques acting on particles arises from repulsion forces, we can decompose \eqref{eq:mobility} as,
+\[ \begin{bmatrix} \mathbf{u}_\infty^\tau - \mathbf{u}_\tau\\ \omega^\infty - \omega \\\pmb{\eta}\end{bmatrix} = \mathcal{M}\begin{bmatrix}\mathbf{0}\\\mathbf{0}\\\mathbf{e}_\infty\end{bmatrix} + \mathcal{M}\begin{bmatrix}\mathbf{F}_c\\\mathbf{L}_c\\\mathbf{0}\end{bmatrix}.\]
+
+Once we solve for $\mathbf{u}_\tau$ and $\omega$ we can update the positions and angles of each particle using an explict Euler step. With an abuse of notation, this lets us express a candidate configuration $\mathbf{q}^{1}$ as,
+\[ \mathbf{q}^{1} = \mathbf{q}^n +  \Delta t\left(\mathcal{M}\begin{bmatrix}\mathbf{0}\\\mathbf{0}\\\mathbf{e}_\infty\end{bmatrix} + \mathcal{M}\begin{bmatrix}\mathbf{F}_c\\\mathbf{L}_c\\\mathbf{0}\end{bmatrix}\right).\]
+
+This candidate configuration must satifsy the constraint \eqref{eq:ncp_constraint}, which we will rewrite to show the dependence of $\mathbf{V}$ on both $\mathbf{q}^0$ and $\mathbf{q}^{1}$,
+\begin{equation}\label{eq:ncp_new}\mathbf{V}(\mathbf{q}^0,\mathbf{q}^{1})\geq \mathbf{0}\perp \pmb{\lambda}^n\geq \mathbf{0} \Rightarrow  \mathbf{V}\left(\mathbf{q}^0, \mathbf{q}^0 +  \Delta t\left(\mathcal{M}\begin{bmatrix}\mathbf{0}\\\mathbf{0}\\\mathbf{e}_\infty\end{bmatrix} + \mathcal{M}\begin{bmatrix}\mathbf{F}_c\\\mathbf{L}_c\\\mathbf{0}\end{bmatrix}\right)\right) \geq \mathbf{0} \perp\pmb{\lambda}\geq \mathbf{0} .\end{equation}
+
+This is a nonlinear complementary problem (NCP). We can see this by explicitly including the dependence of $\mathbf{V}$ on $\pmb{\lambda}$,
+\[\mathbf{V}\left(\mathbf{q}^0, \mathbf{q}^0 +  \Delta t\left(\mathcal{M}\begin{bmatrix}\mathbf{0}\\\mathbf{0}\\\mathbf{e}_\infty\end{bmatrix} + \mathcal{M}\begin{bmatrix} \int_{\Gamma_k} \text{d}_\mathbf{u}\mathbf{V}^T\pmb{\lambda}~\text{d}s\\ \int_{\Gamma_k}  \text{d}_\mathbf{u}\mathbf{V}^T\pmb{\lambda}\cdot(\mathbf{x}-\mathbf{c}_k)^\perp~\text{d}s \\\mathbf{0}\end{bmatrix}\right)\right) \geq \mathbf{0} \perp\pmb{\lambda}\geq \mathbf{0} .\]
+
+A first order linearization of this NCP turns it into a sequence of linear complementary problems (LCP). Starting from an initial guess for $\pmb{\lambda}$, $\pmb{\lambda}^0$ the following sequence should converge to the solution of \eqref{eq:ncp_new}:
+\begin{equation}\label{eq:lcp}\begin{aligned}
+\mathbf{V}\biggl(\mathbf{q}^0 + \Delta t\biggl(\mathcal{M}\begin{bmatrix}\mathbf{0}\\\mathbf{0}\\\mathbf{e}_\infty\end{bmatrix} &+ \mathcal{M}\begin{bmatrix} \int_{\Gamma_k} \text{d}_\mathbf{u}\mathbf{V}^T\pmb{\lambda}^\ell~\text{d}s\\ \int_{\Gamma_k}  \text{d}_\mathbf{u}\mathbf{V}^T\pmb{\lambda}^\ell\cdot(\mathbf{x}-\mathbf{c}_k)^\perp~\text{d}s \\\mathbf{0}\end{bmatrix}\biggr)\biggr) \\
+&+ \Delta t \mathcal{M}\begin{bmatrix}\int_{\Gamma_k} \text{d}_\mathbf{u}\mathbf{V}^T\pmb{\lambda}^{\ell+1}~\text{d}s\\ \int_{\Gamma_k}  \text{d}_\mathbf{u}\mathbf{V}^T\pmb{\lambda}^{\ell+1}\cdot(\mathbf{x}-\mathbf{c}_k)^\perp~\text{d}s \\\mathbf{0}\end{bmatrix}\frac{\partial\mathbf{V}}{\partial \mathbf{q}^1} \geq \mathbf{0} \perp \pmb{\lambda}^{\ell+1} \geq \mathbf{0}.\end{aligned}\end{equation}
+
+The sequence \eqref{eq:lcp} will be solved at each time step. 
+
+
+
 		
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Numerical Methods\label{s:method}} 
@@ -233,6 +253,27 @@ Once we solve for the translational and angular velocity of the particles, the p
 The ODEs are advanced in time using an explicit Euler step. 
 
 The matrices described in \eqref{eq:stokes_unbounded} and \eqref{eq:stokes_bounded} are full. They can be made block-diagonal by treating inter-particle interactions explicitly and moving them to the right hand side. This is termed \textit{locally implicit} and is described in \cite{Lu2017}. For dense suspensions however this type of time stepping can lead to instabilities as particles become tightly packed. 
+
+\begin{algorithm}
+	 \SetKwInOut{Input}{Input}
+    	\SetKwInOut{Output}{Output}
+
+  	  \underline{Collision free time stepper}\;
+    \Input{collision free configuration $\mathbf{q}^0$, time step size $\Delta t$}
+    \Output{collision free configuration $\mathbf{q}^1$ }
+	 $\mathbf{u}^* \gets \mathbf{A}(\mathbf{q}^0,\mathbf{0},\mathbf{0})$\;
+	$\mathbf{q}^* \gets \mathbf{q}^0 + \Delta t \mathbf{u}^*$\;
+	Compute $\mathbf{V}(\mathbf{q}^0,\mathbf{q}^*)$, $\text{d}_u\mathbf{V}$\;
+	\While {$\mathbf{V} < \mathbf{0}$}
+	{
+		$\pmb{\lambda} \gets$ LCP\_solve($\text{d}_{\mathbf{u}}\mathbf{V}$)\;
+		$\mathbf{F}_k \gets \int_{\Gamma_k} \text{d}_{\mathbf{u}}\mathbf{V}^T\pmb{\lambda}~\text{d}s$\;
+		$L_k \gets \int_{\Gamma_k} \text{d}_{\mathbf{u}}\mathbf{V}^T\pmb{\lambda}\cdot(\mathbf{x}-\mathbf{c}_k)^\perp~\text{d}s$\;
+		$\mathbf{u}^* \gets \mathbf{A}(\mathbf{q}^0,\mathbf{F}_k,\mathbf{L}_k)$\;
+		$\mathbf{q}^* \gets \mathbf{q}^0 + \Delta t \mathbf{u}^*$\;
+		Compute $\mathbf{V}(\mathbf{q}^0,\mathbf{q}^*)$, $\text{d}_u\mathbf{V}$\;
+	}
+\end{algorithm}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Results\label{s:results}} 
