@@ -50,27 +50,10 @@ This is a methods paper
 \section{Formulation\label{s:formulation}} 
 
 
-\subsection{Governing Equations}\label{sec:governing}
-The governing equations for this problem are the incompressible Stokes equations,
-\begin{subequations}\label{eq:stokes}
-\begin{align}
-	-\mu\Delta \mathbf{u} + \nabla p &= \mathbf{f} \text{ in }\Omega,\\
-	\nabla\cdot\mathbf{u} &= 0 \text{ in }\Omega,
-\end{align}
-\end{subequations}
-where $\mathbf{u}(\mathbf{x})$ is the fluid velocity, $p(\mathbf{x})$ is the fluid pressure, $\mathbf{f}(\mathbf{x})$ are body forces acting on the fluid and $\mu$ is the dynamic viscosity of the fluid. For simplicity we will take $\mu$ to be 1 for the remainder of this paper. We will assume Dirichlet boundary conditions on the velocity,
-\begin{equation}\label{eq:boundary_condition}
-	 \mathbf{u} = \mathbf{u}_b \text{ on } \partial\Omega,\end{equation}
-subject to the constraint 
-\begin{equation}\label{eq:compatibility}
-	 \int_{\Gamma_i} \mathbf{u}_b\cdot\mathbf{n}~\text{d}s = 0, \qquad 0\leq i \leq N+M,
-\end{equation}
-which is necessary for global conservation of mass and does not allow for sources or sinks.
-
 
 \subsection{Problem Formulation}
 
-We will consider a collection of particles in a planar (two dimensional) flow. The fluid will be in a domain $\Omega$ with a boundary $\partial\Omega$. The boundary $\partial\Omega$ is the union of the surfaces of $N$ suspended particles each with a boundary $\gamma_k$, $1\leq k \leq N$, the surfaces of $M$ solid walls each with boundary, $\Gamma_\ell$ $1\leq\ell\leq M$ and optionally a containing wall  denoted $\Gamma_0$. The suspended particles are all rigid and at each time step we will solve for their translational velocity $\mathbf{u}^{\tau}_k$ and angular velocity $\omega_k$, allowing us to update their centers and orientations, $\mathbf{c}_k$ and $\theta_k$ respectively. Particles and interior walls will be undergoing a net force $\mathbf{F}_{k/\ell}$  and torque $L_{k/\ell}$. 
+We will consider a collection of particles in a planar (two dimensional) flow. The fluid will be in a domain $\Omega$ with a boundary $\partial\Omega$. The boundary $\partial\Omega$ is the union of the surfaces of $N$ suspended particles each with a boundary $\gamma_k$, $1\leq k \leq N$, the surfaces of $M$ solid walls each with boundary, $\Gamma_\ell$, $1\leq\ell\leq M$ and optionally a containing wall  denoted $\Gamma_0$. The suspended particles are all rigid and at each time step we will solve for their translational velocity $\mathbf{u}^{\tau}_k$ and angular velocity $\omega_k$, allowing us to update their centers and orientations, $\mathbf{c}_k$ and $\theta_k$ respectively. Particles and interior walls will be undergoing a net force $\mathbf{F}_{k/\ell}$  and torque $L_{k/\ell}$. 
 
 \begin{figure}[!h]
 \begin{center}
@@ -78,6 +61,29 @@ We will consider a collection of particles in a planar (two dimensional) flow. T
 \end{center}
 \caption{Sketch of a possible domain $\Omega$. $\gamma_1$ and $\gamma_2$ enclose particles, while $\Gamma_3$ encloses a solid wall. The outer boundary $\Gamma_0$ need not be present. The boundary $\partial\Omega$ is $\Gamma_0\cup\bigcup\limits_{i=1}^{M}\Gamma_i\cup\bigcup\limits_{i=1}^N \gamma_i$. The vector $\mathbf{n}$ is the unit normal vector pointing into the fluid domain. }
 \end{figure}
+
+\subsection{Governing Equations}\label{sec:governing}
+At the continuum level the motion of a fluid is described by the well known Navier-Stokes equations. For fluid problems the Reynolds number is,
+\[ Re = \frac{\rho Ud}{\mu},\]
+where $\rho$ is the fluid density, $U$ is a characteristic speed, $d$ is the length of a single particle and $\mu$ is the fluid viscosity. Since we will be considering creeping flows containing small particles, $Re << 1$ and the governing equations are the incompressible Stokes equations,
+\begin{subequations}\label{eq:stokes}
+\begin{align}
+	-\Delta \mathbf{u} + \nabla p &= \mathbf{0} \text{ in }\Omega,\\
+	\nabla\cdot\mathbf{u} &= 0 \text{ in }\Omega,
+\end{align}
+\end{subequations}
+where $\mathbf{u}(\mathbf{x})$ is the fluid velocity and $p(\mathbf{x})$ is the fluid pressure. These equations have been non-dimensionalized, in particular the velocity has been scaled by $U$, the position $\mathbf{x}$ by $d$ and the pressure by $\mu U/d$.  We will assume Dirichlet boundary conditions on the velocity, on solid walls we will prescibe the velocity,
+\begin{equation}\label{eq:boundary_condition}
+	 \mathbf{u} = \mathbf{u}_b \text{ on } \bigcup\limits_{\ell = 0}^M \Gamma_\ell,\end{equation}
+subject to the constraint 
+\begin{equation}\label{eq:compatibility}
+	 \int_{\bigcup\limits_{\ell=0}^M\Gamma_\ell} \mathbf{u}_b\cdot\mathbf{n}~\text{d}s = 0,
+\end{equation}
+which is necessary for global conservation of mass. On the particles we will assume no-slip boundary conditions, meaning the velocity at any point on the surface of a particle matches the velocity of the fluid. Since the particles are rigid this can be expressed as,
+\[ \mathbf{u} = \mathbf{u}^\tau_k + \omega(\mathbf{x}-\mathbf{c}_k)^\perp, \text{ on }\gamma_k.\]
+
+
+
 \subsection{Repulsion Forces}
 
 \begin{figure}[!h]\label{fig:collision_sketch}
