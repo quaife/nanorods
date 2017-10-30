@@ -337,18 +337,18 @@ end % k
 end % stokesDLmatrix
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function N0 = stokesN0matrix(~,walls)
+function N0 = stokesN0matrix(~,wall)
 % N0 = stokesN0matrix(vesicle) generates the the integral operator with 
 % kernel normal(x) \otimes normal(y) which removes the rank one defficiency 
 % of the double-layer potential.  Need this operator for solid walls
 
-normal = [walls.xt(walls.N+1:2*walls.N,:);-walls.xt(1:walls.N,:)]; % Normal vector
-normal = normal(:,ones(2*walls.N,1));
+normal = [wall.xt(wall.N+1:2*wall.N,:);-wall.xt(1:wall.N,:)]; % Normal vector
+normal = normal(:,ones(2*wall.N,1));
 
-sa = [walls.sa(:,1);walls.sa(:,1)];
-sa = sa(:,ones(2*walls.N,1));
-N0 = zeros(2*walls.N,2*walls.N,walls.n);
-N0(:,:,1) = normal.*normal'.*sa'*2*pi/walls.N;
+sa = [wall.sa(:,1);wall.sa(:,1)];
+sa = sa(:,ones(2*wall.N,1));
+N0 = zeros(2*wall.N,2*wall.N,wall.n);
+N0(:,:,1) = normal.*normal'.*sa'*2*pi/wall.N;
 % Use N0 if solving (-1/2 + DLP)\eta = f where f has no flux through
 % the boundary.  By solving (-1/2 + DLP + N0)\eta = f, we guarantee
 % that \eta also has no flux through the boundary.  This is not
@@ -887,7 +887,7 @@ end
 end % exactStokesDL
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function [stokesDLP,stokesDLPtar] = exactStokesDLfmm(o,geom,f, ~, Xtar,K)
+function [stokesDLP,stokesDLPtar] = exactStokesDLfmm(o,geom,f, D, Xtar,K)
 % [stokesDLP,stokeDLPtar] = exactStokesDLfmm(geom,f,Xtar,K) uses the
 % FMM to compute the double-layer potential due to all geoms except
 % itself geom is a class of object capsules and f is the density
@@ -934,34 +934,24 @@ else
   % Wrap the output of the FMM into the usual 
   % [[x1;y1] [x2;y2] ...] format
   
-  %diagDL = o.exactStokesDLdiag(geom, D, f);
+  diagDL = o.exactStokesDLdiag(geom, D, f);
 
-%   oc = curve;
-%   [tx,ty] = oc.getXY(geom.xt);
+  oc = curve;
+  [tx,ty] = oc.getXY(geom.xt);
   
   if o.profile
       tfmmLoop = tic;
   end
   
   for k = 1:geom.n %in principle this could be done using a parfor loop 
+      txk = tx(:,k); tyk = ty(:,k);
+      sa = geom.sa(:,k);
+      cur = geom.cur(:,k);
+       
+      fDotTau = txk.*f(1:end/2,k) + tyk.*f(end/2+1:end,k);
+      diag = -[fDotTau.*cur.*sa.*txk; fDotTau.*cur.*sa.*tyk]/geom.N;
       
-      % compute diagonal term
-%       txk = tx(:,k); tyk = ty(:,k);
-%       sa = geom.sa(:,k);
-%       cur = geom.cur(:,k);
-%       
-%       fDotTau = txk.*f(1:end/2,k) + tyk.*f(end/2+1:end,k);
-      %diag = -[fDotTau.*cur.*sa.*txk; fDotTau.*cur.*sa.*tyk]/geom.N;
-      
-      % compute self interaction using FMM
-      dip1 = 0.25/pi*(fy - 1i*fx).*(nx + 1i*ny);
-      dip2 = -1i*0.5/pi*(fx.*nx + fy.*ny);
-      vel = stokesDLPfmm(dip1(:,k),dip2(:,k),x(:,k),y(:,k));
-      
-      u = -imag(vel);
-      v = real(vel);
-      stokesDLP(:,k) = stokesDLP(:,k) - ([u;v]);
-      %stokesDLP(:,k) = stokesDLP(:,k) - (diagDL(:,k) - diag);
+      stokesDLP(:,k) = stokesDLP(:,k) - (diagDL(:,k) - diag);
   end
   
   if o.profile
