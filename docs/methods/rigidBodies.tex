@@ -54,14 +54,15 @@ This is a methods paper
 \subsection{Problem Formulation}
 
 We consider a suspension of rigid particles flowing in a two dimensional
-domain, $\Omega$.  The boundary of the domain, denoted by $\Gamma$, may
-be bounded or unbounded, and may be multiply-connected.  We let
-$\Gamma_k$, $1 \leq k \leq M$ be the connected components of $\Gamma$,
-and if the geometry is bounded, the solid wall containing all other
-solid walls is $\Gamma_0$.  The boundary of the suspended particles is
-denoted by $\gamma_k$, $1 \leq k \leq N$, so that the fluid domain is
+domain, $\Omega$ with boundary $\Gamma$.  The domain may be bounded or
+unbounded, and may be multiply-connected.  We let $\Gamma_k$, $1 \leq k
+\leq M$ be the connected components of $\Gamma$, and if the geometry is
+bounded, the solid wall containing all other solid walls is $\Gamma_0$.
+The boundary of the suspended particles is denoted by $\gamma_k$, $1
+\leq k \leq N$, and so that the fluid domain is
 \begin{align*}
-  \bd\Omega = \bigcup_{k=0}^M \Gamma_k \cup \bigcup_{k=1}^N \gamma_k,
+  \bd\Omega &= \bigcup_{k=0}^M \Gamma_k \cup \bigcup_{k=1}^N \gamma_k \\
+  &= \Gamma \cup \gamma
 \end{align*}
 and $\Gamma_0$ is excluded if the domain is unbounded.  Since the
 particles are rigid, we only track the center and angle of the suspended
@@ -97,7 +98,7 @@ of the geometry is in Figure~\ref{fig:geomSchematic}
   vector $\mathbf{n}$ is the unit normal vector pointing into the fluid
   domain.}
   \todo[inline]{Need different notation for middle of bodies and middle
-  of inner solid walls}
+  of inner solid walls.  Use $\dd_k$ for middle of inner solid walls.}
 \end{figure}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -113,22 +114,22 @@ scale, and $\nu$ is the kinematic fluid viscosity.  We are interested in
 small particles and slow velocities which renders the Reynolds number
 small $\Re \ll 1$.  Therefore, the fluid is governed by the
 incompressible Stokes equations
-\begin{subequations}\label{eq:stokes}
-\begin{align}
-  -\mu\Delta \mathbf{u} + \nabla p &= \mathbf{0} \text{ in }\Omega,\\	  
-  \nabla\cdot\mathbf{u} &= 0 \text{ in }\Omega,
-\end{align}
-\end{subequations}
-where $\mu$ is the viscosity, $\mathbf{u}(\mathbf{x})$ is the velocity,
-and $p(\mathbf{x})$ is the pressure.  The boundary conditions on the
-solid walls will be imposed, so the velocity satisfies the Dirichlet
-boundary condition
+\begin{equation}
+  \label{eq:stokes}
+  \begin{aligned}
+  -\mu\Delta \mathbf{u} + \nabla p &= \mathbf{0},
+    &&\xx \in \Omega, \\	  
+  \nabla\cdot\mathbf{u} &= 0, && \xx \in \Omega,
+  \end{aligned}
+\end{equation}
+where $\mu$ is the viscosity, $\uu$ is the velocity, and $p$ is the
+pressure.  A Dirichlet boundary condition will be imposed on the solid
+walls
 \begin{align}
   \label{eq:boundary_condition}
-  \mathbf{u} = \mathbf{u}_b, \quad \xx \in 
-    \bigcup\limits_{k=0}^M \Gamma_\ell,
+  \mathbf{u} = \mathbf{u}_b, \quad \xx \in \Gamma,
 \end{align}
-subject to the constraint 
+which must satisfy the flux-free constraint 
 \begin{align}
   \label{eq:compatibility}
   \int_{\Gamma} \uu_b\cdot\nn ds = 0.
@@ -136,38 +137,30 @@ subject to the constraint
 On the particles we will assume no-slip boundary conditions, meaning the
 velocity at any point on the surface of a particle matches the velocity
 of the fluid.  Since the particles are rigid this can be expressed as,
-\begin{align*}
+\begin{align}
+  \label{eq:particles_noslip}
   \uu = \uu^\tau_k + \omega(\xx-\cc_k)^\perp, \quad \xx \in \gamma_k.
-\end{align*}
+\end{align}
 Finally, both the particles and the rigid walls will exert a force and
-torque on the fluid. 
-
+torque on the fluid whose strengths will depend on the Dirichlet
+boundary condition and a contact algorithm.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{Boundary Integral Equation Representation}
 Since we are solving a linear PDE, an integral equation formulation is
-possible.  Moreover, a {\em boundary integral equation} (BIE)
-formulation is possible.  This will have the advantage of a dimension
-reduction in the number of unknowns while obtaining spectral accuracy,
-and the resulting linear system will be solved with optimal complexity
-by using a fast summation method.  A further discussion of the
-advantages of a BIE formulation for the incompressible Stokes equations
-can be found in Karrila and Kim~\cite{Karrila1989}.
-
-%As discussed in section \ref{sec:governing}, the governing equations
-%are the incompressible Stokes equations. There are many ways to solve
-%these equations, here we will use \textit{boundary integral equations}
-%(BIEs). For the Stokes equations BIEs have many advantages, a
-%discussion of which can be found in \cite{Karrila1989}. 
+possible.  More specifically, a {\em boundary integral equation} (BIE)
+formulation is possible.  The BIE formulation has the advantage of a
+dimension reduction in the number of unknowns while obtaining spectral
+accuracy, and the resulting linear system can be solved with optimal
+complexity by using a fast summation method.  A further discussion of
+the advantages of a BIE formulation for the incompressible Stokes
+equations can be found in Karrila and Kim~\cite{Karrila1989}.
 
 We formulate the governing equations for a bounded geometry and then
 mention the slight modification that must be made for unbounded
 geometries.  The solution of the incompressible Stokes
 equations~\eqref{eq:stokes} at a point $\xx \in \Omega$ can be expressed
-as the sum of two double layer potentials~\cite{Ladyzhenskaya1963,
-Pozrikidis1992},
-\todo[inline]{Somehow should break up DLP due to solid walls and due to
-rigid bodies}
+as the double layer potentials~\cite{Ladyzhenskaya1963, Pozrikidis1992},
 \begin{align}
   \label{eq:dlp}
   \uu(\xx) = \DD[\eeta](\xx) = \frac{1}{\pi}\int_{\bd\Omega}
@@ -175,17 +168,35 @@ rigid bodies}
   \eeta(\yy) ds_{\yy}, \quad \xx \in \Omega,
 \end{align}
 where $\eeta$ is an unknown density function defined  on $\bd\Omega$,
-$\rr = \xx - \yy$ and $\rho=|\rr|$.  The double layer potential cannot
-represent all possible flow fields. In particular it cannot represent
-flows around surfaces undergoing a net force or torque.
-Following~\cite{Power1987, Power1993} for surfaces undergoing an
-arbitrary net force we complete the double layer potential as,
+$\rr = \xx - \yy$ and $\rho=|\rr|$.  It will be convenient at times to
+decompose this layer potential into contributions from solids walls and
+contributions from rigid bodies as
 \begin{align*}
-  \uu(\xx) = \DD[\eeta_W](\xx) + \DD[\eeta_P](\xx) + \sum_{i=1}^M 
-    \left(\mathbf{S}(\xx,\cc_i)\xxi_i + 
-    \mathbf{R}(\xx,\cc_i)\lambda_i\right) + \sum_{i=1}^N 
-    \left(\mathbf{S}(\xx,\cc_i)\FF_i + 
-    \mathbf{R}(\xx,\cc_i)L_i\right),
+  \uu(\xx) &= \DD_\Gamma[\eeta_\Gamma](\xx) + 
+              \DD_\gamma[\eeta_\gamma](\xx) \\
+           &= \frac{1}{\pi}\int_{\Gamma}
+              \frac{\rr\cdot\mathbf{n}}{\rho^2}
+              \frac{\rr \otimes \rr}{\rho^2}
+              \eeta_\Gamma(\yy) ds_{\yy} + 
+              \frac{1}{\pi}\int_{\gamma}
+              \frac{\rr\cdot\mathbf{n}}{\rho^2}
+              \frac{\rr \otimes \rr}{\rho^2}
+              \eeta_\gamma(\yy) ds_{\yy}, \quad \xx \in \Omega.
+\end{align*}
+where $\eeta_\Gamma$ is the density function of the solid walls and
+$\eeta_\gamma$ is the density function of the rigid bodies.
+
+The double layer potential cannot represent represent flows around
+surfaces undergoing a net force or torque.  Following~\cite{Power1987,
+Power1993} for surfaces undergoing an arbitrary net force we complete
+the double layer potential as,
+\begin{align*}
+  \uu(\xx) = \DD_\Gamma[\eeta_\Gamma](\xx) + 
+             \DD_\gamma[\eeta_\gamma](\xx) + 
+             \sum_{i=1}^M \left(\mathbf{S}(\xx,\dd_i)\xxi_i + 
+                \mathbf{R}(\xx,\dd_i)\lambda_i\right) + 
+             \sum_{i=1}^N \left(\mathbf{S}(\xx,\cc_i)\FF_i + 
+                \mathbf{R}(\xx,\cc_i)L_i\right),
 \end{align*}
 where the Stokeslet $\mathbf{S}(\mathbf{x},\mathbf{y})$ and rotlet $\mathbf{R}(\mathbf{x},\mathbf{y})$ are given by
 \begin{align*}
@@ -194,21 +205,45 @@ where the Stokeslet $\mathbf{S}(\mathbf{x},\mathbf{y})$ and rotlet $\mathbf{R}(\
   \mathbf{R}(\xx,\yy) = \frac{\rr^\perp}{\rho^2}.
 \end{align*}
 
-To set up a system to solve we can take the limit of \eqref{eq:dlp} as we approach $\partial\Omega$ and match it to the boundary condition \eqref{eq:boundary_condition}. The double layer potential is not continuous when we cross the boundary and has a limiting value of $-\pmb{\eta}/2$. This leads to the second kind Fredholm equation,
-\begin{equation}\label{eq:vel_walls} -\frac{1}{2}\pmb{\eta}(\mathbf{x}) + \mathcal{D}[\pmb{\eta}](\mathbf{x}) + \sum\limits_{i=1}^{N+M} \left(\mathbf{S}(\mathbf{x},\mathbf{c}_i)\mathbf{F}_i + \mathbf{R}(\mathbf{x},\mathbf{c}_i)L_i\right) = \mathbf{u}_b - \mathbf{u}_\infty.\end{equation}
+We now choose the density functions, and the strengths of the Stokeslets
+and rotlets so that the boundary
+conditions~\eqref{eq:boundary_condition} and~\eqref{eq:particles_noslip}
+are satisfied.  On the solid walls we have prescribed the velocity
+$\mathbf{u}_b$ and the unknowns are the density function, the net force,
+and the torque on each wall---this is called the {\em resistance
+problem}. On the particles we have prescribed the net force and torque
+and the unknowns are the density function, the translational velocity,
+and the rotational velocity---this is called the {\em mobility problem}.
+The double layer potential has a jump discontinuity of size $\eeta/2$ at
+the boundary of the geometry.  For the solid walls, this leads to the
+second kind Fredholm equation,
+\begin{equation}
+  \label{eq:vel_walls} 
+  \begin{aligned}
+  u_b(\xx) = -\frac{1}{2}\eeta(\xx) + 
+    \mathcal{D}[\eeta](\mathbf{x}) 
+    &+ \sum_{i=1}^{M} \left(\mathbf{S}(\xx,\dd_i)\llambda_i +
+    \mathbf{R}(\xx,\dd_i)\mu_i\right)  \\
+    &+ \sum_{i=1}^{N} \left(\mathbf{S}(\xx,\cc_i)\FF_i +
+    \mathbf{R}(\xx,\cc_i)\L_i\right).
+  \end{aligned}
+\end{equation}
+for $\xx \in \Gamma$.  For the rigid bodies, this leads to the second kind Fredholm equation
+\begin{equation}
+  \label{eq:vel_particles} 
+  \begin{aligned}
+  \uu_k^\tau + \omega_k(\xx - \cc_k)^\perp
+  = -\frac{1}{2}\eeta(\xx) + 
+    \mathcal{D}[\eeta](\mathbf{x}) 
+    &+ \sum_{i=1}^{M} \left(\mathbf{S}(\xx,\dd_i)\llambda_i +
+    \mathbf{R}(\xx,\dd_i)\mu_i\right) \\
+    &+ \sum_{i=1}^{N} \left(\mathbf{S}(\xx,\cc_i)\FF_i +
+    \mathbf{R}(\xx,\cc_i)\L_i\right),
+  \end{aligned}
+\end{equation}
+for $\xx \in \gamma_k$, $k=1,\ldots,N$.
 
-On solid walls we will prescribe the velocity $\mathbf{u}_b$ and solve
-for the net force and torque on each wall. This is called the {\em
-resistance problem}. For particles on the other hand we will prescribe
-the net force and torque on each particle and solve for the velocity
-$\mathbf{u}_b$. This is known as the {\em mobility problem}. We will use
-the fact that the particles are rigid to decompose $\mathbf{u}_b$ into a
-translational and rotational component, \[ \mathbf{u}_b =
-\mathbf{u}^\tau + \omega(\mathbf{x}-\mathbf{c})^\perp.\] This lets us
-set up an equation to solve for the velocity on the surface of particle
-$k$,
-\begin{equation}\label{eq:vel_particles} -\frac{1}{2}\pmb{\eta}(\mathbf{x}) + \mathcal{D}[\pmb{\eta}](\mathbf{x}) - \mathbf{u}^\tau_k - \omega(\mathbf{x}-\mathbf{c}_k)^\perp =  -\sum\limits_{i=1}^{N+M} \left(\mathbf{S}(\mathbf{x},\mathbf{c}_i)\mathbf{F}_i + \mathbf{R}(\mathbf{x},\mathbf{c}_i)L_i\right) - \mathbf{u}_\infty.\end{equation}
-
+\todo[inline]{Bryan has left off here}
 For the both the resistance and mobility problem we have more unknowns than equations. In particular, we have to solve for two components of $\pmb{\eta}$ and either 
 \begin{enumerate}[label=(\alph*)]
 	\item two components of net force and a net torque for each solid wall $\rightarrow$ an additional $3M$ unknowns
@@ -249,7 +284,7 @@ Combining \eqref{eq:vel_walls}, \eqref{eq:vel_particles} and \eqref{eq:closure} 
 
 Bounded domains lead to a similar system, however it must be modified slightly. For fluid inside a container the double layer potential has a rank one null space~\cite{Ladyzhenskaya1963}. Following~\cite{Power1993} this null space can be removed by adding an operator that is active only over the enclosing boundary $\Gamma_0$,
 \[ \mathcal{N}_0[\pmb{\eta}](\mathbf{x}) = \delta_{i0} \int_{\Gamma_i}\mathbf{n}(\mathbf{x})\otimes\mathbf{n}(\mathbf{y})~\text{d}s(\mathbf{y}).\]
-The compatibility condition \eqref{eq:compatibility} ensures that this term evaluates to 0. Adding $\mathcal{N}_0$ to \eqref{eq:stokes_unbounded} and removing the background flow leads to the linear system,
+The compatibility condition~\eqref{eq:compatibility} ensures that this term evaluates to 0. Adding $\mathcal{N}_0$ to \eqref{eq:stokes_unbounded} and removing the background flow leads to the linear system,
 \begin{equation}\label{eq:stokes_bounded} \begin{bmatrix} -\frac{1}{2} + \mathcal{D} + \mathcal{N}_0 & 1 & (\mathbf{x}-\mathbf{c})^\perp & \mathcal{S} & \mathcal{R}\\
 		\int \cdot~ \text{d}s & 0 & 0 & 0 & 0\\
 		\int\cdot(\mathbf{x}-\mathbf{c})^\perp~\text{d}s & 0 & 0 & 0 & 0\\
