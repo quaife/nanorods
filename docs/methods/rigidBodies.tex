@@ -53,68 +53,133 @@ This is a methods paper
 
 \subsection{Problem Formulation}
 
-We will consider a collection of particles in a planar (two dimensional) flow. The fluid will be in a domain $\Omega$ with a boundary $\partial\Omega$. The boundary $\partial\Omega$ is the union of the surfaces of $N$ suspended particles each with a boundary $\gamma_k$, $1\leq k \leq N$, the surfaces of $M$ solid walls each with boundary, $\Gamma_\ell$, $1\leq\ell\leq M$ and optionally a containing wall  denoted $\Gamma_0$. The suspended particles are all rigid and at each time step we will solve for their translational velocity $\mathbf{u}^{\tau}_k$ and angular velocity $\omega_k$, allowing us to update their centers and orientations, $\mathbf{c}_k$ and $\theta_k$ respectively. Particles and interior walls will be undergoing a net force $\mathbf{F}_{k/\ell}$  and torque $L_{k/\ell}$. 
+We consider a suspension of rigid particles flowing in a two dimensional
+domain, $\Omega$.  The boundary of the domain, denoted by $\Gamma$, may
+be bounded or unbounded, and may be multiply-connected.  We let
+$\Gamma_k$, $1 \leq k \leq M$ be the connected components of $\Gamma$,
+and if the geometry is bounded, the solid wall containing all other
+solid walls is $\Gamma_0$.  The boundary of the suspended particles is
+denoted by $\gamma_k$, $1 \leq k \leq N$, so that the fluid domain is
+\begin{align*}
+  \bd\Omega = \bigcup_{k=0}^M \Gamma_k \cup \bigcup_{k=1}^N \gamma_k,
+\end{align*}
+and $\Gamma_0$ is excluded if the domain is unbounded.  Since the
+particles are rigid, we only track the center and angle of the suspended
+particles will be written as $\cc_k$ and $\theta_k$, respectively, and
+the translational and rotational velocities are written as $\uu_k^\tau$
+and $\omega_k$, respectively.  Finally, each solid wall and rigid
+particle will have a net force $\FF$ and net torque $L$ that it applies
+to the fluid.  A schematic of the geometry is in
+Figure~\ref{fig:geomSchematic}
+
+%
+%The fluid will be in a domain $\Omega$ with a boundary
+%$\partial\Omega$. The boundary $\partial\Omega$ is the union of the
+%surfaces of $N$ suspended particles each with a boundary $\gamma_k$,
+%$1\leq k \leq N$, the surfaces of $M$ solid walls each with boundary,
+%$\Gamma_\ell$, $1\leq\ell\leq M$ and optionally a containing wall
+%denoted $\Gamma_0$. The suspended particles are all rigid and at each
+%time step we will solve for their translational velocity
+%$\mathbf{u}^{\tau}_k$ and angular velocity $\omega_k$, allowing us to
+%update their centers and orientations, $\mathbf{c}_k$ and $\theta_k$
+%respectively. Particles and interior walls will be undergoing a net
+%force $\mathbf{F}_{k/\ell}$  and torque $L_{k/\ell}$. 
 
 \begin{figure}[!h]
 \begin{center}
 \includegraphics{figures/multiply_connected.pdf}
 \end{center}
-\caption{Sketch of a possible domain $\Omega$. $\gamma_1$ and $\gamma_2$ enclose particles, while $\Gamma_3$ encloses a solid wall. The outer boundary $\Gamma_0$ need not be present. The boundary $\partial\Omega$ is $\Gamma_0\cup\bigcup\limits_{i=1}^{M}\Gamma_i\cup\bigcup\limits_{i=1}^N \gamma_i$. The vector $\mathbf{n}$ is the unit normal vector pointing into the fluid domain. }
+\caption{\label{fig:geomSchematic}Sketch of a possible domain $\Omega$.
+  $\gamma_1$ and $\gamma_2$ enclose particles, while $\Gamma_1$ is a
+  solid wall. The outer boundary $\Gamma_0$ need not be present.  The
+  vector $\mathbf{n}$ is the unit normal vector pointing into the fluid
+  domain.}
 \end{figure}
 
 \subsection{Governing Equations}\label{sec:governing}
-At the continuum level the motion of a fluid is described by the well known Navier-Stokes equations. For fluid problems the Reynolds number is,
-\[ Re = \frac{\rho Ud}{\mu},\]
-where $\rho$ is the fluid density, $U$ is a characteristic speed, $d$ is the length of a single particle and $\mu$ is the fluid viscosity. Since we will be considering creeping flows containing small particles, $Re << 1$ and the governing equations are the incompressible Stokes equations,
+At the continuum level the motion of a fluid is described by the
+incompressible Navier-Stokes equations with dimensionless Reynolds
+number
+\begin{align*}
+  \Re = \frac{UL}{\nu}
+\end{align*},
+where $U$ is a characteristic speed, $L$ is a characteristic lengths
+scale, and $\nu$ is the kinematic fluid viscosity.  We are interested in
+small particles and slow velocities which renders the Reynolds number
+small $\Re \ll 1$.  Therefore, the fluid is governed by the
+incompressible Stokes equations
 \begin{subequations}\label{eq:stokes}
 \begin{align}
-	-\Delta \mathbf{u} + \nabla p &= \mathbf{0} \text{ in }\Omega,\\
-	\nabla\cdot\mathbf{u} &= 0 \text{ in }\Omega,
+  -\mu\Delta \mathbf{u} + \nabla p &= \mathbf{0} \text{ in }\Omega,\\	  
+  \nabla\cdot\mathbf{u} &= 0 \text{ in }\Omega,
 \end{align}
 \end{subequations}
-where $\mathbf{u}(\mathbf{x})$ is the fluid velocity and $p(\mathbf{x})$ is the fluid pressure. These equations have been non-dimensionalized, in particular the velocity has been scaled by $U$, the position $\mathbf{x}$ by $d$ and the pressure by $\mu U/d$.  We will assume Dirichlet boundary conditions on the velocity, on solid walls we will prescibe the velocity,
-\begin{equation}\label{eq:boundary_condition}
-	 \mathbf{u} = \mathbf{u}_b \text{ on } \bigcup\limits_{\ell = 0}^M \Gamma_\ell,\end{equation}
+where $\mu$ is the viscosity, $\mathbf{u}(\mathbf{x})$ is the velocity,
+and $p(\mathbf{x})$ is the pressure.  The boundary conditions on the
+solid walls will be imposed, so the velocity satisfies the Dirichlet
+boundary condition
+\begin{align}
+  \label{eq:boundary_condition}
+  \mathbf{u} = \mathbf{u}_b, \quad \xx \in 
+    \bigcup\limits_{k=0}^M \Gamma_\ell,
+\end{align}
 subject to the constraint 
-\begin{equation}\label{eq:compatibility}
-	 \int_{\bigcup\limits_{\ell=0}^M\Gamma_\ell} \mathbf{u}_b\cdot\mathbf{n}~\text{d}s = 0,
-\end{equation}
-which is necessary for global conservation of mass. On the particles we will assume no-slip boundary conditions, meaning the velocity at any point on the surface of a particle matches the velocity of the fluid. Since the particles are rigid this can be expressed as,
-\[ \mathbf{u} = \mathbf{u}^\tau_k + \omega(\mathbf{x}-\mathbf{c}_k)^\perp, \text{ on }\gamma_k.\]
+\begin{align}
+  \label{eq:compatibility}
+  \int_{\bigcup\limits_{\ell=0}^M\Gamma_\ell} \uu_b\cdot\nn ds = 0.
+\end{align}
+On the particles we will assume no-slip boundary conditions, meaning the
+velocity at any point on the surface of a particle matches the velocity
+of the fluid.  Since the particles are rigid this can be expressed as,
+\begin{align*}
+  \uu = \uu^\tau_k + \omega(\xx-\cc_k)^\perp, \quad \xx \in \gamma_k.
+\end{align*}
 
 
 
-\subsection{Repulsion Forces}
-
-\begin{figure}[!h]\label{fig:collision_sketch}
-\begin{center}
-\includegraphics{figures/collisions.pdf}
-\end{center}
-\caption{Sketch of potential collisions.}
-\end{figure}
-It is well known that the exact solutions of the Stokes equations prohibit contact between particles in finite time due to lubrication forces. In theory therefore if we solve the Stokes equations accurately enough contact will be avoided. Achieving this level of accuracy requires a prohibitively fine mesh or small time step size, in particular for dense suspensions. In order to keep computational costs reasonable we must turn to alternative approaches. 
-
-One such approach is to introduce an artificial repulsion force. There are many possible choices for the type of force. One possibility is a Leonard-Jones type force that grows exponentially as two particles become close together\todo{Need citations}. This has been shown to work for dense suspensions, however the resulting ODEs become very stiff as the separation between particles decreases, thus requiring smaller time steps. In addition this type of force does guarantee no collisions. If the time step is too large collisions can still occur. An alternative approach is to choose the forces in such a way as to explicitly guarantee each time step is collision free. 
-
-The main algorithm will proceed as follows. At each time step $t^n$ the Stokes equations are solved and the particles are advanced to a candidate configuration at $t^{n+1}$. At this point we can check for collisions. If no collisions are found, the candidate configuration is accepted, otherwise it is rejected and we resolve the Stokes equations at $t^n$ with an artificial repulsion force, adjusting this force as necessary until the candidate configuration at time $t^{n+1}$ is collision free and can be accepted. The remainder of this section is dedicated to describing how this artificial repulsion force is computed. 
-
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{Boundary Integral Equation Representation}
+Since we are interested in solving a linear PDE, an integral equation
+formulation is possible.  Moreover, a {\em boundary integral equation}
+(BIE) formulation is possible.  This will have the advantage of a dimension
+reduction in the number of unknowns while obtaining spectral accuracy,
+and the resulting linear system will be solved with optimal complexity
+by using a fast summation method.  A further discussion of the
+advantages of a BIE formulation for the incompressible Stokes equations
+can be found in Karrila and Kim~\cite{Karrila1989}.
 
 As discussed in section \ref{sec:governing}, the governing equations for this problem are the incompressible Stokes equations. There are many ways to solve these equations, here we will use \textit{boundary integral equations} (BIEs). For the Stokes equations BIEs have many advantages, a discussion of which can be found in \cite{Karrila1989}. 
 
-\subsubsection{Unbounded Domains}
-
-In an unbounded domain there will be an imposed background flow $\mathbf{u}_{\infty}$. We will use BIEs to solve for a velocity perturbation $\mathbf{u}_p$ due to the boundary conditions on particles and solid walls.
-
-The solution to the Stokes equations \eqref{eq:stokes} with a homogeneous forcing function at a point $\mathbf{x}$ inside a domain $\Omega$ can be expressed as an integral around the boundary of the domain $\partial\Omega$,
-\begin{equation}\label{eq:dlp}\mathbf{u}_p(\mathbf{x}) = \mathcal{D}[\pmb{\eta}](\mathbf{x}) = \frac{1}{\pi}\int_{\partial\Omega} \frac{\mathbf{r}\cdot\mathbf{n}}{\rho^2}\frac{\mathbf{r}\otimes\mathbf{r}}{\rho^2}\pmb{\eta}(\mathbf{y})~\text{d}s(\mathbf{y}),\end{equation}
-where $\pmb{\eta}$ is an unknown density function defined only along $\partial\Omega$, $\mathbf{r}=\mathbf{x}-\mathbf{y}$ and $\rho=|\mathbf{r}|$. The operator $\mathcal{D}[\pmb{\eta}]$ is the double layer potential and can be derived from the fundamental solution of \eqref{eq:stokes} \cite{Ladyzhenskaya1963, Pozrikidis1992}. The double layer potential by itself cannot represent all possible flow fields. In particular it cannot represent flows around surfaces undergoing a net force or torque. Following \cite{Power1987, Power1993} for surfaces undergoing an arbitrary net force $\mathbf{F}$ and net torque $L$ we can complete the double layer potential as,
-\[ \mathbf{u}(\mathbf{x}) = \mathbf{u}_{\infty} +  \mathcal{D}[\pmb{\eta}] + \sum\limits_{i=1}^{N+M} \left(\mathbf{S}(\mathbf{x},\mathbf{c}_i)\mathbf{F}_i + \mathbf{R}(\mathbf{x},\mathbf{c}_i)L_i\right),\]
+We our governing equations for a bounded geometry and then mention the
+slight modification that must be made for unbounded geometries.  The
+solution of the incompressible Stokes equations~\eqref{eq:stokes} at a
+point $\xx \in \Omega$ can be expressed as the double layer
+potential~\cite{Ladyzhenskaya1963, Pozrikidis1992}
+\begin{align}
+  \label{eq:dlp}
+  \uu(\xx) = \DD[\eeta](\xx) = \frac{1}{\pi}\int_{\bd\Omega}
+  \frac{\rr\cdot\mathbf{n}}{\rho^2}\frac{\rr \otimes \rr}{\rho^2}
+  \eeta(\yy) ds_{\yy}, \quad \xx \in \Omega
+\end{align}
+where $\eeta$ is an unknown density function defined  on $\bd\Omega$,
+$\rr = \xx - \yy$ and $\rho=|\rr|$.  The double layer potential by
+itself cannot represent all possible flow fields. In particular it
+cannot represent flows around surfaces undergoing a net force or torque.
+Following \cite{Power1987, Power1993} for surfaces undergoing an
+arbitrary net force $\mathbf{F}$ and net torque $L$ we complete the
+double layer potential as,
+\begin{align*}
+  \uu(\xx) = \DD[\eeta](\xx) + \sum_{i=1}^{N+M} 
+    \left(\mathbf{S}(\xx,\cc_i)\FF_i + \mathbf{R}(\xx,\cc_i)L_i\right),
+\end{align*}
 where the Stokeslet $\mathbf{S}(\mathbf{x},\mathbf{y})$ and rotlet $\mathbf{R}(\mathbf{x},\mathbf{y})$ are given by
-\[ \mathbf{S}(\mathbf{x},\mathbf{y}) = \frac{\mathbf{r}\otimes\mathbf{r}}{\rho^2} - \log\rho\mathbf{I},\qquad \mathbf{R}(\mathbf{x},\mathbf{y}) = \frac{\mathbf{r}^\perp}{\rho^2}.\]
-Note that we have also added back in the background flow.
+\begin{align*}
+  \mathbf{S}(\xx,\yy) = \frac{\rr \otimes \rr}{\rho^2} - 
+  \log\rho\mathbf{I}, \qquad 
+  \mathbf{R}(\xx,\yy) = \frac{\rr^\perp}{\rho^2}.
+\end{align*}
 
- To set up a system to solve we can take the limit of \eqref{eq:dlp} as we approach $\partial\Omega$ and match it to the boundary condition \eqref{eq:boundary_condition}. The double layer potential is not continuous when we cross the boundary and has a limiting value of $-\pmb{\eta}/2$. This leads to the second kind Fredholm equation,
+To set up a system to solve we can take the limit of \eqref{eq:dlp} as we approach $\partial\Omega$ and match it to the boundary condition \eqref{eq:boundary_condition}. The double layer potential is not continuous when we cross the boundary and has a limiting value of $-\pmb{\eta}/2$. This leads to the second kind Fredholm equation,
 \begin{equation}\label{eq:vel_walls} -\frac{1}{2}\pmb{\eta}(\mathbf{x}) + \mathcal{D}[\pmb{\eta}](\mathbf{x}) + \sum\limits_{i=1}^{N+M} \left(\mathbf{S}(\mathbf{x},\mathbf{c}_i)\mathbf{F}_i + \mathbf{R}(\mathbf{x},\mathbf{c}_i)L_i\right) = \mathbf{u}_b - \mathbf{u}_\infty.\end{equation}
 
 On solid walls we will prescribe the velocity $\mathbf{u}_b$ and solve for the net force and torque on each wall. This is called the \textit{resistance problem}. For particles on the other hand we will prescribe the net force and torque on each particle and solve for the velocity $\mathbf{u}_b$. This is known as the \textit{mobility problem}. We will use the fact that the particles are rigid to decompose $\mathbf{u}_b$ into a translational and rotational component,
@@ -177,6 +242,41 @@ The compatibility condition \eqref{eq:compatibility} ensures that this term eval
 	0
 \end{bmatrix}
 \end{equation}
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Repulsion Forces}
+
+\begin{figure}[!h]\label{fig:collision_sketch}
+\begin{center}
+\includegraphics{figures/collisions.pdf}
+\end{center}
+\caption{Sketch of potential collisions.}
+\end{figure}
+It is well known that the exact solutions of the Stokes equations prohibit contact between particles in finite time due to lubrication forces. In theory therefore if we solve the Stokes equations accurately enough contact will be avoided. Achieving this level of accuracy requires a prohibitively fine mesh or small time step size, in particular for dense suspensions. In order to keep computational costs reasonable we must turn to alternative approaches. 
+
+One such approach is to introduce an artificial repulsion force. There are many possible choices for the type of force. One possibility is a Leonard-Jones type force that grows exponentially as two particles become close together\todo{Need citations}. This has been shown to work for dense suspensions, however the resulting ODEs become very stiff as the separation between particles decreases, thus requiring smaller time steps. In addition this type of force does guarantee no collisions. If the time step is too large collisions can still occur. An alternative approach is to choose the forces in such a way as to explicitly guarantee each time step is collision free. 
+
+The main algorithm will proceed as follows. At each time step $t^n$ the Stokes equations are solved and the particles are advanced to a candidate configuration at $t^{n+1}$. At this point we can check for collisions. If no collisions are found, the candidate configuration is accepted, otherwise it is rejected and we resolve the Stokes equations at $t^n$ with an artificial repulsion force, adjusting this force as necessary until the candidate configuration at time $t^{n+1}$ is collision free and can be accepted. The remainder of this section is dedicated to describing how this artificial repulsion force is computed. 
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Repulsion Forces}
+
+\begin{figure}[!h]\label{fig:collision_sketch}
+\begin{center}
+\includegraphics{figures/collisions.pdf}
+\end{center}
+\caption{Sketch of potential collisions.}
+\end{figure}
+It is well known that the exact solutions of the Stokes equations prohibit contact between particles in finite time due to lubrication forces. In theory therefore if we solve the Stokes equations accurately enough contact will be avoided. Achieving this level of accuracy requires a prohibitively fine mesh or small time step size, in particular for dense suspensions. In order to keep computational costs reasonable we must turn to alternative approaches. 
+
+One such approach is to introduce an artificial repulsion force. There are many possible choices for the type of force. One possibility is a Leonard-Jones type force that grows exponentially as two particles become close together\todo{Need citations}. This has been shown to work for dense suspensions, however the resulting ODEs become very stiff as the separation between particles decreases, thus requiring smaller time steps. In addition this type of force does guarantee no collisions. If the time step is too large collisions can still occur. An alternative approach is to choose the forces in such a way as to explicitly guarantee each time step is collision free. 
+
+The main algorithm will proceed as follows. At each time step $t^n$ the Stokes equations are solved and the particles are advanced to a candidate configuration at $t^{n+1}$. At this point we can check for collisions. If no collisions are found, the candidate configuration is accepted, otherwise it is rejected and we resolve the Stokes equations at $t^n$ with an artificial repulsion force, adjusting this force as necessary until the candidate configuration at time $t^{n+1}$ is collision free and can be accepted. The remainder of this section is dedicated to describing how this artificial repulsion force is computed. 
+
+
 
 \subsection{Contact definition}
 
