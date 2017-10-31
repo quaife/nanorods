@@ -130,10 +130,10 @@ walls
   \mathbf{u} = \mathbf{u}_b, \quad \xx \in \Gamma,
 \end{align}
 which must satisfy the flux-free constraint 
-\begin{align}
-  \label{eq:compatibility}
-  \int_{\Gamma} \uu_b\cdot\nn ds = 0.
-\end{align}
+\begin{align*}
+%  \label{eq:compatibility}
+  \int_{\Gamma} \uu_b\cdot\nn~\text{d}s = 0.
+\end{align*}
 On the particles we will assume no-slip boundary conditions, meaning the
 velocity at any point on the surface of a particle matches the velocity
 of the fluid.  Since the particles are rigid this can be expressed as,
@@ -165,39 +165,37 @@ as the double layer potentials~\cite{Ladyzhenskaya1963, Pozrikidis1992},
   \label{eq:dlp}
   \uu(\xx) = \DD[\eeta](\xx) = \frac{1}{\pi}\int_{\bd\Omega}
   \frac{\rr\cdot\mathbf{n}}{\rho^2}\frac{\rr \otimes \rr}{\rho^2}
-  \eeta(\yy) ds_{\yy}, \quad \xx \in \Omega,
+  \eeta(\yy)~\text{d}s_{\yy}, \quad \xx \in \Omega,
 \end{align}
 where $\eeta$ is an unknown density function defined  on $\bd\Omega$,
 $\rr = \xx - \yy$ and $\rho=|\rr|$.  It will be convenient at times to
 decompose this layer potential into contributions from solids walls and
 contributions from rigid bodies as
 \begin{align*}
-  \uu(\xx) &= \DD_\Gamma[\eeta_\Gamma](\xx) + 
-              \DD_\gamma[\eeta_\gamma](\xx) \\
+  \uu(\xx) &= \DD_\Gamma[\eeta](\xx) + 
+              \DD_\gamma[\eeta](\xx) \\
            &= \frac{1}{\pi}\int_{\Gamma}
               \frac{\rr\cdot\mathbf{n}}{\rho^2}
               \frac{\rr \otimes \rr}{\rho^2}
-              \eeta_\Gamma(\yy) ds_{\yy} + 
+              \eeta(\yy)~\text{d}s_{\yy} + 
               \frac{1}{\pi}\int_{\gamma}
               \frac{\rr\cdot\mathbf{n}}{\rho^2}
               \frac{\rr \otimes \rr}{\rho^2}
-              \eeta_\gamma(\yy) ds_{\yy}, \quad \xx \in \Omega.
+              \eeta(\yy)~\text{d}s_{\yy}, \quad \xx \in \Omega.
 \end{align*}
-where $\eeta_\Gamma$ is the density function of the solid walls and
-$\eeta_\gamma$ is the density function of the rigid bodies.
 
 The double layer potential cannot represent represent flows around
 surfaces undergoing a net force or torque.  Following~\cite{Power1987,
 Power1993} for surfaces undergoing an arbitrary net force we complete
 the double layer potential as,
-\begin{align*}
-  \uu(\xx) = \DD_\Gamma[\eeta_\Gamma](\xx) + 
-             \DD_\gamma[\eeta_\gamma](\xx) + 
-             \sum_{i=1}^M \left(\mathbf{S}(\xx,\dd_i)\xxi_i + 
-                \mathbf{R}(\xx,\dd_i)\lambda_i\right) + 
+\begin{align}
+  \label{eq:completed_DLP}
+  \uu(\xx) = \DD_\Gamma[\eeta](\xx) + \DD_\gamma[\eeta](\xx) + 
+             \sum_{i=1}^M \left(\mathbf{S}(\xx,\dd_i)\llambda_i + 
+                \mathbf{R}(\xx,\dd_i)\xi_i\right) + 
              \sum_{i=1}^N \left(\mathbf{S}(\xx,\cc_i)\FF_i + 
                 \mathbf{R}(\xx,\cc_i)L_i\right),
-\end{align*}
+\end{align}
 where the Stokeslet $\mathbf{S}(\mathbf{x},\mathbf{y})$ and rotlet $\mathbf{R}(\mathbf{x},\mathbf{y})$ are given by
 \begin{align*}
   \mathbf{S}(\xx,\yy) = \frac{\rr \otimes \rr}{\rho^2} - 
@@ -208,19 +206,20 @@ where the Stokeslet $\mathbf{S}(\mathbf{x},\mathbf{y})$ and rotlet $\mathbf{R}(\
 We now choose the density functions, and the strengths of the Stokeslets
 and rotlets so that the boundary
 conditions~\eqref{eq:boundary_condition} and~\eqref{eq:particles_noslip}
-are satisfied.  On the solid walls we have prescribed the velocity
-$\mathbf{u}_b$ and the unknowns are the density function, the net force,
-and the torque on each wall---this is called the {\em resistance
-problem}. On the particles we have prescribed the net force and torque
-and the unknowns are the density function, the translational velocity,
-and the rotational velocity---this is called the {\em mobility problem}.
-The double layer potential has a jump discontinuity of size $\eeta/2$ at
-the boundary of the geometry.  For the solid walls, this leads to the
-second kind Fredholm equation,
+are satisfied.  On the solid walls the velocity $\uu_b$ is prescribed
+and the unknowns are the density function, the net force, and the torque
+on each wall---this is called the {\em resistance problem}.  On the
+particles the net force and torque are prescribed and the unknowns are
+the density function, the translational velocity, and the rotational
+velocity---this is called the {\em mobility problem}. 
+
+The double layer potential has a jump discontinuity at the boundary of
+the geometry.  For the solid walls, this leads to the second kind
+Fredholm equation,
 \begin{equation}
   \label{eq:vel_walls} 
   \begin{aligned}
-  u_b(\xx) = -\frac{1}{2}\eeta(\xx) + 
+  \uu_b(\xx) = -\frac{1}{2}\eeta(\xx) + 
     \mathcal{D}[\eeta](\mathbf{x}) 
     &+ \sum_{i=1}^{M} \left(\mathbf{S}(\xx,\dd_i)\llambda_i +
     \mathbf{R}(\xx,\dd_i)\mu_i\right)  \\
@@ -241,67 +240,99 @@ for $\xx \in \Gamma$.  For the rigid bodies, this leads to the second kind Fredh
     \mathbf{R}(\xx,\cc_i)\L_i\right),
   \end{aligned}
 \end{equation}
-for $\xx \in \gamma_k$, $k=1,\ldots,N$.
+for $\xx \in \gamma_k$, $k=1,\ldots,N$.  For our complete system, the
+known quantities are the boundary condition $\uu_b$ on the solid walls,
+and the net force $\FF$ and torque $L$ on each rigid body.  The unknowns
+are the density function $\eeta$, and the strengths of the Stokeslets
+$\llambda$ and the rotlets $\xi$.
 
-\todo[inline]{Bryan has left off here}
-For the both the resistance and mobility problem we have more unknowns than equations. In particular, we have to solve for two components of $\pmb{\eta}$ and either 
-\begin{enumerate}[label=(\alph*)]
-	\item two components of net force and a net torque for each solid wall $\rightarrow$ an additional $3M$ unknowns
-	\item two components of translational velocity and an angular velocity of each particle $\rightarrow$ an additional $3N$ unknowns
-\end{enumerate}
-
-To close these systems we will follow \cite{Power1993} and relate
-$\pmb{\eta}$ to the net force and torque on each particle or wall. In
-particular for $1\leq i \leq N+M$,
-\begin{subequations}\label{eq:closure}
+For both the resistance and mobility problems, auxiliary equations must
+be added to close the system.  We follow Power~\cite{Power1993} and
+relate the density function $\eeta$ on each solid wall $\Gamma_k$ and
+each rigid body $\gamma_k$ to their corresponding force and torque
+\begin{equation}
+  \label{eq:closure}
+  \begin{aligned}
+    \int_{\Gamma_i} \eeta~\text{d}s &= \llambda_i, \quad
+    \int_{\Gamma_i} \eeta\cdot (\xx - \dd_i)^\perp~\text{d}s = \xi_i, \\
+    \int_{\Gamma_i} \eeta~\text{d}s &= \FF_i, \quad
+    \int_{\Gamma_i} \eeta\cdot (\xx - \cc_i)^\perp~\text{d}s = L_i.
+  \end{aligned}
+\end{equation}
+With the boundary conditions $\uu_b$ and the net force and torques $\FF$
+and $L$ specified,
+equations~\eqref{eq:vel_walls},~\eqref{eq:vel_particles},
+and~\eqref{eq:closure} are a BIE formulation of the governing equations.
+In particular, the velocity field~\eqref{eq:completed_DLP} solves the
+incompressible Stokes equations~\eqref{eq:stokes} with the boundary
+conditions~\eqref{eq:boundary_condition}
+and~\eqref{eq:particles_noslip}.  However, for bounded domains, this BIE
+formulation has a rank one null space~\cite{Ladyzhenskaya1963}.
+Following~\cite{Power1993}, this null space is removed by adding the
+term
 \begin{align}
-	&\int_{\Gamma_i} \pmb{\eta}~\text{d}s = \mathbf{F}_i,\\
-	&\int_{\Gamma_i} \pmb{\eta}\cdot (\mathbf{x} - \mathbf{c})^\perp~\text{d}s = L_i.
-\end{align} 
-\end{subequations}
+  \label{eq:N0_modification}
+  \mathcal{N}_0[\eeta](\xx) = \int_{\Gamma_0}
+  \nn(\xx)\otimes\nn(\yy)~\text{d}s(\mathbf{y}),
+\end{align}
+to~\eqref{eq:vel_walls}, but only for points $\xx \in \Gamma_0$.
 
-Combining \eqref{eq:vel_walls}, \eqref{eq:vel_particles} and \eqref{eq:closure} we can write our problem in the compact notation,
-\begin{equation}\label{eq:stokes_unbounded} \begin{bmatrix} -\frac{1}{2} + \mathcal{D} & 1 & (\mathbf{x}-\mathbf{c})^\perp & \mathcal{S} & \mathcal{R}\\
-		\int \cdot~ \text{d}s & 0 & 0 & 0 & 0\\
-		\int\cdot(\mathbf{x}-\mathbf{c})^\perp~\text{d}s & 0 & 0 & 0 & 0\\
-		\int \cdot~ \text{d}s & 0 & 0 & - 1 & 0\\
-		\int\cdot(\mathbf{x}-\mathbf{c})^\perp~\text{d}s & 0 & 0 & 0 & -1\end{bmatrix}
-\begin{bmatrix}
-	\pmb{\eta}\\\mathbf{u}^\tau \\ \pmb{\omega} \\ \mathbf{F}_w \\\mathbf{ L}_w
-\end{bmatrix}
-=
-\begin{bmatrix}
-	-\mathbf{u}_{\infty} - \mathcal{S}\mathbf{F}_p - \mathcal{R}\mathbf{L}_p\\
-	\mathbf{F}_p\\
-	\mathbf{L}_p\\
-	0\\
-	0
-\end{bmatrix}
-\end{equation}
+In the case of unbounded domains, a background velocity
+$\uu_\infty(\xx)$ is given.  Then, equations~\eqref{eq:vel_walls}
+and~\eqref{eqn:vel_particles} are augmented with the term
+$\uu_\infty(\xx)$ on the right hand side.  Also in the bounded case, the
+BIE formulation has no null space so the rank one
+modification~\eqref{eq:N0_modification} is unneeded.
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\subsubsection{Bounded Domains}
 
-Bounded domains lead to a similar system, however it must be modified slightly. For fluid inside a container the double layer potential has a rank one null space~\cite{Ladyzhenskaya1963}. Following~\cite{Power1993} this null space can be removed by adding an operator that is active only over the enclosing boundary $\Gamma_0$,
-\[ \mathcal{N}_0[\pmb{\eta}](\mathbf{x}) = \delta_{i0} \int_{\Gamma_i}\mathbf{n}(\mathbf{x})\otimes\mathbf{n}(\mathbf{y})~\text{d}s(\mathbf{y}).\]
-The compatibility condition~\eqref{eq:compatibility} ensures that this term evaluates to 0. Adding $\mathcal{N}_0$ to \eqref{eq:stokes_unbounded} and removing the background flow leads to the linear system,
-\begin{equation}\label{eq:stokes_bounded} \begin{bmatrix} -\frac{1}{2} + \mathcal{D} + \mathcal{N}_0 & 1 & (\mathbf{x}-\mathbf{c})^\perp & \mathcal{S} & \mathcal{R}\\
-		\int \cdot~ \text{d}s & 0 & 0 & 0 & 0\\
-		\int\cdot(\mathbf{x}-\mathbf{c})^\perp~\text{d}s & 0 & 0 & 0 & 0\\
-		\int \cdot~ \text{d}s & 0 & 0 & - 1 & 0\\
-		\int\cdot(\mathbf{x}-\mathbf{c})^\perp~\text{d}s & 0 & 0 & 0 & -1\end{bmatrix}
-\begin{bmatrix}
-	\pmb{\eta}\\\mathbf{u}^\tau \\ \pmb{\omega} \\ \mathbf{F}_w \\\mathbf{ L}_w
-\end{bmatrix}
-=
-\begin{bmatrix}
-	 - \mathcal{S}\mathbf{F}_p - \mathcal{R}\mathbf{L}_p\\
-	\mathbf{F}_p\\
-	\mathbf{L}_p\\
-	0\\
-	0
-\end{bmatrix}
-\end{equation}
+
+
+%Combining \eqref{eq:vel_walls}, \eqref{eq:vel_particles} and \eqref{eq:closure} we can write our problem in the compact notation,
+%\begin{equation}\label{eq:stokes_unbounded} \begin{bmatrix} -\frac{1}{2} + \mathcal{D} & 1 & (\mathbf{x}-\mathbf{c})^\perp & \mathcal{S} & \mathcal{R}\\
+%		\int \cdot~ \text{d}s & 0 & 0 & 0 & 0\\
+%		\int\cdot(\mathbf{x}-\mathbf{c})^\perp~\text{d}s & 0 & 0 & 0 & 0\\
+%		\int \cdot~ \text{d}s & 0 & 0 & - 1 & 0\\
+%		\int\cdot(\mathbf{x}-\mathbf{c})^\perp~\text{d}s & 0 & 0 & 0 & -1\end{bmatrix}
+%\begin{bmatrix}
+%	\pmb{\eta}\\\mathbf{u}^\tau \\ \pmb{\omega} \\ \mathbf{F}_w \\\mathbf{ L}_w
+%\end{bmatrix}
+%=
+%\begin{bmatrix}
+%	-\mathbf{u}_{\infty} - \mathcal{S}\mathbf{F}_p - \mathcal{R}\mathbf{L}_p\\
+%	\mathbf{F}_p\\
+%	\mathbf{L}_p\\
+%	0\\
+%	0
+%\end{bmatrix}
+%\end{equation}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%\subsubsection{Bounded Domains}
+%
+%Bounded domains lead to a similar system, however it must be modified
+%slightly. For fluid inside a container the double layer potential has a
+%rank one null space~\cite{Ladyzhenskaya1963}. Following~\cite{Power1993}
+%this null space can be removed by adding an operator that is active only
+%over the enclosing boundary $\Gamma_0$,
+%\[ \mathcal{N}_0[\pmb{\eta}](\mathbf{x}) = \delta_{i0} \int_{\Gamma_i}\mathbf{n}(\mathbf{x})\otimes\mathbf{n}(\mathbf{y})~\text{d}s(\mathbf{y}).\]
+%The compatibility condition~\eqref{eq:compatibility} ensures that this term evaluates to 0. Adding $\mathcal{N}_0$ to \eqref{eq:stokes_unbounded} and removing the background flow leads to the linear system,
+%\begin{equation}\label{eq:stokes_bounded} \begin{bmatrix} -\frac{1}{2} + \mathcal{D} + \mathcal{N}_0 & 1 & (\mathbf{x}-\mathbf{c})^\perp & \mathcal{S} & \mathcal{R}\\
+%		\int \cdot~ \text{d}s & 0 & 0 & 0 & 0\\
+%		\int\cdot(\mathbf{x}-\mathbf{c})^\perp~\text{d}s & 0 & 0 & 0 & 0\\
+%		\int \cdot~ \text{d}s & 0 & 0 & - 1 & 0\\
+%		\int\cdot(\mathbf{x}-\mathbf{c})^\perp~\text{d}s & 0 & 0 & 0 & -1\end{bmatrix}
+%\begin{bmatrix}
+%	\pmb{\eta}\\\mathbf{u}^\tau \\ \pmb{\omega} \\ \mathbf{F}_w \\\mathbf{ L}_w
+%\end{bmatrix}
+%=
+%\begin{bmatrix}
+%	 - \mathcal{S}\mathbf{F}_p - \mathcal{R}\mathbf{L}_p\\
+%	\mathbf{F}_p\\
+%	\mathbf{L}_p\\
+%	0\\
+%	0
+%\end{bmatrix}
+%\end{equation}
 
 
 
@@ -314,51 +345,68 @@ The compatibility condition~\eqref{eq:compatibility} ensures that this term eval
 \end{center}
 \caption{Sketch of potential collisions.}
 \end{figure}
-The exact solutions of the Stokes equations
-prohibit contact between particles in finite time due to lubrication
-forces.   However, upon discretization in space and time, numerical
+The exact solutions of the Stokes equations prohibit contact between
+force-free and torque-free particles in finite time due to lubrication
+forces.  However, upon discretization in space and time, numerical
 errors can lead to contact.  Many contact methods have been developed,
-including spatial and temporal adaptivity~\cite{kro1999}.  However, only
-using adaptivity is not computationally feasible for dense suspensions.
-To keep computational costs reasonable we must turn to alternative
-approaches, and this is typically done by keeping the distance by
-choosing a minimum separation distance between all pairs of particles. 
+including spatial and temporal adaptivity~\cite{Kropinski1999}.
+However, only using adaptivity is not computationally feasible for dense
+suspensions.  To keep computational costs reasonable we must turn to
+alternative approaches, and this is typically done by keeping the
+distance by choosing a minimum separation distance between all pairs of
+particles. 
 
 One such approach is to introduce an artificial repulsion force. There
 are many possible choices for the type of force. One possibility is a
-Leonard-Jones type force that grows exponentially as two particles
-become close together \todo[inline]{Need citations}. This has been shown
-to work for dense suspensions, however the resulting ODEs become very
-stiff as the separation between particles decreases, thus requiring
-smaller time steps. In addition this type of force does guarantee no
-collisions. If the time step is too large collisions can still occur. An
-alternative approach is to choose the forces in such a way as to
-explicitly guarantee each time step is collision free. 
+Leonard-Jones type force that grows exponentially
+\todo[inline]{exponentially?} as two particles become close together
+\todo[inline]{Need citations}. This has been shown to work for dense
+suspensions, however the resulting ODEs become very stiff as the
+separation between particles decreases, thus requiring smaller time
+steps. In addition this type of force does guarantee no collisions
+\todo[inline]{No repulsion force will guarantee that collisions don't
+occur.  Too large of a time step can always cause overlap}. If
+the time step is too large collisions can still occur.
+\todo[inline]{Mention ideas from spring models such as the work of
+Tsorng-Whey Pan}.
 
-The main algorithm will proceed as follows. At each time step $t^n$ the
-Stokes equations are solved and the particles are advanced to a
-candidate configuration at $t^{n+1}$. At this point we can check for
-collisions. If no collisions are found, the candidate configuration is
-accepted, otherwise it is rejected and we resolve the Stokes equations
-at $t^n$ with an artificial repulsion force, adjusting this force as
-necessary until the candidate configuration at time $t^{n+1}$ is
-collision free and can be accepted. The remainder of this section is
-dedicated to describing how this artificial repulsion force is computed. 
+An alternative approach is to choose the forces in such a way as to
+explicitly guarantee each time step is collision free.  At each time
+step $t^n$ the Stokes equations are solved and the particles are
+advanced to a candidate configuration at $t^{n+1}$.  Using a linear
+interpolant, we check if any collisions occurred in the interval
+$[t^n,t^{n+1}]$.  If the time step is contact-free, the candidate
+configuration is accepted.  If contact is detected, the candidate
+solution is rejected and we resolve
+equations~\eqref{eqn:vel_walls},~\eqref{eqn:vel_particles},
+and~\eqref{eq:closure}, but with artificial forces $\FF_i$ and torques
+$L_i$ that are chosen to try and avoid contact.  Then, a new candidate
+solution is formed and the procedure is continued until a contact-free
+time step is taken.  The remainder of this section is dedicated to
+describing different artificial repulsion forces.
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\subsection{Contact definition}
+\subsection{Avoiding Contact with STIV}
+Before discussing how collisions can be resolved, we first define a
+metric that measures collision.  This metric should track all pairwise
+collisions and detect if a two particles overlapped not only at the
+discrete time points, but at any time.  We let $\mathbf{V}(t)$ be a
+vector with size $\binom{N}{2}$ which is the total number of possible
+pairwise collisions.  $\mathbf{V}$ should be defined in such a way that
+it is 0 if no collisions have occurred, and if there is a collision, its
+value should quantify the amount of overlap.   Then, if there is a
+collision between two particles, the repulsion force should be chosen to
+scale with the magnitude of the corresponding entry of $\mathbf{V}$.
+There are several possible choices for $\mathbf{V}(t)$, the simplest
+being a signed distance between all points on all particles. We use the
+concept of {\em Space-Time Interference Volumes} (STIV) introduced by
+Harmon et al.~\cite{Harmon2011} and adapted for the suspension of
+deformable and rigid particles~\cite{Lu2017}. 
 
-Before any discussion of resolving collisions we must define a metric
-that measures collisions. This metric tracks all pairwise collisions. If
-an entry of $\mathbf{V}(t)$ is less than 0 at a time $t$, then a
-collision has occurred and a repulsion force must be added. There are
-several possible choices for $\mathbf{V}(t)$, the simplest being a
-signed distance between all points on all particles. We use the concept
-of {\em Space-Time Interference Volumes} (STIV) introduced by Harmon et
-al.~\cite{Harmon2011} and adapted for suspension modeling by Lu et
-al.~\cite{Lu2017}. 
-
+\todo[inline]{Everything from here to the start of the numerics section
+needs to be summarized in half a page.  There is no need to (and we just
+shouldn't) rewrite what Denis' group has done}
 Given a particle configuration $S(t)$ for which $S(t_0)$ is
 collision-free, for each point $\mathbf{X}(s,t)$ on $S(t)$ we define
 $\tau_I(s)$, $t_0 < \tau_I \leq t$ to be the first instance for which
@@ -458,11 +506,51 @@ A first order linearization of this NCP turns it into a sequence of linear compl
 
 The sequence \eqref{eq:lcp} will be solved at each time step. 
 
+\subsection{Computing Pressures and Stresses}
+\todo[inline]{Describe how the pressure, stress, energy, etc.~are
+computed}
 
 
 		
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Numerical Methods\label{s:method}} 
+We use a Lagrangian formulation where we track the centers $\cc_i$ and
+orientations $\theta_i$ of each rigid body $\gamma_i$.  We use a fully
+implicit time stepping method and a spectral discretization in space.  All
+the integral equations are discretized with a Nystr\"om  methods, and
+interactions between nearly touching interfaces is resolved with a
+near-singular integration scheme.  Finally, the Fast Multipole Method
+(FMM) is used to accelerate the matrix-vector multiplications that arise
+upon discretization.  By using these methods, spectral accuracy can be
+achieved for long time horizons with optimal complexity.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Spatial Discretization}
+Letting $\xx(\alpha)$ be a parameterization of a rigid body or a solid
+wall, we can represent any smooth function defined on this curve using a
+Fourier series as
+\begin{align}
+  f(\alpha) = f(\xx(\alpha)) = \sum_{k \in \ZZ} \hat{f}_k e^{ik\alpha}.
+\end{align}
+The FFT is used to compute $\hat{f}$, and all derivatives are computed
+with this Fourier series so that spectral accuracy is achieved.
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Time Discretization}
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Near-Singular Integration}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Fast Summation Methods}
+
+
+
 
 The linear system \eqref{eq:stokes_unbounded} or
 \eqref{eq:stokes_bounded} is discretized using a collocation trapezoid
