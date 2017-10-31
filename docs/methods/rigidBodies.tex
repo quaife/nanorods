@@ -68,9 +68,11 @@ particles are rigid, we only track the center and angle of the suspended
 particles will be written as $\cc_k$ and $\theta_k$, respectively, and
 the translational and rotational velocities are written as $\uu_k^\tau$
 and $\omega_k$, respectively.  Finally, each solid wall and rigid
-particle will have a net force $\FF$ and net torque $L$ that it applies
-to the fluid.  A schematic of the geometry is in
-Figure~\ref{fig:geomSchematic}
+particle will have a net force and torque that they apply to the fluid.
+The net force and torque for the solid walls will be denoted by
+$\llambda$ and $\xi$, respectively, and the net force and torque for the
+particles will be denoted by $\FF$ and $L$, respectively.  A schematic
+of the geometry is in Figure~\ref{fig:geomSchematic}
 
 %
 %The fluid will be in a domain $\Omega$ with a boundary
@@ -94,15 +96,18 @@ Figure~\ref{fig:geomSchematic}
   solid wall. The outer boundary $\Gamma_0$ need not be present.  The
   vector $\mathbf{n}$ is the unit normal vector pointing into the fluid
   domain.}
+  \todo[inline]{Need different notation for middle of bodies and middle
+  of inner solid walls}
 \end{figure}
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{Governing Equations}\label{sec:governing}
 At the continuum level the motion of a fluid is described by the
 incompressible Navier-Stokes equations with dimensionless Reynolds
 number
 \begin{align*}
-  \Re = \frac{UL}{\nu}
-\end{align*},
+  \Re = \frac{UL}{\nu},
+\end{align*}
 where $U$ is a characteristic speed, $L$ is a characteristic lengths
 scale, and $\nu$ is the kinematic fluid viscosity.  We are interested in
 small particles and slow velocities which renders the Reynolds number
@@ -126,7 +131,7 @@ boundary condition
 subject to the constraint 
 \begin{align}
   \label{eq:compatibility}
-  \int_{\bigcup\limits_{\ell=0}^M\Gamma_\ell} \uu_b\cdot\nn ds = 0.
+  \int_{\Gamma} \uu_b\cdot\nn ds = 0.
 \end{align}
 On the particles we will assume no-slip boundary conditions, meaning the
 velocity at any point on the surface of a particle matches the velocity
@@ -134,43 +139,53 @@ of the fluid.  Since the particles are rigid this can be expressed as,
 \begin{align*}
   \uu = \uu^\tau_k + \omega(\xx-\cc_k)^\perp, \quad \xx \in \gamma_k.
 \end{align*}
-
+Finally, both the particles and the rigid walls will exert a force and
+torque on the fluid. 
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{Boundary Integral Equation Representation}
-Since we are interested in solving a linear PDE, an integral equation
-formulation is possible.  Moreover, a {\em boundary integral equation}
-(BIE) formulation is possible.  This will have the advantage of a dimension
+Since we are solving a linear PDE, an integral equation formulation is
+possible.  Moreover, a {\em boundary integral equation} (BIE)
+formulation is possible.  This will have the advantage of a dimension
 reduction in the number of unknowns while obtaining spectral accuracy,
 and the resulting linear system will be solved with optimal complexity
 by using a fast summation method.  A further discussion of the
 advantages of a BIE formulation for the incompressible Stokes equations
 can be found in Karrila and Kim~\cite{Karrila1989}.
 
-As discussed in section \ref{sec:governing}, the governing equations for this problem are the incompressible Stokes equations. There are many ways to solve these equations, here we will use \textit{boundary integral equations} (BIEs). For the Stokes equations BIEs have many advantages, a discussion of which can be found in \cite{Karrila1989}. 
+%As discussed in section \ref{sec:governing}, the governing equations
+%are the incompressible Stokes equations. There are many ways to solve
+%these equations, here we will use \textit{boundary integral equations}
+%(BIEs). For the Stokes equations BIEs have many advantages, a
+%discussion of which can be found in \cite{Karrila1989}. 
 
-We our governing equations for a bounded geometry and then mention the
-slight modification that must be made for unbounded geometries.  The
-solution of the incompressible Stokes equations~\eqref{eq:stokes} at a
-point $\xx \in \Omega$ can be expressed as the double layer
-potential~\cite{Ladyzhenskaya1963, Pozrikidis1992}
+We formulate the governing equations for a bounded geometry and then
+mention the slight modification that must be made for unbounded
+geometries.  The solution of the incompressible Stokes
+equations~\eqref{eq:stokes} at a point $\xx \in \Omega$ can be expressed
+as the sum of two double layer potentials~\cite{Ladyzhenskaya1963,
+Pozrikidis1992},
+\todo[inline]{Somehow should break up DLP due to solid walls and due to
+rigid bodies}
 \begin{align}
   \label{eq:dlp}
   \uu(\xx) = \DD[\eeta](\xx) = \frac{1}{\pi}\int_{\bd\Omega}
   \frac{\rr\cdot\mathbf{n}}{\rho^2}\frac{\rr \otimes \rr}{\rho^2}
-  \eeta(\yy) ds_{\yy}, \quad \xx \in \Omega
+  \eeta(\yy) ds_{\yy}, \quad \xx \in \Omega,
 \end{align}
 where $\eeta$ is an unknown density function defined  on $\bd\Omega$,
-$\rr = \xx - \yy$ and $\rho=|\rr|$.  The double layer potential by
-itself cannot represent all possible flow fields. In particular it
-cannot represent flows around surfaces undergoing a net force or torque.
-Following \cite{Power1987, Power1993} for surfaces undergoing an
-arbitrary net force $\mathbf{F}$ and net torque $L$ we complete the
-double layer potential as,
+$\rr = \xx - \yy$ and $\rho=|\rr|$.  The double layer potential cannot
+represent all possible flow fields. In particular it cannot represent
+flows around surfaces undergoing a net force or torque.
+Following~\cite{Power1987, Power1993} for surfaces undergoing an
+arbitrary net force we complete the double layer potential as,
 \begin{align*}
-  \uu(\xx) = \DD[\eeta](\xx) + \sum_{i=1}^{N+M} 
-    \left(\mathbf{S}(\xx,\cc_i)\FF_i + \mathbf{R}(\xx,\cc_i)L_i\right),
+  \uu(\xx) = \DD[\eeta_W](\xx) + \DD[\eeta_P](\xx) + \sum_{i=1}^M 
+    \left(\mathbf{S}(\xx,\cc_i)\xxi_i + 
+    \mathbf{R}(\xx,\cc_i)\lambda_i\right) + \sum_{i=1}^N 
+    \left(\mathbf{S}(\xx,\cc_i)\FF_i + 
+    \mathbf{R}(\xx,\cc_i)L_i\right),
 \end{align*}
 where the Stokeslet $\mathbf{S}(\mathbf{x},\mathbf{y})$ and rotlet $\mathbf{R}(\mathbf{x},\mathbf{y})$ are given by
 \begin{align*}
@@ -182,9 +197,16 @@ where the Stokeslet $\mathbf{S}(\mathbf{x},\mathbf{y})$ and rotlet $\mathbf{R}(\
 To set up a system to solve we can take the limit of \eqref{eq:dlp} as we approach $\partial\Omega$ and match it to the boundary condition \eqref{eq:boundary_condition}. The double layer potential is not continuous when we cross the boundary and has a limiting value of $-\pmb{\eta}/2$. This leads to the second kind Fredholm equation,
 \begin{equation}\label{eq:vel_walls} -\frac{1}{2}\pmb{\eta}(\mathbf{x}) + \mathcal{D}[\pmb{\eta}](\mathbf{x}) + \sum\limits_{i=1}^{N+M} \left(\mathbf{S}(\mathbf{x},\mathbf{c}_i)\mathbf{F}_i + \mathbf{R}(\mathbf{x},\mathbf{c}_i)L_i\right) = \mathbf{u}_b - \mathbf{u}_\infty.\end{equation}
 
-On solid walls we will prescribe the velocity $\mathbf{u}_b$ and solve for the net force and torque on each wall. This is called the \textit{resistance problem}. For particles on the other hand we will prescribe the net force and torque on each particle and solve for the velocity $\mathbf{u}_b$. This is known as the \textit{mobility problem}. We will use the fact that the particles are rigid to decompose $\mathbf{u}_b$ into a translational and rotational component,
-\[ \mathbf{u}_b = \mathbf{u}^\tau + \omega(\mathbf{x}-\mathbf{c})^\perp.\]
-This lets us set up an equation to solve for the velocity on the surface of particle $k$,
+On solid walls we will prescribe the velocity $\mathbf{u}_b$ and solve
+for the net force and torque on each wall. This is called the {\em
+resistance problem}. For particles on the other hand we will prescribe
+the net force and torque on each particle and solve for the velocity
+$\mathbf{u}_b$. This is known as the {\em mobility problem}. We will use
+the fact that the particles are rigid to decompose $\mathbf{u}_b$ into a
+translational and rotational component, \[ \mathbf{u}_b =
+\mathbf{u}^\tau + \omega(\mathbf{x}-\mathbf{c})^\perp.\] This lets us
+set up an equation to solve for the velocity on the surface of particle
+$k$,
 \begin{equation}\label{eq:vel_particles} -\frac{1}{2}\pmb{\eta}(\mathbf{x}) + \mathcal{D}[\pmb{\eta}](\mathbf{x}) - \mathbf{u}^\tau_k - \omega(\mathbf{x}-\mathbf{c}_k)^\perp =  -\sum\limits_{i=1}^{N+M} \left(\mathbf{S}(\mathbf{x},\mathbf{c}_i)\mathbf{F}_i + \mathbf{R}(\mathbf{x},\mathbf{c}_i)L_i\right) - \mathbf{u}_\infty.\end{equation}
 
 For the both the resistance and mobility problem we have more unknowns than equations. In particular, we have to solve for two components of $\pmb{\eta}$ and either 
@@ -193,7 +215,9 @@ For the both the resistance and mobility problem we have more unknowns than equa
 	\item two components of translational velocity and an angular velocity of each particle $\rightarrow$ an additional $3N$ unknowns
 \end{enumerate}
 
-To close these systems we will follow \cite{Power1993} and relate $\pmb{\eta}$ to the net force and torque on each particle or wall. In particular for $1\leq i \leq N+M$,
+To close these systems we will follow \cite{Power1993} and relate
+$\pmb{\eta}$ to the net force and torque on each particle or wall. In
+particular for $1\leq i \leq N+M$,
 \begin{subequations}\label{eq:closure}
 \begin{align}
 	&\int_{\Gamma_i} \pmb{\eta}~\text{d}s = \mathbf{F}_i,\\
@@ -220,9 +244,10 @@ Combining \eqref{eq:vel_walls}, \eqref{eq:vel_particles} and \eqref{eq:closure} 
 \end{bmatrix}
 \end{equation}
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsubsection{Bounded Domains}
 
-Bounded domains lead to a similar system, however it must be modified slightly. For fluid inside a container the double layer potential has a rank one null space \cite{Ladyzhenskaya1963}. Following \cite{Power1993} this null space can be removed by adding an operator that is active only over the enclosing boundary $\Gamma_0$,
+Bounded domains lead to a similar system, however it must be modified slightly. For fluid inside a container the double layer potential has a rank one null space~\cite{Ladyzhenskaya1963}. Following~\cite{Power1993} this null space can be removed by adding an operator that is active only over the enclosing boundary $\Gamma_0$,
 \[ \mathcal{N}_0[\pmb{\eta}](\mathbf{x}) = \delta_{i0} \int_{\Gamma_i}\mathbf{n}(\mathbf{x})\otimes\mathbf{n}(\mathbf{y})~\text{d}s(\mathbf{y}).\]
 The compatibility condition \eqref{eq:compatibility} ensures that this term evaluates to 0. Adding $\mathcal{N}_0$ to \eqref{eq:stokes_unbounded} and removing the background flow leads to the linear system,
 \begin{equation}\label{eq:stokes_bounded} \begin{bmatrix} -\frac{1}{2} + \mathcal{D} + \mathcal{N}_0 & 1 & (\mathbf{x}-\mathbf{c})^\perp & \mathcal{S} & \mathcal{R}\\
@@ -254,47 +279,92 @@ The compatibility condition \eqref{eq:compatibility} ensures that this term eval
 \end{center}
 \caption{Sketch of potential collisions.}
 \end{figure}
-It is well known that the exact solutions of the Stokes equations prohibit contact between particles in finite time due to lubrication forces. In theory therefore if we solve the Stokes equations accurately enough contact will be avoided. Achieving this level of accuracy requires a prohibitively fine mesh or small time step size, in particular for dense suspensions. In order to keep computational costs reasonable we must turn to alternative approaches. 
+The exact solutions of the Stokes equations
+prohibit contact between particles in finite time due to lubrication
+forces.   However, upon discretization in space and time, numerical
+errors can lead to contact.  Many contact methods have been developed,
+including spatial and temporal adaptivity~\cite{kro1999}.  However, only
+using adaptivity is not computationally feasible for dense suspensions.
+To keep computational costs reasonable we must turn to alternative
+approaches, and this is typically done by keeping the distance by
+choosing a minimum separation distance between all pairs of particles. 
 
-One such approach is to introduce an artificial repulsion force. There are many possible choices for the type of force. One possibility is a Leonard-Jones type force that grows exponentially as two particles become close together\todo{Need citations}. This has been shown to work for dense suspensions, however the resulting ODEs become very stiff as the separation between particles decreases, thus requiring smaller time steps. In addition this type of force does guarantee no collisions. If the time step is too large collisions can still occur. An alternative approach is to choose the forces in such a way as to explicitly guarantee each time step is collision free. 
+One such approach is to introduce an artificial repulsion force. There
+are many possible choices for the type of force. One possibility is a
+Leonard-Jones type force that grows exponentially as two particles
+become close together \todo[inline]{Need citations}. This has been shown
+to work for dense suspensions, however the resulting ODEs become very
+stiff as the separation between particles decreases, thus requiring
+smaller time steps. In addition this type of force does guarantee no
+collisions. If the time step is too large collisions can still occur. An
+alternative approach is to choose the forces in such a way as to
+explicitly guarantee each time step is collision free. 
 
-The main algorithm will proceed as follows. At each time step $t^n$ the Stokes equations are solved and the particles are advanced to a candidate configuration at $t^{n+1}$. At this point we can check for collisions. If no collisions are found, the candidate configuration is accepted, otherwise it is rejected and we resolve the Stokes equations at $t^n$ with an artificial repulsion force, adjusting this force as necessary until the candidate configuration at time $t^{n+1}$ is collision free and can be accepted. The remainder of this section is dedicated to describing how this artificial repulsion force is computed. 
+The main algorithm will proceed as follows. At each time step $t^n$ the
+Stokes equations are solved and the particles are advanced to a
+candidate configuration at $t^{n+1}$. At this point we can check for
+collisions. If no collisions are found, the candidate configuration is
+accepted, otherwise it is rejected and we resolve the Stokes equations
+at $t^n$ with an artificial repulsion force, adjusting this force as
+necessary until the candidate configuration at time $t^{n+1}$ is
+collision free and can be accepted. The remainder of this section is
+dedicated to describing how this artificial repulsion force is computed. 
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\subsection{Repulsion Forces}
-
-\begin{figure}[!h]\label{fig:collision_sketch}
-\begin{center}
-\includegraphics{figures/collisions.pdf}
-\end{center}
-\caption{Sketch of potential collisions.}
-\end{figure}
-It is well known that the exact solutions of the Stokes equations prohibit contact between particles in finite time due to lubrication forces. In theory therefore if we solve the Stokes equations accurately enough contact will be avoided. Achieving this level of accuracy requires a prohibitively fine mesh or small time step size, in particular for dense suspensions. In order to keep computational costs reasonable we must turn to alternative approaches. 
-
-One such approach is to introduce an artificial repulsion force. There are many possible choices for the type of force. One possibility is a Leonard-Jones type force that grows exponentially as two particles become close together\todo{Need citations}. This has been shown to work for dense suspensions, however the resulting ODEs become very stiff as the separation between particles decreases, thus requiring smaller time steps. In addition this type of force does guarantee no collisions. If the time step is too large collisions can still occur. An alternative approach is to choose the forces in such a way as to explicitly guarantee each time step is collision free. 
-
-The main algorithm will proceed as follows. At each time step $t^n$ the Stokes equations are solved and the particles are advanced to a candidate configuration at $t^{n+1}$. At this point we can check for collisions. If no collisions are found, the candidate configuration is accepted, otherwise it is rejected and we resolve the Stokes equations at $t^n$ with an artificial repulsion force, adjusting this force as necessary until the candidate configuration at time $t^{n+1}$ is collision free and can be accepted. The remainder of this section is dedicated to describing how this artificial repulsion force is computed. 
-
-
-
 \subsection{Contact definition}
 
-Before any discussion of resolving collisions we must define a metric that measures collisions. This metric tracks all pairwise collisions. If an entry of $\mathbf{V}(t)$ is less than 0 at a time $t$, then a collision has occurred and a repulsion force must be added. There are several possible choices for $\mathbf{V}(t)$, the simplest being a signed distance between all points on all particles. We use the concept of \textit{Space-Time Interference Volumes} (STIV) introduced by Harmon et al.~\cite{Harmon2011} and adapted for suspension modeling by Lu et al.~\cite{Lu2017}. 
+Before any discussion of resolving collisions we must define a metric
+that measures collisions. This metric tracks all pairwise collisions. If
+an entry of $\mathbf{V}(t)$ is less than 0 at a time $t$, then a
+collision has occurred and a repulsion force must be added. There are
+several possible choices for $\mathbf{V}(t)$, the simplest being a
+signed distance between all points on all particles. We use the concept
+of {\em Space-Time Interference Volumes} (STIV) introduced by Harmon et
+al.~\cite{Harmon2011} and adapted for suspension modeling by Lu et
+al.~\cite{Lu2017}. 
 
-Given a particle configuration $S(t)$ for which $S(t_0)$ is collision-free, for each point $\mathbf{X}(s,t)$ on $S(t)$ we define $\tau_I(s)$, $t_0 < \tau_I \leq t$ to be the first instance for which $\mathbf{X}$ comes into contact with a different point on $S(t)$. The STIV for the time interval $[t_0, t]$ is 
-\[ V(S, t) = -\int_{S(t_0)}\int_{\tau_I(s)}^t \sqrt{\epsilon^2 + (\mathbf{u}(s, \tau)\cdot\mathbf{n}(s,\tau))^2}~\text{d}\tau\text{d}s,\]
-where the constant $\epsilon$ is a smoothing parameter. The time integral in this expression ensures that no contact is missed even if one particle passes completely through another (or through a solid wall) in a single time step. This allows us to take large time steps and not be worried about missing collisions. $\mathbf{V}(S,t)$ can be interpreted as the area of the surface with coordinate $(\mathbf{X}(s,\tau),\epsilon\tau)$ for all $(s,\tau)$ such that $\tau_I(s)\leq t$. 
+Given a particle configuration $S(t)$ for which $S(t_0)$ is
+collision-free, for each point $\mathbf{X}(s,t)$ on $S(t)$ we define
+$\tau_I(s)$, $t_0 < \tau_I \leq t$ to be the first instance for which
+$\mathbf{X}$ comes into contact with a different point on $S(t)$. The
+STIV for the time interval $[t_0, t]$ is 
+\begin{align*}
+    V(S, t) = -\int_{S(t_0)}\int_{\tau_I(s)}^t 
+    \sqrt{\epsilon^2 + (\mathbf{u}(s, \tau) \cdot
+    \mathbf{n}(s,\tau))^2}~\text{d}\tau\text{d}s,
+\end{align*}
+where the constant $\epsilon$ is a smoothing parameter. The time
+integral in this expression ensures that no contact is missed even if
+one particle passes completely through another (or through a solid wall)
+in a single time step. This allows us to take large time steps and not
+be worried about missing collisions. $\mathbf{V}(S,t)$ can be
+interpreted as the area of the surface with coordinate
+$(\mathbf{X}(s,\tau),\epsilon\tau)$ for all $(s,\tau)$ such that
+$\tau_I(s)\leq t$. 
 
-In \cite{Lu2017} an infinitesimal version of the STIV is derived. Starting from a collision-free configuration at $t_0$, for a fixed $\tau$ the set of points $s$ such that $\tau_I(s)\leq \tau$ is the contact area. This area is a set of boundary segments. For one such segment we can let $s_1(\tau)$ and $s_2(\tau)$ be the extents of contact at time $\tau$. 
+In~\cite{Lu2017} an infinitesimal version of the STIV is derived.
+Starting from a collision-free configuration at $t_0$, for a fixed
+$\tau$ the set of points $s$ such that $\tau_I(s)\leq \tau$ is the
+contact area. This area is a set of boundary segments. For one such
+segment we can let $s_1(\tau)$ and $s_2(\tau)$ be the extents of contact
+at time $\tau$. 
 
-\[ \mathbf{V}(\mathbf{u},t) = -\int_{s_1(t)}^{s_2(t)} \sqrt{\epsilon^2 + (\mathbf{u}(s,t)\cdot\mathbf{n}(s,t))^2}\text{d}s + \epsilon,\]
+\begin{align*}
+  \mathbf{V}(\uu,t) = -\int_{s_1(t)}^{s_2(t)} 
+    \sqrt{\epsilon^2 + (\uu(s,t)\cdot\nn(s,t))^2}\text{d}s + \epsilon
+\end{align*}
 along with the variation, 
-\[ \text{d}_{\mathbf{u}}V[\delta\mathbf{u}] = -\int_{s_1(t)}^{s_2(t)}\frac{(\mathbf{n}\cdot\mathbf{u})(\mathbf{n}\cdot\delta\mathbf{u})}{\sqrt{\epsilon^2 + (\mathbf{u}\cdot\mathbf{n})^2}}\text{d}s.\]
+\begin{align*}
+  \text{d}_{\uu}V[\delta\mathbf{u}] = 
+  -\int_{s_1(t)}^{s_2(t)} \frac{(\nn\cdot\uu)(\nn\cdot\delta\uu)}
+  {\sqrt{\epsilon^2 + (\uu\cdot\nn)^2}}\text{d}s.
+\end{align*}
 
 
 
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{Variational Formulation}
 
 The incompressible Stokes equations can be can be restated as a minimization problem. Consider the functional,
@@ -315,19 +385,26 @@ The constraints on $\mathbf{V}$ and $\pmb{\lambda}$ can be combined into a singl
 \begin{equation}\label{eq:ncp_constraint} \mathbf{V}(t_0 + \Delta t)\geq \mathbf{0} \perp \pmb{\lambda}\geq \mathbf{0}.\end{equation}
 
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{Incorporating Repulsion Forces}
 
 The addition of a forcing term to the right hand side of the Stokes equations would normally lead to a volume integral. However, in this case since $\text{d}_{\mathbf{u}} V$ can be non-zero only on the boundary, we can capture the repulsion force by adding a net force and torque to each particle or wall as needed. The net force $\mathbf{F}^k_p$ and torque $L^k_p$ are given by,
 \[ \mathbf{F}^k_p = \int_{\Gamma_k} \text{d}_\mathbf{u}V^T\pmb{\lambda}~\text{d}s, \qquad L_p^k = \int_{\Gamma_k}  \text{d}_\mathbf{u}V^T\pmb{\lambda}\cdot(\mathbf{x}-\mathbf{c}_k)^\perp~\text{d}s.\]
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{Complementary Problem}
 
 To compute the repulsion forces we must first compute $\pmb{\lambda}$ for each time step such that \eqref{eq:ncp_constraint} is satisfied.
 Consider particles suspended in a fluid in an amient flow $\mathbf{u}_\infty$. This flow can be an imposed background flow or come from solid walls. In the later case this velocity field is computed by solving the appropriate resistance problem. In either case this flow can be expressed as the sum of a translational component $\mathbf{u}_{\infty}^\tau$, a rotatial compoment $\omega_{\infty}$ and a strain component $\mathbf{e}_{\infty}$,
 \[ \mathbf{u}_{\infty}(\mathbf{x}) =   \mathbf{u}_{\infty}^\tau + \omega_\infty\times \mathbf{x} + \mathbf{e}_\infty \cdot\mathbf{x}.\]
-The translational and rotational velocity as well as the density function of a collection of particles can be computed from the force, torque and strain rate\cite{Karrila1991},
+The translational and rotational velocity as well as the density
+function of a collection of particles can be computed from the force,
+torque and strain rate~\cite{Karrila1991},
 \begin{equation}\label{eq:mobility} \begin{bmatrix} \mathbf{u}_\infty^\tau - \mathbf{u}_\tau\\ \omega^\infty - \omega \\\pmb{\eta}\end{bmatrix} = \mathcal{M}\begin{bmatrix}\mathbf{F}\\\mathbf{L}\\\mathbf{e}_\infty\end{bmatrix},\end{equation}
-where $\mathcal{M}$ is the \textit{mobility tensor} and depends only on the particle configuration $\mathbf{q}^0$. at some time $t^0$ Assuming the only force and torques acting on particles arises from repulsion forces, we can decompose \eqref{eq:mobility} as,
+where $\mathcal{M}$ is the {\em mobility tensor} and depends only on the
+particle configuration $\mathbf{q}^0$ at some time $t^0$. Assuming the
+only force and torques acting on particles arises from repulsion forces,
+we can decompose \eqref{eq:mobility} as,
 \[ \begin{bmatrix} \mathbf{u}_\infty^\tau - \mathbf{u}_\tau\\ \omega^\infty - \omega \\\pmb{\eta}\end{bmatrix} = \mathcal{M}\begin{bmatrix}\mathbf{0}\\\mathbf{0}\\\mathbf{e}_\infty\end{bmatrix} + \mathcal{M}\begin{bmatrix}\mathbf{F}_c\\\mathbf{L}_c\\\mathbf{0}\end{bmatrix}.\]
 
 Once we solve for $\mathbf{u}_\tau$ and $\omega$ we can update the positions and angles of each particle using an explict Euler step. With an abuse of notation, this lets us express a candidate configuration $\mathbf{q}^{1}$ as,
@@ -352,13 +429,30 @@ The sequence \eqref{eq:lcp} will be solved at each time step.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Numerical Methods\label{s:method}} 
 
-The linear system \eqref{eq:stokes_unbounded} or \eqref{eq:stokes_bounded} is discretized using a collocation trapezoid method. For particles that are in near-contact the near singular integration scheme described in \cite{Quaife2014, Ying2006} is used. The discretized system is solved with GRMES \cite{Saad1986} with a block diagonal preconditioner and accelerated using the fast multipole method \cite{Greengard1987}.  Since the linear system arises from a second kind Fredholm equation the condition number of the matrix is bounded and does not increase with finer resolution. The number of GMRES iterations is therefore mesh resolution independent. This leads to a solver that is $O(n)$, where $n$ is the number of mesh points. 
+The linear system \eqref{eq:stokes_unbounded} or
+\eqref{eq:stokes_bounded} is discretized using a collocation trapezoid
+method. For particles that are in near-contact the near singular
+integration scheme described in~\cite{Quaife2014, Ying2006} is used. The
+discretized system is solved with GRMES~\cite{Saad1986} with a block
+diagonal preconditioner and accelerated using the fast multipole method
+\cite{Greengard1987}.  Since the linear system arises from a second kind
+Fredholm equation the condition number of the matrix is bounded and does
+not increase with finer resolution. The number of GMRES iterations is
+therefore mesh resolution independent. This leads to a solver that is
+$O(n)$, where $n$ is the number of mesh points. 
 
-Once we solve for the translational and angular velocity of the particles, the position and angle of each particle are updated according to the ODEs,
+Once we solve for the translational and angular velocity of the
+particles, the position and angle of each particle are updated according
+to the ODEs,
 \[ \frac{\text{d}}{\text{d}t}\mathbf{c}_k = \mathbf{u}^\tau_k, \qquad \frac{\text{d}}{\text{d}t}\theta_k =\omega_k.\]
 The ODEs are advanced in time using an explicit Euler step. 
 
-The matrices described in \eqref{eq:stokes_unbounded} and \eqref{eq:stokes_bounded} are full. They can be made block-diagonal by treating inter-particle interactions explicitly and moving them to the right hand side. This is termed \textit{locally implicit} and is described in \cite{Lu2017}. For dense suspensions however this type of time stepping can lead to instabilities as particles become tightly packed. 
+The matrices described in \eqref{eq:stokes_unbounded} and
+\eqref{eq:stokes_bounded} are full. They can be made block-diagonal by
+treating inter-particle interactions explicitly and moving them to the
+right hand side. This is termed {\em locally implicit} and is described
+in \cite{Lu2017}. For dense suspensions however this type of time
+stepping can lead to instabilities as particles become tightly packed. 
 
 \begin{algorithm}
 	 \SetKwInOut{Input}{Input}
