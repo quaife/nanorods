@@ -56,12 +56,12 @@ This is a methods paper
 We consider a suspension of rigid particles flowing in a two dimensional
 domain, $\Omega$ with boundary $\Gamma$.  The domain may be bounded or
 unbounded, and may be multiply-connected.  We let $\Gamma_k$, $1 \leq k
-\leq M$ be the connected components of $\Gamma$, and if the geometry is
+\leq M_w$ be the connected components of $\Gamma$, and if the geometry is
 bounded, the solid wall containing all other solid walls is $\Gamma_0$.
 The boundary of the suspended particles is denoted by $\gamma_k$, $1
-\leq k \leq N$, and so that the fluid domain is
+\leq k \leq M_p$, and so that the fluid domain is
 \begin{align*}
-  \bd\Omega &= \bigcup_{k=0}^M \Gamma_k \cup \bigcup_{k=1}^N \gamma_k \\
+  \bd\Omega &= \bigcup_{k=0}^{M_w} \Gamma_k \cup \bigcup_{k=1}^{M_p} \gamma_k \\
   &= \Gamma \cup \gamma
 \end{align*}
 and $\Gamma_0$ is excluded if the domain is unbounded.  Since the
@@ -97,8 +97,6 @@ of the geometry is in Figure~\ref{fig:geomSchematic}
   solid wall. The outer boundary $\Gamma_0$ need not be present.  The
   vector $\mathbf{n}$ is the unit normal vector pointing into the fluid
   domain.}
-  \todo[inline]{Need different notation for middle of bodies and middle
-  of inner solid walls.  Use $\dd_k$ for middle of inner solid walls.}
 \end{figure}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -191,12 +189,13 @@ the double layer potential as,
 \begin{align}
   \label{eq:completed_DLP}
   \uu(\xx) = \DD_\Gamma[\eeta](\xx) + \DD_\gamma[\eeta](\xx) + 
-             \sum_{i=1}^M \left(\mathbf{S}(\xx,\dd_i)\llambda_i + 
+             \sum_{i=1}^{M_w} \left(\mathbf{S}(\xx,\dd_i)\llambda_i + 
                 \mathbf{R}(\xx,\dd_i)\xi_i\right) + 
-             \sum_{i=1}^N \left(\mathbf{S}(\xx,\cc_i)\FF_i + 
+             \sum_{i=1}^{M_p} \left(\mathbf{S}(\xx,\cc_i)\FF_i + 
                 \mathbf{R}(\xx,\cc_i)L_i\right),
 \end{align}
-where the Stokeslet $\mathbf{S}(\mathbf{x},\mathbf{y})$ and rotlet $\mathbf{R}(\mathbf{x},\mathbf{y})$ are given by
+where the Stokeslet $\mathbf{S}(\mathbf{x},\mathbf{y})$ and rotlet
+$\mathbf{R}(\mathbf{x},\mathbf{y})$ are given by
 \begin{align*}
   \mathbf{S}(\xx,\yy) = \frac{\rr \otimes \rr}{\rho^2} - 
   \log\rho\mathbf{I}, \qquad 
@@ -221,26 +220,27 @@ Fredholm equation,
   \begin{aligned}
   \uu_b(\xx) = -\frac{1}{2}\eeta(\xx) + 
     \mathcal{D}[\eeta](\mathbf{x}) 
-    &+ \sum_{i=1}^{M} \left(\mathbf{S}(\xx,\dd_i)\llambda_i +
+    &+ \sum_{i=1}^{M_w} \left(\mathbf{S}(\xx,\dd_i)\llambda_i +
     \mathbf{R}(\xx,\dd_i)\mu_i\right)  \\
-    &+ \sum_{i=1}^{N} \left(\mathbf{S}(\xx,\cc_i)\FF_i +
+    &+ \sum_{i=1}^{M_p} \left(\mathbf{S}(\xx,\cc_i)\FF_i +
     \mathbf{R}(\xx,\cc_i)\L_i\right).
   \end{aligned}
 \end{equation}
-for $\xx \in \Gamma$.  For the rigid bodies, this leads to the second kind Fredholm equation
+for $\xx \in \Gamma$.  For the rigid bodies, this leads to the second
+kind Fredholm equation
 \begin{equation}
   \label{eq:vel_particles} 
   \begin{aligned}
   \uu_k^\tau + \omega_k(\xx - \cc_k)^\perp
   = -\frac{1}{2}\eeta(\xx) + 
     \mathcal{D}[\eeta](\mathbf{x}) 
-    &+ \sum_{i=1}^{M} \left(\mathbf{S}(\xx,\dd_i)\llambda_i +
+    &+ \sum_{i=1}^{M_w} \left(\mathbf{S}(\xx,\dd_i)\llambda_i +
     \mathbf{R}(\xx,\dd_i)\mu_i\right) \\
-    &+ \sum_{i=1}^{N} \left(\mathbf{S}(\xx,\cc_i)\FF_i +
+    &+ \sum_{i=1}^{M_p} \left(\mathbf{S}(\xx,\cc_i)\FF_i +
     \mathbf{R}(\xx,\cc_i)\L_i\right),
   \end{aligned}
 \end{equation}
-for $\xx \in \gamma_k$, $k=1,\ldots,N$.  For our complete system, the
+for $\xx \in \gamma_k$, $k=1,\ldots,M_p$.  For our complete system, the
 known quantities are the boundary condition $\uu_b$ on the solid walls,
 and the net force $\FF$ and torque $L$ on each rigid body.  The unknowns
 are the density function $\eeta$, and the strengths of the Stokeslets
@@ -392,7 +392,7 @@ Before discussing how collisions can be resolved, we first define a
 metric that measures collision.  This metric should track all pairwise
 collisions and detect if a two particles overlapped not only at the
 discrete time points, but at any time.  We let $\mathbf{V}(t)$ be a
-vector with size $\binom{N}{2}$ which is the total number of possible
+vector with size $\binom{M_p}{2}$ which is the total number of possible
 pairwise collisions.  $\mathbf{V}$ should be defined in such a way that
 it is 0 if no collisions have occurred, and if there is a collision, its
 value should quantify the amount of overlap.   Then, if there is a
@@ -535,15 +535,70 @@ Fourier series as
 The FFT is used to compute $\hat{f}$, and all derivatives are computed
 with this Fourier series so that spectral accuracy is achieved.
 
+The double-layer potentials in~\eqref{eq:vel_walls}
+and~\eqref{eq:vel_particles} are discretized with a Nystr\"om method.
+Because the kernels are smooth, the trapezoid rule guarantees spectral
+accuracy~\cite{tre-wei2014}.  For example,
+equation~\eqref{eqn:vel_walls} is discretized as
+\begin{equation*}
+  \begin{aligned}
+  \uu_b(\xx_j) = -\frac{1}{2}\eeta(\xx_j) + 
+  \sum_{k=1}^{N} K(\xx_j,\xx_k) \eeta(\xx_k) \Delta s_k
+    &+ \sum_{i=1}^{M} \left(\mathbf{S}(\xx_j,\dd_i)\llambda_i +
+    \mathbf{R}(\xx_j,\dd_i)\mu_i\right)  \\
+    &+ \sum_{i=1}^{N} \left(\mathbf{S}(\xx_j,\cc_i)\FF_i +
+    \mathbf{R}(\xx_j,\cc_i)\L_i\right),
+  \end{aligned}
+\end{equation*}
+where $N = M_w N_w + M_p N_p$ is the total number of discretization
+points and
+\begin{align*}
+  K(\xx,\yy) = \frac{1}{\pi} \frac{\rr \cdot \nn}{\rho^2} 
+               \frac{\rr \otimes \rr}{\rho^2}
+\end{align*}
+is the kernel of the double-layer potential.
+Equation~\eqref{eq:vel_particles} is discretized in a similar fashion.
+For the diagonal entries, we use the limiting value of $K$
+\begin{align*}
+  \lim_{\substack{\yy \rightarrow \xx \\ \yy \in \bd\Omega}} K(\xx,\yy) = 
+    \text{whatever it is involving the curvature and tangent vector},
+    \quad \xx \in \bd\Omega
+\end{align*}
+where $\kappa(\xx)$ is the curvature and $\tt(\xx)$ is the tangent
+vector of $\bd\Omega$ at $\xx$.
+
+The trapezoid rule achieves spectral accuracy when both the source
+points $\yy$ and the target point $xx$ are on the same solid wall
+$\Gamma_k$ or rigid particle $\gamma_k$.  However, when the target point
+is on a different body, the accuracy of the trapezoid rule can
+deteriorate which leads to instabilities.  This increase in error
+happens when the target point is close to the source points, but not on
+the same body as the source points.  To resolve this issue, an algorithm
+for near-singular integration method must be employed.  There are now
+several methods for near-singular integration including
+regularizations~\cite{bea-yin-wil2016, bea-lai2001}, quadrature by
+expansion~\cite{Klockner2013}, barycentric
+interpolation~\cite{bar-wu-vee2015}, and panel-based
+quadrature~\cite{hel-oja2008}.  In this work, we use an interpolation
+based scheme~\cite{Ying2006} which has been used for other
+two-dimensional suspensions~\cite{Quaife2014}.
+
+Once each of the
+equations~\eqref{eq:vel_walls},~\eqref{eq:vel_particles},
+and~\eqref{eq:closure} have been discretized using the above described
+quadrature rules, the result is a dense $N \times N$ linear system.
+Since this linear system is the discretization of a second-kind integral
+equation, GMRES~\cite{Saad1986} converges in a mesh-independent number of
+iterations~\cite{cam-ips-kel-mey-xue1996}.  Since GMRES only requires
+matrix-vector multiplications, the algorithmic cost per time step is
+proportional to the cost of doing a single matrix-vector multiply.
+
+
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{Time Discretization}
 
-
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\subsection{Near-Singular Integration}
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
