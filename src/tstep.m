@@ -13,8 +13,6 @@ points_per_wall         % points per wall
 Dp                      % Stokes double-layer potential for fiber-fiber interaction
 Dp_old                  % Stokes double-layer potential for fiber-fiber interaction from previous time step
 Dw                      % Stokes double-layer potential for wall-wall interaction
-Dup                     % Upsampled Stokes double-layer potential matrix for fibers
-Duw                     % Upsampled Stokes double-layer potential matrix for walls
 N0w                     % N0 matrix to remove rank 1 nullspace
 fmm                     % flag for using the FMM
 near_singular           % flag for using near-singular integration
@@ -110,20 +108,20 @@ else
 end
 % CREATE UPSAMPLED MATRICES
 % FIBRE-FIBRE
-if ~isempty(geom.X)
-    
-    Xsou = geom.X; 
-    Nup = Np*ceil(sqrt(Np));
-
-    Xup = [interpft(Xsou(1:Np,:),Nup);...
-       interpft(Xsou(Np+1:end,:),Nup)];
-
-    geomUp = capsules([],Xup);
-    o.Dup = o.potp.stokesDLmatrix(geomUp);
-    %o.Dup = o.Dp;
-else
-    o.Dup = [];
-end
+% if ~isempty(geom.X)
+%     
+%     Xsou = geom.X; 
+%     Nup = Np*ceil(sqrt(Np));
+% 
+%     Xup = [interpft(Xsou(1:Np,:),Nup);...
+%        interpft(Xsou(Np+1:end,:),Nup)];
+% 
+%     geomUp = capsules([],Xup);
+%     o.Dup = o.potp.stokesDLmatrix(geomUp);
+%     %o.Dup = o.Dp;
+% else
+%     o.Dup = [];
+% end
 
 % WALL-WALL
 if options.confined
@@ -135,7 +133,7 @@ if options.confined
        interpft(Xsou(Nw+1:end,:),Nup)];
 
     wallsUp = capsules([],Xup);
-    o.Duw = o.potp.stokesDLmatrix(wallsUp);
+    %o.Duw = o.potp.stokesDLmatrix(wallsUp);
    % o.Duw = o.Dw;
     
     % CREATE N0 MATRIX
@@ -274,33 +272,33 @@ else
 end
 % CREATE UPSAMPLED MATRICES
 % FIBRE-FIBRE
-if ~isempty(geom.X)
-        
-    Xsou = geom.X; 
-    Nup = Np*ceil(sqrt(Np));
-
-    Xup = [interpft(Xsou(1:Np,:),Nup);...
-       interpft(Xsou(Np+1:2*Np,:),Nup)];
-
-    geomUp = capsules([],Xup);
-    o.Dup = o.potp.stokesDLmatrix(geomUp);
-    
-    %o.Dup = o.Dp;
-else
-    o.Dup = [];
-end
+% if ~isempty(geom.X)
+%         
+%     Xsou = geom.X; 
+%     Nup = Np*ceil(sqrt(Np));
+% 
+%     Xup = [interpft(Xsou(1:Np,:),Nup);...
+%        interpft(Xsou(Np+1:2*Np,:),Nup)];
+% 
+%     geomUp = capsules([],Xup);
+%     o.Dup = o.potp.stokesDLmatrix(geomUp);
+%     
+%     %o.Dup = o.Dp;
+% else
+%     o.Dup = [];
+% end
 
 % WALL-WALL
 if o.confined
 
-    Xsou = walls.X; 
-    Nup = Nw*ceil(sqrt(Nw));
-
-    Xup = [interpft(Xsou(1:Nw,:),Nup);...
-       interpft(Xsou(Nw+1:end,:),Nup)];
-
-    wallsUp = capsules([],Xup);
-    o.Duw = o.potp.stokesDLmatrix(wallsUp);
+%    Xsou = walls.X; 
+%     Nup = Nw*ceil(sqrt(Nw));
+% 
+%     Xup = [interpft(Xsou(1:Nw,:),Nup);...
+%        interpft(Xsou(Nw+1:end,:),Nup)];
+% 
+%     wallsUp = capsules([],Xup);
+  %  o.Duw = o.potp.stokesDLmatrix(wallsUp);
    % o.Duw = o.Dw;
     
     % CREATE N0 MATRIX
@@ -511,24 +509,24 @@ pot_particles = poten(Np, o.om);
 
 if np ~= o.num_particles
     Dp = o.Dp(:,:,particle_numbers);
-    Dup = o.Dup(:,:,particle_numbers);
+    %Dup = o.Dup(:,:,particle_numbers);
     near_structff = geom.getZone([],1);
 else
     Dp = o.Dp;
     near_structff = o.near_structff;
-    Dup = o.Dup;
+   % Dup = o.Dup;
 end
 
 if nw ~= o.num_walls && nw > 0
     Dw = o.Dw(:,:,wall_numbers);
-    Duw = o.Duw(:,:,wall_numbers);
+    %Duw = o.Duw(:,:,wall_numbers);
     [~,near_structfw] = geom.getZone(walls,2);
     [~,near_structwf] = walls.getZone(geom,2);
     
     N0w = pot_walls.stokesN0matrix(walls);
 else
     Dw = o.Dw;
-    Duw = o.Duw;
+    %Duw = o.Duw;
     near_structfw = o.near_structfw;
     near_structwf = o.near_structwf;
     
@@ -574,7 +572,6 @@ velParticles = velParticles - 1/2*etaP;
 velParticles = velParticles + ...
     pot_particles.exactStokesDLdiag(geom, Dp, etaP);
 
-
 % START OF SOURCE == PARTICLES
 % START OF TARGET == PARTICLES
 
@@ -588,10 +585,9 @@ if ~o.explicit
     kernelDirect = @pot_particles.exactStokesDL;
     
     if o.near_singular
-        near_structff = geom.getZone([],1);
         
         DLP = @(X) pot_particles.exactStokesDLdiag(geom,Dp,X) - 1/2*X;
-        pp_dlp = pot_particles.nearSingInt(geom, etaP, DLP, Dup, ...
+        pp_dlp = pot_particles.nearSingInt(geom, etaP, DLP, Dp, ...
             near_structff, kernel, kernelDirect, geom, true, false);
     else
         pp_dlp = kernel(geom, etaP, Dp);
@@ -625,7 +621,7 @@ if o.confined && np > 0  && nw > 0
    
    if o.near_singular
 	   DLP = @(X) pot_walls.exactStokesDLdiag(geom, Dp, X) - 1/2*X;
-	   wp_dlp = pot_walls.nearSingInt(geom, etaP, DLP, Dup, ...
+	   wp_dlp = pot_walls.nearSingInt(geom, etaP, DLP, Dp, ...
 		   near_structfw, kernel, kernelDirect, walls, false, false);
    else
 	   wp_dlp = kernel(geom, etaP);
@@ -649,7 +645,7 @@ if o.confined && np > 0  && nw > 0
    
    if o.near_singular
 	   DLP = @(X) pot_particles.exactStokesDLdiag(walls, Dw, X) - 1/2*X;
-	   pw_dlp = pot_particles.nearSingInt(walls, etaW, DLP, Duw, ...
+	   pw_dlp = pot_particles.nearSingInt(walls, etaW, DLP, Dw, ...
 		   near_structwf, kernel, kernelDirect, geom, false, false);
    else
 	   pw_dlp = kernel(walls, etaW);
@@ -998,7 +994,7 @@ if ~preprocess
     
     if o.near_singular
         DLP = @(X) pot_particles.exactStokesDLdiag(geom,o.Dp_old,X) - 1/2*X;
-        pp_dlp = pot_particles.nearSingInt(geom, etaP_old, DLP, o.Dup, ...
+        pp_dlp = pot_particles.nearSingInt(geom, etaP_old, DLP, o.Dp, ...
             o.near_structff, kernel, kernelDirect, geom, true, false);
     else
         pp_dlp = kernel(geom, etaP_old, o.Dp_old);
@@ -2115,7 +2111,7 @@ function M = build_matrix(o, geom, walls)
     M = zeros(Ntotal);
     
     for k = 1:Ntotal
-       M(:,k) = o.timeMatVec(I(:,k),geom,walls,0,true);
+       M(:,k) = o.timeMatVec(I(:,k),geom, walls, 0, 1:geom.n, [], false);
     end    
 end % build_matrix
 

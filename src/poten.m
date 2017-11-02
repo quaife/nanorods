@@ -37,7 +37,7 @@ o.N = N;
 end % poten: constructor
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function LP = nearSingInt(o,geomSou,f,selfMat,Du,...
+function LP = nearSingInt(o,geomSou,f,selfMat,D,...
     NearStruct,kernel,kernelDirect,geomTar,tEqualS,idebug)
 % LP = nearSingInt(geom,f,selfMat,NearStruct,kernel,kernelDirect,
 % geomTar,tEqualS,idebug) computes a layer potential due to f at all
@@ -100,14 +100,14 @@ p = ceil((interpOrder+1)/2);
 if tEqualS % sources == targets
   if nsou > 1
     if (strfind(char(kernel),'fmm'))
-      farField = kernel(geomUp,fup,Du);
-      farField = farField(1:Nup/Ntar:end,:);
+      farField = kernel(geomSou,f,D);
+
       % evaluate layer potential at all targets except ignore the
       % diagonal term
     else
       for k = 1:nsou
         K = [(1:k-1) (k+1:nsou)];
-        [~,farField(:,k)] = kernelDirect(geomUp,fup,Du,Xtar(:,k),K);
+        [~,farField(:,k)] = kernelDirect(geomUp,fup,[],Xtar(:,k),K);
       end
       % This is a huge savings if we are using a direct method rather
       % than the fmm to evaluate the layer potential.  The speedup is
@@ -119,7 +119,7 @@ if tEqualS % sources == targets
   end
 
 else % sources ~= targets
-    [~,farField] = kernel(geomUp,fup,Du,Xtar,1:nsou);
+    [~,farField] = kernel(geomUp,fup,[],Xtar,1:nsou);
     % evaluate layer potential due to all 'geoms' at all points in
     % Xtar
 end
@@ -162,10 +162,10 @@ for k1 = 1:nsou
             %     compute values of velocity at required intermediate points
             %     using local interpolant
             
-            if ((numel(J) + numel(fup)) >= 512 && numel(J) > 32)
-                [~,potTar] = kernel(geomUp,fup,Du, [Xtar(J,k2);Xtar(J+Ntar,k2)],k1);
+            if ((numel(J) + numel(f)) >= 512 && numel(J) > 32)
+                [~,potTar] = kernel(geomSou,f,D,[Xtar(J,k2);Xtar(J+Ntar,k2)],k1);
             else
-                [~,potTar] = kernelDirect(geomUp,fup,Du,[Xtar(J,k2);Xtar(J+Ntar,k2)],k1);
+                [~,potTar] = kernelDirect(geomSou,f,D,[Xtar(J,k2);Xtar(J+Ntar,k2)],k1);
             end
             % Need to subtract off contribution due to geom k1 since its
             % layer potential will be evaulted using Lagrange interpolant of
@@ -191,9 +191,9 @@ for k1 = 1:nsou
             end
             
             if (numel(XLag)/2 > 100)
-                [~,lagrangePts] = kernel(geomUp,fup,Du,XLag,k1);
+                [~,lagrangePts] = kernel(geomUp,fup,[],XLag,k1);
             else
-                [~,lagrangePts] = kernelDirect(geomUp,fup,Du,XLag,k1);
+                [~,lagrangePts] = kernelDirect(geomUp,fup,[],XLag,k1);
             end
             % evaluate velocity at the lagrange interpolation points
             
@@ -852,34 +852,34 @@ stokesDLPtar = stokesDLPtar/pi;
 
 stokesDLP = zeros(2*geom.N,geom.n);
 if (nargin == 4 && geom.n > 1)
-  for k = 1:geom.n
-    K = [(1:k-1) (k+1:geom.n)];
-    [x,y] = oc.getXY(geom.X(:,K));
-    [nx,ny] = oc.getXYperp(geom.xt(:,K));
-    [denx,deny] = oc.getXY(den(:,K));
-    for j=1:geom.N
-      diffxy = [geom.X(j,k) - x ; geom.X(j+geom.N,k) - y];
-      dis2 = diffxy(1:geom.N,:).^2 + ...
-          diffxy(geom.N+1:2*geom.N,:).^2;
-      % difference of source and target location and distance squared
-
-      rdotfTIMESrdotn = ...
-        (diffxy(1:geom.N,:).*nx + ...
-        diffxy(geom.N+1:2*geom.N,:).*ny)./dis2.^2 .* ...
-        (diffxy(1:geom.N,:).*denx + ...
-        diffxy(geom.N+1:2*geom.N,:).*deny);
-      % \frac{(r \dot n)(r \dot density)}{\rho^{4}} term
-
-      stokesDLP(j,k) = stokesDLP(j,k) + ...
-          sum(sum(rdotfTIMESrdotn.*diffxy(1:geom.N,:)));
-      stokesDLP(j+geom.N,k) = stokesDLP(j+geom.N,k) + ...
-          sum(sum(rdotfTIMESrdotn.*diffxy(geom.N+1:2*geom.N,:)));
-      % double-layer potential for Stokes
+    for k = 1:geom.n
+        K = [(1:k-1) (k+1:geom.n)];
+        [x,y] = oc.getXY(geom.X(:,K));
+        [nx,ny] = oc.getXYperp(geom.xt(:,K));
+        [denx,deny] = oc.getXY(den(:,K));
+        for j=1:geom.N
+            diffxy = [geom.X(j,k) - x ; geom.X(j+geom.N,k) - y];
+            dis2 = diffxy(1:geom.N,:).^2 + ...
+                diffxy(geom.N+1:2*geom.N,:).^2;
+            % difference of source and target location and distance squared
+            
+            rdotfTIMESrdotn = ...
+                (diffxy(1:geom.N,:).*nx + ...
+                diffxy(geom.N+1:2*geom.N,:).*ny)./dis2.^2 .* ...
+                (diffxy(1:geom.N,:).*denx + ...
+                diffxy(geom.N+1:2*geom.N,:).*deny);
+            % \frac{(r \dot n)(r \dot density)}{\rho^{4}} term
+            
+            stokesDLP(j,k) = stokesDLP(j,k) + ...
+                sum(sum(rdotfTIMESrdotn.*diffxy(1:geom.N,:)));
+            stokesDLP(j+geom.N,k) = stokesDLP(j+geom.N,k) + ...
+                sum(sum(rdotfTIMESrdotn.*diffxy(geom.N+1:2*geom.N,:)));
+            % double-layer potential for Stokes
+        end
     end
-  end
-
-  stokesDLP = stokesDLP/pi;
-  % 1/pi is the coefficient in front of the double-layer potential
+    
+    stokesDLP = stokesDLP/pi;
+    % 1/pi is the coefficient in front of the double-layer potential
 end
 % double-layer potential due to all components of the geometry except
 % oneself
@@ -888,126 +888,152 @@ end % exactStokesDL
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function [stokesDLP,stokesDLPtar] = exactStokesDLfmm(o,geom,f, D, Xtar,K)
-% [stokesDLP,stokeDLPtar] = exactStokesDLfmm(geom,f,Xtar,K) uses the
-% FMM to compute the double-layer potential due to all geoms except
-% itself geom is a class of object capsules and f is the density
-% function NOT scaled by arclength term.  Xtar is a set of points where
-% the double-layer potential due to all geoms in index set K needs
-% to be evaulated
+    % [stokesDLP,stokeDLPtar] = exactStokesDLfmm(geom,f,Xtar,K) uses the
+    % FMM to compute the double-layer potential due to all geoms except
+    % itself geom is a class of object capsules and f is the density
+    % function NOT scaled by arclength term.  Xtar is a set of points where
+    % the double-layer potential due to all geoms in index set K needs
+    % to be evaulated
+    
+    oc = curve;
+%     [x,y] = oc.getXY(geom.X); % seperate x and y coordinates
+%     nx = geom.xt(geom.N+1:2*geom.N,:);
+%     ny = -geom.xt(1:geom.N,:);
+    % seperate the x and y coordinates of the normal vector
+    
+    %f = ones(size(f));
+    den = f.*[geom.sa;geom.sa]*2*pi/geom.N;
+    
+    if (nargin == 6)
+        stokesDLP = [];
+    else
+        % upsample source to N^(3/2).
+        Nup = geom.N*ceil(sqrt(geom.N));
+        Xtar = geom.X;
+        
+        Xup= [interpft(Xtar(1:geom.N,:),Nup); interpft(Xtar(geom.N+1:end,:),Nup)];
+        fup = [interpft(f(1:geom.N,:),Nup); interpft(f(geom.N+1:end,:),Nup)];
+        geomUp = capsules([],Xup);
+        
+        denUp = fup.*[geomUp.sa;geomUp.sa]*2*pi/geomUp.N;
+        
+        [x,y] = oc.getXY(Xup); % seperate x and y coordinates
+    
+        nx = geomUp.xt(geomUp.N+1:end,:);
+        ny = -geomUp.xt(1:geomUp.N,:);
+    
+        stokesDLPup = zeros(2*geomUp.N,geomUp.n);
+        [fx,fy] = oc.getXY(denUp);
+        
+        dip1 = 0.25/pi*(fy - 1i*fx).*(nx + 1i*ny);
+        dip2 = -1i*0.5/pi*(fx.*nx + fy.*ny);
+        
+        if o.profile
+            tfmmTotal = tic;
+        end
+        
+        % FMM on upsampled data
+        velUp = stokesDLPfmm(dip1(:),dip2(:),x(:),y(:));
+        u = -imag(velUp);
+        v = real(velUp);
+        
+        if o.profile
+            o.om.writeMessage(['FMM for all points took ', ...
+                num2str(toc(tfmmTotal)), ' seconds']);
+        end
+        
+        % Wrap the output of the FMM into the usual
+        % [[x1;y1] [x2;y2] ...] format
+        for k = 1:geom.n
+            is = (k-1)*geomUp.N+1;
+            ie = k*geomUp.N;
+            stokesDLPup(1:geomUp.N,k) = u(is:ie);
+            stokesDLPup(geomUp.N+1:end,k) = v(is:ie);
+        end
+        
+        [tx,ty] = oc.getXY(geomUp.xt);
 
-oc = curve;
-[x,y] = oc.getXY(geom.X); % seperate x and y coordinates
-nx = geom.xt(geom.N+1:2*geom.N,:);
-ny = -geom.xt(1:geom.N,:);
-% seperate the x and y coordinates of the normal vector
+        % ADD DIAGONAL TERM
+        for k = 1:geom.n %in principle this could be done using a parfor loop
+            txk = tx(:,k); tyk = ty(:,k);
+            sa = geomUp.sa(:,k);
+            cur = geomUp.cur(:,k);
+            
+            fDotTau = txk.*fup(1:end/2,k) + tyk.*fup(end/2+1:end,k);
+            diag = -[fDotTau.*cur.*sa.*txk; fDotTau.*cur.*sa.*tyk]/geomUp.N;
+            
+            stokesDLPup(:,k) = stokesDLPup(:,k) + diag;
+        end
+        
+        % downsample to original N points
+        stokesDLP = stokesDLPup(1:geomUp.N/geom.N:end,:);
+%         stokesDLP =  [interpft(stokesDLPup(1:geomUp.N,:),geom.N); ...
+%                     interpft(stokesDLPup(geomUp.N+1:end,:),geom.N)]; 
+                
+        % Subtract potential due to each geom on its own.  Nothing
+        % to change here for potential at Xtar        
+        diagDL = o.exactStokesDLdiag(geom, D, f);        
+        
+        if o.profile
+            tfmmLoop = tic;
+        end
+        
+        for k = 1:geom.n %in principle this could be done using a parfor loop
+            
+            stokesDLP(:,k) = stokesDLP(:,k) - diagDL(:,k);
+        end
+        
+        if o.profile
+            o.om.writeMessage(['Direct summation for self interactions took ', ...
+                num2str(toc(tfmmLoop)), ' seconds']);
+        end
+    end
+    
+    if nargin == 4
+        stokesDLPtar = [];
+    else
 
-den = f.*[geom.sa;geom.sa]*2*pi/geom.N;
-
-if (nargin == 6)
-  stokesDLP = [];
-else
-  stokesDLP = zeros(2*geom.N,geom.n);
-  [fx,fy] = oc.getXY(den);
-  % need to multiply by arclength term.  Seperate it into
-  % x and y coordinate
-  dip1 = 0.25/pi*(fy - 1i*fx).*(nx + 1i*ny);
-  dip2 = -1i*0.5/pi*(fx.*nx + fy.*ny);
-
-  if o.profile
-      tfmmTotal = tic;
-  end
-  vel = stokesDLPfmm(dip1(:),dip2(:),x(:),y(:));  
-  
-  if o.profile
-      o.om.writeMessage(['FMM for all points took ', ...
-                    num2str(toc(tfmmTotal)), ' seconds']);
-  end
-  
-  u = -imag(vel);
-  v = real(vel);
-  for k = 1:geom.n
-    is = (k-1)*geom.N+1;
-    ie = k*geom.N;
-    stokesDLP(1:geom.N,k) = u(is:ie); 
-    stokesDLP(geom.N+1:2*geom.N,k) = v(is:ie);
-  end
-  % Wrap the output of the FMM into the usual 
-  % [[x1;y1] [x2;y2] ...] format
-  
-  diagDL = o.exactStokesDLdiag(geom, D, f);
-
-  oc = curve;
-  [tx,ty] = oc.getXY(geom.xt);
-  
-  if o.profile
-      tfmmLoop = tic;
-  end
-  
-  for k = 1:geom.n %in principle this could be done using a parfor loop 
-      txk = tx(:,k); tyk = ty(:,k);
-      sa = geom.sa(:,k);
-      cur = geom.cur(:,k);
-       
-      fDotTau = txk.*f(1:end/2,k) + tyk.*f(end/2+1:end,k);
-      diag = -[fDotTau.*cur.*sa.*txk; fDotTau.*cur.*sa.*tyk]/geom.N;
-      
-      stokesDLP(:,k) = stokesDLP(:,k) - (diagDL(:,k) - diag);
-  end
-  
-  if o.profile
-      o.om.writeMessage(['Direct summation for self interactions took ', ...
-                    num2str(toc(tfmmLoop)), ' seconds']);
-  end
-  
-  
-  % Subtract potential due to each geom on its own.  Nothing
-  % to change here for potential at Xtar
-end
-
-if nargin == 4
-  stokesDLPtar = [];
-else
-  [Ntar,ncol] = size(Xtar);
-  Ntar = Ntar/2;
-  stokesDLPtar = zeros(2*Ntar,ncol); % initialize
-  [x,y] = oc.getXY(geom.X(:,K)); 
-  % seperate x and y coordinates at geoms indexed by K
-  nx = geom.xt(geom.N+1:2*geom.N,K);
-  ny = -geom.xt(1:geom.N,K);
-  x2 = Xtar(1:Ntar,:);
-  x = [x(:);x2(:)];
-  y2 = Xtar(Ntar+1:2*Ntar,:);
-  y = [y(:);y2(:)];
-  % Stack the x and y coordinates of the target points
-  [fx,fy] = oc.getXY(den(:,K));
-  % seperate x and y coordinates at geoms indexed by K
-
-  fx = [fx(:);zeros(Ntar*ncol,1)];
-  fy = [fy(:);zeros(Ntar*ncol,1)];
-  % pad density function with zeros so that Xtar doesn't
-  % affect the double-layer potential
-  nx = [nx(:);zeros(Ntar*ncol,1)];
-  ny = [ny(:);zeros(Ntar*ncol,1)];
-  % pad the normal vector with zeros so that Xtar doesn't
-  % affect the double-layer potential
-
-  dip1 = 0.25/pi*(fy - 1i*fx).*(nx + 1i*ny);
-  dip2 = -1i*0.5/pi*(fx.*nx + fy.*ny);
-
-  vel = stokesDLPfmm(dip1(:),dip2(:),x(:),y(:));
-  u = -imag(vel);
-  v = real(vel);
-  
-  for k = 1:ncol
-    is = geom.N*numel(K) + (k-1)*Ntar+1;
-    ie = is + Ntar - 1;
-    stokesDLPtar(1:Ntar,k) = u(is:ie);
-    stokesDLPtar(Ntar+1:2*Ntar,k) = v(is:ie);
-  end
-  % Wrap the output of the FMM in the usual format
-  % for the target points
-end
-
+        [Ntar,ncol] = size(Xtar);
+        Ntar = Ntar/2;
+        stokesDLPtar = zeros(2*Ntar,ncol); % initialize
+        [x,y] = oc.getXY(geom.X(:,K));
+        % seperate x and y coordinates at geoms indexed by K
+        nx = geom.xt(geom.N+1:2*geom.N,K);
+        ny = -geom.xt(1:geom.N,K);
+        x2 = Xtar(1:Ntar,:);
+        x = [x(:);x2(:)];
+        y2 = Xtar(Ntar+1:2*Ntar,:);
+        y = [y(:);y2(:)];
+        % Stack the x and y coordinates of the target points
+        [fx,fy] = oc.getXY(den(:,K));
+        % seperate x and y coordinates at geoms indexed by K
+        
+        fx = [fx(:);zeros(Ntar*ncol,1)];
+        fy = [fy(:);zeros(Ntar*ncol,1)];
+        % pad density function with zeros so that Xtar doesn't
+        % affect the double-layer potential
+        nx = [nx(:);zeros(Ntar*ncol,1)];
+        ny = [ny(:);zeros(Ntar*ncol,1)];
+        % pad the normal vector with zeros so that Xtar doesn't
+        % affect the double-layer potential
+        
+        dip1 = 0.25/pi*(fy - 1i*fx).*(nx + 1i*ny);
+        dip2 = -1i*0.5/pi*(fx.*nx + fy.*ny);
+        
+        vel = stokesDLPfmm(dip1(:),dip2(:),x(:),y(:));
+        u = -imag(vel);
+        v = real(vel);
+        
+        for k = 1:ncol
+            is = geom.N*numel(K) + (k-1)*Ntar+1;
+            ie = is + Ntar - 1;
+            stokesDLPtar(1:Ntar,k) = u(is:ie);
+            stokesDLPtar(Ntar+1:2*Ntar,k) = v(is:ie);
+        end
+        % Wrap the output of the FMM in the usual format
+        % for the target points
+    end
+    
 end % exactStokesDLfmm
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
