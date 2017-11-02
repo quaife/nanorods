@@ -66,8 +66,8 @@ The boundary of the suspended particles is denoted by $\gamma_k$, $1
 \end{align*}
 and $\Gamma_0$ is excluded if the domain is unbounded.  Since the
 particles are rigid, we only track the center and angle of the suspended
-particles will be written as $\cc_k$ and $\theta_k$, respectively, and
-the translational and rotational velocities are written as $\uu_k^\tau$
+particles, $\cc_k$ and $\theta_k$, respectively, and
+the translational and rotational velocities, $\uu_k^\tau$
 and $\omega_k$, respectively.  Finally, each solid wall and rigid
 particle will have a net force and torque that they apply to the fluid.
 The net force and torque for the solid walls will be denoted by
@@ -656,7 +656,21 @@ stepping can lead to instabilities as particles become tightly packed.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Results\label{s:results}} 
 
+\subsection{Simple Shear Flow}
+
+A pair of rods are placed in simple unbounded shear flow, $\mathbf{u}^\infty = (y, 0)$. The rod on the left is elevated slightly  above the rod on the right and so shifts to the right while undergoing a Jeffery orbit. We impose a minimum separation distance between the two rods. As they become close a repulsion force is added to keep the rods sufficiently separated. Figure \ref{fig:shear_results} shoes the magnitude of this force as a function of time for various $\Delta t$ as well as the angle of the rod initially on the left for various $\Delta t$. We see that as we decrease $\Delta t$ the angle approaches the ground truth curve.
+
+\begin{figure}[!h]
+\begin{tabular}{c c}
+\includegraphics{figures/shear_angle.pdf} &
+\includegraphics{figures/shear_repulsion.pdf}
+\end{tabular}
+\caption{Simulation of two rods in unbounded shear flow. Left: angle as a function of time. Right: magnitude of repulsion force. Rods are discretized using 32 points and a minimum separation of half an arc length is required. The ground truth is computed using 96 discretization points and $\Delta t = 1/128$. For the ground truth simulation repulsion forces were turned off, however no contact occurred. }\label{fig:shear_results}
+\end{figure}
+
 \begin{itemize}
+
+
   \item One of the main results is that the new time integrator can
     handle higher concentrations
   \item Two bodies in extensional
