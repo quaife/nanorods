@@ -745,17 +745,17 @@ end
 
 % EVALUATE VELOCITY ON WALLS
 if o.confined && nw > 0
-   
-        velWalls = velWalls + ww_dlp + wp_dlp + w_sr;
-   
-        if bounding_wall ~= 0
-			velWalls(:,1) = velWalls(:,1)...
-            + pot_walls.exactStokesN0diag(walls, N0w, etaW(:,1));
-		end
+    
+    velWalls = velWalls + ww_dlp + wp_dlp + w_sr;
+    
+    if bounding_wall ~= 0
+        velWalls(:,1) = velWalls(:,1)...
+            + pot_walls.exactStokesN0diag(walls, o.N0w, etaW(:,1));
+    end
 end
 
 % SUBTRACT VELOCITY OF WALL SURFACE IF NEEDED
-if preprocess 
+if preprocess
     for k = 1:nw
       velWalls(1:Nw,k) = velWalls(1:Nw,k) - uW(1,k);
       velWalls(Nw+1:end,k) = velWalls(Nw+1:end,k) - uW(2,k);
@@ -823,12 +823,12 @@ end
 
 if o.confined
     if ~preprocess
-        rhs = [zeros(2*Np*np,1); ff(:); -forceP(:); ...
-                    -torqueP'; -forceW(:); -torqueW'];
+        rhs = [zeros(2*Np*np,1); ff(:); forceP(:); ...
+                    torqueP'; forceW(:); torqueW'];
                     
     else
-		rhs = [zeros(2*Np*np,1); zeros(2*Nw*nw,1); -forceP(:); -torqueP'; ...
-								-forceW(:); -torqueW'];
+		rhs = [zeros(2*Np*np,1); zeros(2*Nw*nw,1); forceP(:); torqueP'; ...
+								forceW(:); torqueW'];
     end
     
 % 
@@ -868,7 +868,7 @@ if o.resolve_collisions
 	
         % CONTRIBUTION TO PARTICLE VELOCITY
         v = o.computeRotletStokesletVelocity(geom.X, geom.center(:,k),...
-            	forceP(:,k),torqueP(k));
+            	forceP(:,k), torqueP(k));
             
         rhs(1:2*Np*np) = rhs(1:2*Np*np) - v(:);
             
@@ -1245,8 +1245,8 @@ for k = 1:n
   torque(k) = sum(((geom.X(N+1:end,k) - geom.center(2,k)).*eta(1:N,k) - ...
     (geom.X(1:N,k) - geom.center(1,k)).*eta(N+1:end,k)).*geom.sa(:,k))*2*pi/N;
 
-  force(:,k) = force(:,k)/(2*pi);
-  torque(k) = torque(k)/(2*pi);  
+  force(:,k) = force(:,k)/(4*pi);
+  torque(k) = torque(k)/(4*pi);  
 end
 
 end % computeNetForceTorque
@@ -1261,7 +1261,7 @@ Nw = o.points_per_wall;
 nw = o.num_walls;
 
 
-upsampleFactor = 3;
+upsampleFactor = 1;
 nexten = 0;
 c_tol = 1e-12;
 minSep = o.minimum_separation;
@@ -1330,6 +1330,17 @@ while iv(end) < 0
     % SMOOTH VGRAD
     %vgrad (1:2*np*Np) = o.f_smooth(vgrad(1:2*np*Np),Np,np);
     
+    if colCount > 20
+        o.om.writeMessage('Setting vgrad to normals');
+        vgrad(1:2*Np*np*upsampleFactor) = o.adjustNormal(vgrad(1:2*Np*np*upsampleFactor),geomUp,...
+            edgelengthParticle);
+        
+        if o.confined
+            vgrad(2*Np*np*upsampleFactor+1:end) = o.adjustNormal(vgrad(2*Np*np*upsampleFactor+1:end),wallsUp,...
+                edgelengthWall);
+        end
+    end
+    
     % LINEARIZE NCP
     [A,~,ivs,~,jacoSmooth, vtoiv] = o.preprocessRigid(vgrad,ids,vols,geomOld,geomUp, walls,...
         wallsUp, colCount);
@@ -1338,29 +1349,18 @@ while iv(end) < 0
     lambda = -A\(ivs/o.dt); 
     
     % if all lambda values are negative, adjust vgrad and try again
-%     if max(lambda) < 0
-%         disp('Setting vgrad to normals');
-%         vgrad(1:2*Np*np*upsampleFactor) = o.adjustNormal(vgrad(1:2*Np*np*upsampleFactor),geomUp,...
-%             edgelengthParticle);
-%         
-%         if o.confined
-%             vgrad(2*Np*np*upsampleFactor+1:end) = o.adjustNormal(vgrad(2*Np*np*upsampleFactor+1:end),wallsUp,...
-%                 edgelengthWall);
-%         end
-%         
-%         [A,~,ivs,~,jacoSmooth, vtoiv] = o.preprocessRigid(vgrad,ids,vols,geomUp,...
-%             wallsUp);
-%         
+%     if max(lambda < 0)
 %         lambda = -A\(ivs/o.dt);
 %     end
-    
+%     
     fc = jacoSmooth'*lambda;
     
     % if at least one of the lambda values is still negative use Fisher-Newton to
     % solve for best positive lambdas
     if min(lambda)< 0
-        [fc, lambda1] = o.getColForce(A,ivs/o.dt,lambda,jacoSmooth);
-        balance = false;
+        o.om.writeMessage('WARNING NEGATIVE LAMBDA, LCP CONSTRAINTS VIOLATED');
+%         [fc, lambda1] = o.getColForce(A,ivs/o.dt,lambda,jacoSmooth);
+%         balance = false;
     end    
 %     
 %   if colCount > 10
@@ -1389,7 +1389,7 @@ while iv(end) < 0
                     [forceP_tmp,forceW_tmp], [torqueP_tmp,torqueW_tmp], vtoiv, bounding_wall_number); 
     else
         forceBalanced = [forceP_tmp,forceW_tmp];
-        torqueBalanced =  -[torqueP_tmp,torqueW_tmp];
+        torqueBalanced =  [torqueP_tmp,torqueW_tmp];
     end
     
     forceP = forceP + forceBalanced(:,1:np);
@@ -1617,7 +1617,7 @@ if colCount > 10
 end
 
 forceP_all = forceBalanced(:,1:np);
-torqueP_all = -torqueBalanced(1:np);
+torqueP_all = torqueBalanced(1:np);
 
 if o.confined
     forceW_all = forceBalanced(:,np+1:end);
@@ -1688,7 +1688,7 @@ for i = 1:nivs
     
     % COMPUTE VELOCITY OF EACH POINT ON ALL RIGID PARTICLES
     [~, ~, uP, omega, ~, ~] = o.unpackSolution(Xn, geomTmp, wallsTmp, true, bounding_wall == 1);
-    omega = -omega;
+    %omega = -omega;
     
     for k = 1:geomTmp.n
         b = [uP(1,k)*ones(geomUp.N,1); uP(2,k)*ones(geomUp.N,1)] + ... %translational
@@ -1905,10 +1905,6 @@ for k = 1:n
         % collision resolving may get stuck
         % use surface normal instead
         
-        %disp('Using surface normal for volume gradient');
-        bnnorm = edgelength(k);
-        vgrad_mag = sqrt(vgrad(i,k)^2 + vgrad(N+i,k)^2);
-        
         tangent = geom.xt;
         oc = curve;
         [tanx,tany] = oc.getXY(tangent);
@@ -1916,13 +1912,26 @@ for k = 1:n
         ny = -tanx;
         normal = [nx;ny];
         
-        normal_mag = sqrt(nx(i,k)^2 + ny(i,k)^2);
+        bnnorm = edgelength(k);
+        vgrad(i,k) = normal(i,k)*bnnorm;
+        vgrad(N+i,k) = normal(N+i,k)*bnnorm;
         
-        vgrad(i,k) = vgrad_mag*normal(i,k)/normal_mag;
-        vgrad(N+i,k) = vgrad_mag*normal(i+N,k)/normal_mag;
-        
-%         vgrad(i,k) = normal(i,k)*bnnorm;
-%         vgrad(N+i,k) = normal(i+N,k)*bnnorm;
+        %disp('Using surface normal for volume gradient');
+%         bnnorm = edgelength(k);
+%         vgrad_mag = sqrt(vgrad(i,k)^2 + vgrad(N+i,k)^2);
+%         
+%         tangent = geom.xt;
+%         oc = curve;
+%         [tanx,tany] = oc.getXY(tangent);
+%         nx = tany;
+%         ny = -tanx;
+%         normal = [nx;ny];
+%         
+%         normal_mag = sqrt(nx(i,k)^2 + ny(i,k)^2);
+%         
+%         vgrad(i,k) = vgrad_mag*normal(i,k)/normal_mag;
+%         vgrad(N+i,k) = vgrad_mag*normal(i+N,k)/normal_mag;
+%         
         
     end
 end
