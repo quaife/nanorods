@@ -55,7 +55,7 @@ legend style={legend cell align=left, align=left, draw=white!15!black},
 every axis plot/.append style={thick},
 cycle list name=my black white
 ]
-\addplot
+\addplot+[mycolor1, ultra thick, solid]
   table[row sep=crcr]{%
 0.000	0.440\\
 0.250	1.579\\
@@ -80,7 +80,7 @@ cycle list name=my black white
 };
 \addlegendentry{$\Delta\text{ t = 1/4}$}
 
-\addplot
+\addplot+[mycolor2, ultra thick, solid]
   table[row sep=crcr]{%
 0.000	0.000\\
 0.125	0.000\\
@@ -125,7 +125,7 @@ cycle list name=my black white
 };
 \addlegendentry{$\Delta\text{ t = 1/8}$}
 
-\addplot 
+\addplot+[mycolor3, ultra thick, solid]
   table[row sep=crcr]{%
 0.000	0.000\\
 0.062	0.000\\
@@ -210,7 +210,7 @@ cycle list name=my black white
 };
 \addlegendentry{$\Delta\text{ t = 1/16}$}
 
-\addplot
+\addplot+[mycolor4, ultra thick, solid]
   table[row sep=crcr]{%
 0.000	0.000\\
 0.031	0.000\\
