@@ -609,20 +609,39 @@ $L_k \gets \int_{\Gamma_k}
 
 \subsection{Shear Flow}
 
-A simple numerical experiment done in \cite{Lu2017} is repeated with our globally implicit time stepper. Two particles are placed in an unbounded shear flow, $\mathbf{u}^\infty = (y, 0)$. The rightmost particle is placed on the origin, while the leftmost particle is placed slightly above the $y$ axis at $(-8, 0.05)$. As the particles come close to each other the left particle is deflected above the right one and continues on a trajectory to the right with a constant $y$ value. The particles are discretized with 32 points, meaning that the arc length spacing is $2\pi/32 \approx 0.196$. In this experiment the particles never get within $h$ of one another, meaning that if we take $\delta$ to be less than $h$ the collision constraint is not necessary. 
+A simple numerical experiment done in \cite{Lu2017} is repeated with our globally implicit time stepper. Two particles are placed in an unbounded shear flow, $\mathbf{u}^\infty = (y, 0)$. The rightmost particle is placed on the origin, while the leftmost particle is placed slightly above the $y$ axis at $(-8, 0.05)$. As the particles come close to each other the left particle is deflected above the right one and continues on a trajectory to the right with a constant $y$ value. The particles are discretized with 32 points, meaning that the arc length spacing is $2\pi/32 \approx 0.196$. In this experiment the particles never get within $2h$ of one another, meaning that if we take $\delta$ to be less than $2h$ the collision constraint is not necessary. 
 \begin{figure}[!h]
 \begin{center}
-\includegraphics{figures/shear_setup.pdf}
+\includegraphics{figures/shear_setup1.pdf}
 \begin{tabular}{c c}
-\includegraphics{figures/shear_displacement.pdf} &
-\includegraphics{figures/separation_displacement.pdf}
+\includegraphics{figures/shear_displacement1.pdf} &
+\includegraphics{figures/separation_displacement1.pdf}
 \end{tabular}
 \end{center}
 \caption{Shear experiment. Top: initial setup and trajectories of the centers of both rigid bodies. Bottom left: the $y$ coordinate of the center of the particle initially on the left as a function of its horizontal displacement. Bottom right: the final vertical displacement of the particle initially on the right as a function of separation distance.}\label{fig:shear_experiment}
 \end{figure}
 
+We can use this setup to look at effect of the contact force on the time reversibility of the flow. By reversing the shear direction at $t=10$ we can measure the relative error between the initial particle center and the particle center at $t=20$. The results for various value of $\delta$ are shown in table \ref{tab:reverse}. For $\delta = 0$ (no contact constraint) we get first order accuracy in the reversibility of the flow. This is expected as we are using forward Euler as our time stepper. For $\delta \geq 2$ we see that we no longer recover reversibility. This is due to the fact that the force has the no the effect of shifting the particles onto a streamline that is contact free. If we reverse the direction of the flow we will be traversing this contact-free streamline. 
 
-\subsection{Taylor Green}
+\begin{table}[!h]
+\begin{center}
+\begin{tabular}{c| c c c c c}
+$ $ & & & $\Delta t$ & &\\
+$h$ & $4\e{-2}$ &$ 2\e{-2}$ & $1\e{-2}$ & $5\e{-3}$ & $2.5\e{-3}$\\
+\hline
+0 & $1.35\e{-1}$ & $7.32\e{-2}$ & $3.74\e{-2}$ & $2.00\e{-2}$ & $1.01\e{-2}$\\
+$2h$ & $1.88\e{-1}$ & $1.41\e{-1}$ & $1.17\e{-1}$ & $1.08\e{-1}$ & $1.02\e{-1}$\\
+$2.25h$ & $2.55\e{-1}$ & $2.08\e{-1}$ & $1.87\e{-1}$ & $1.78\e{-1}$ & $1.73\e{-1}$\\
+$2.50h$ & $3.05\e{-1}$ & $2.69\e{-1}$ & $2.52\e{-1}$ & $2.45\e{-1}$ & $2.40\e{-1}$\\
+$2.75h$ & $3.64\e{-1}$ & $3.31\e{-1}$ & $3.13\e{-1}$ & $3.07\e{-1}$ & $3.03\e{-1}$\\
+$3.00h$ & $4.12\e{-1}$ & $3.88\e{-1}$ & $3.72\e{-1}$ & $3.67\e{-1}$ & $3.63\e{-1}$
+\end{tabular}
+\end{center}
+\caption{Study of time reversibility of the shear flow setup depiticted in figure \ref{fig:shear_experiment}. At $t=10$ the flow direction is reversed and we calculate the relative error in the starting position and the position at $t=20$. When the collision constraint is active and force is needed to keep the particles apart we no longer recover time reversibility.}\label{tab:reverse}
+\end{table}
+
+
+\subsection{Taylor-Green}
 
 One of the advantages of using a globally implicit time stepper is that it can handle dense suspensions without requiring an excessively small time step. We will look at a dense suspension of 75 rigid particles in unbounded Taylor-Green flow. The background velocity field $\mathbf{u}^\infty$ is given by $(\cos(x)\sin(y), -\sin(x)\cos(y))$. Snapshots of the simulation are shown in figure \ref{fig:taylor_green}. 
 
@@ -638,6 +657,14 @@ One of the advantages of using a globally implicit time stepper is that it can h
 \caption{Dense suspension in unbounded Taylor-Green flow. Particles are discretized with 32 points and a minimum separation of $0.05h$ is enforced. Snapshots of the simulation at $t=0$, $t=15$ and $t=30$ are shown. The bottom right plot shows the track of the center of the particle shaded in magenta for different time step sizes. Each line in that plot is marked where a repulsion force is necessary to enforce the minimum separation. }\label{fig:taylor_green}
 \end{figure}
 
+\subsection{Taylor-Couette}
+
+\begin{figure}[!h]
+\begin{center}
+\includegraphics{figures/dissipation_contour.pdf}
+\end{center}
+\caption{$\log_{10}$ of the energy dissipation inside a Couette device. The outer cylinder is spinning while the inner cylinder is fixed. }\label{fig:dissipation}
+\end{figure}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Conclusions\label{s:conclusions}}
 
