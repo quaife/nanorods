@@ -463,7 +463,7 @@ From the velocity we can compute the pressure, by solving the equation
 Looking at the 1st component of this equation we get
 \begin{equation*}\frac{\partial p}{\partial x} = \Delta u \Rightarrow p(x,y) = \int \Delta u \text{d}x + f(y).\end{equation*}
 We can take $f(y)$ to be 0 since there is no reason for pressure to have a preferred direction. Using \eqref{eq:completed_DLP} we can compute this quantity,
-\begin{equation}\label{eq:pressure} p = \frac{1}{\pi\rho^2}\left(( \mathbf{I} - 2(\rr \otimes \rr)\nn\right)\cdot\pmb{\eta} + \sum\limits_{i=1}^{M_w} \frac{\mathbf{F}_i^\Gamma\cdot(\mathbf{x}-\mathbf{c}_i)}{2\pi||\mathbf{x}-c_i||^2}  + \sum\limits_{j=1}^{M_p} \frac{\mathbf{F}_j^\gamma\cdot(\mathbf{x}-\mathbf{c}_j)}{2\pi||\mathbf{x}-c_j||^2}.\end{equation}
+\begin{equation}\label{eq:pressure} p(\xx) = \frac{1}{\pi}\int_{\partial\Omega}\frac{1}{\rho^2}\left(( \mathbf{I} - 2(\rr \otimes \rr)\nn\right)\cdot\pmb{\eta}~\text{d}s + \sum\limits_{i=1}^{M_w} \frac{\mathbf{F}_i^\Gamma\cdot(\mathbf{x}-\mathbf{c}_i)}{2\pi||\mathbf{x}-c_i||^2}  + \sum\limits_{j=1}^{M_p} \frac{\mathbf{F}_j^\gamma\cdot(\mathbf{x}-\mathbf{c}_j)}{2\pi||\mathbf{x}-c_j||^2}.\end{equation}
 
 
 The stress tensor for a Newtonian fluid with unit viscosity is given by
@@ -471,9 +471,9 @@ The stress tensor for a Newtonian fluid with unit viscosity is given by
 Using the pressure computed in \eqref{eq:pressure} and computing the viscous part of the stress tensor from \eqref{eq:completed_DLP} we get
 \begin{equation}\label{eq:stress} \ssigma = \ssigma_{\eeta} + \ssigma_{S} + \ssigma_{R},\end{equation}
 where
-\begin{align*}\ssigma_{\eeta} &= \frac{1}{\pi}\left( \frac{\nn\cdot\eeta}{\rho^2}\mathbf{I} -\frac{(\rr\cdot\nn)(\rr\cdot\eeta)(\rr\otimes\rr)}{\rho^6} + \frac{(\rr\cdot\nn)(\rr\otimes\eeta + \eeta\otimes\rr)}{\rho^4} + \frac{(\rr\cdot\eeta)(\rr\otimes\nn + \nn\otimes\rr)}{\rho^4}\right),\\
-\ssigma_S &= \sum\limits_{i=1}^{M_w} \frac{\mathbf{F}_i^\Gamma\cdot(\mathbf{c}_i-\mathbf{x})}{\pi||\mathbf{x}-c_i||^2}(\cc_i - \xx)\otimes(\cc_i-\xx)  + \sum\limits_{j=1}^{M_p} \frac{\mathbf{F}_j^\Gamma\cdot(\mathbf{c}_j-\mathbf{x})}{\pi||\mathbf{x}-c_j||^2}(\cc_j - \xx)\otimes(\cc_j-\xx),\\
-\ssigma_R &= \sum\limits_{i=1}^{M_w} \frac{L_i^\Gamma}{2\pi||\mathbf{x}-c_i||^2}((\cc_i - \xx)\otimes(\cc_i-\xx)^\perp + (\cc_i - \xx)^\perp\otimes(\cc_i-\xx))  \\&\qquad\qquad\qquad + \sum\limits_{j=1}^{M_p}  \frac{L_j^\gamma}{2\pi||\mathbf{x}-c_j||^2}((\cc_j - \xx)\otimes(\cc_j-\xx)^\perp + (\cc_j - \xx)^\perp\otimes(\cc_j-\xx)) .
+\begin{align*}\ssigma_{\eeta}(\xx) &= \frac{1}{\pi}\int_{\partial\Omega}\left( \frac{\nn\cdot\eeta}{\rho^2}\mathbf{I} -\frac{(\rr\cdot\nn)(\rr\cdot\eeta)(\rr\otimes\rr)}{\rho^6} + \frac{(\rr\cdot\nn)(\rr\otimes\eeta + \eeta\otimes\rr)}{\rho^4} + \frac{(\rr\cdot\eeta)(\rr\otimes\nn + \nn\otimes\rr)}{\rho^4}\right)\text{d}s,\\
+\ssigma_S(\xx) &= \sum\limits_{i=1}^{M_w} \frac{\mathbf{F}_i^\Gamma\cdot(\mathbf{c}_i-\mathbf{x})}{\pi||\mathbf{x}-c_i||^2}(\cc_i - \xx)\otimes(\cc_i-\xx)  + \sum\limits_{j=1}^{M_p} \frac{\mathbf{F}_j^\Gamma\cdot(\mathbf{c}_j-\mathbf{x})}{\pi||\mathbf{x}-c_j||^2}(\cc_j - \xx)\otimes(\cc_j-\xx),\\
+\ssigma_R(\xx) &= \sum\limits_{i=1}^{M_w} \frac{L_i^\Gamma}{2\pi||\mathbf{x}-c_i||^2}((\cc_i - \xx)\otimes(\cc_i-\xx)^\perp + (\cc_i - \xx)^\perp\otimes(\cc_i-\xx))  \\&\qquad\qquad\qquad + \sum\limits_{j=1}^{M_p}  \frac{L_j^\gamma}{2\pi||\mathbf{x}-c_j||^2}((\cc_j - \xx)\otimes(\cc_j-\xx)^\perp + (\cc_j - \xx)^\perp\otimes(\cc_j-\xx)) .
 \end{align*}
 
 		
@@ -626,7 +626,7 @@ $L_k \gets \int_{\Gamma_k}
 
 \subsection{Shear Flow}
 
-A simple numerical experiment done in \cite{Lu2017} is repeated with our globally implicit time stepper. Two particles are placed in an unbounded shear flow, $\mathbf{u}^\infty = (y, 0)$. The rightmost particle is placed on the origin, while the leftmost particle is placed slightly above the $y$ axis at $(-8, 0.05)$. As the particles come close to each other the left particle is deflected above the right one and continues on a trajectory to the right with a constant $y$ value. The particles are discretized with 32 points, meaning that the arc length spacing is $2\pi/32 \approx 0.196$. In this experiment the particles never get within $2h$ of one another, meaning that if we take $\delta$ to be less than $2h$ the collision constraint is not necessary. 
+A simple numerical experiment done in \cite{Lu2017} is repeated with our globally implicit time stepper. Two particles are placed in an unbounded shear flow, $\mathbf{u}^\infty = (y, 0)$. The rightmost particle is placed on the origin, while the leftmost particle is placed slightly above the $y$ axis at $(-8, 0.5)$. As the particles come close to each other the left particle is deflected above the right one and continues on a trajectory to the right with a constant $y$ value. The particles are discretized with 32 points, meaning that the arc length spacing is $2\pi/32 \approx 0.196$. In this experiment the particles never get within $2h$ of one another, meaning that if we take $\delta$ to be less than $2h$ the collision constraint is not necessary. 
 \begin{figure}[!h]
 \begin{center}
 \includegraphics{figures/shear_setup1.pdf}
@@ -664,11 +664,11 @@ One of the advantages of using a globally implicit time stepper is that it can h
 
 \begin{figure}[!h]
 \begin{center}
-\begin{tabular}{c c}
-\includegraphics{figures/taylor_green0.pdf} &
-\includegraphics{figures/taylor_green1.pdf}\\
-\includegraphics{figures/taylor_green2.pdf} &
- \includegraphics{figures/taylor_green_tracks.pdf}
+\begin{tabular}{c c c c}
+\includegraphics[width=3cm]{figures/taylor_green0.pdf} &
+\includegraphics[width=3cm]{figures/taylor_green1.pdf}&
+\includegraphics[width=3cm]{figures/taylor_green2.pdf} &
+ \includegraphics[width=3cm]{figures/taylor_green_tracks.pdf}
 \end{tabular}
 \end{center}
 \caption{Dense suspension in unbounded Taylor-Green flow. Particles are discretized with 32 points and a minimum separation of $0.05h$ is enforced. Snapshots of the simulation at $t=0$, $t=15$ and $t=30$ are shown. The bottom right plot shows the track of the center of the particle shaded in magenta for different time step sizes. Each line in that plot is marked where a repulsion force is necessary to enforce the minimum separation. }\label{fig:taylor_green}
@@ -676,11 +676,40 @@ One of the advantages of using a globally implicit time stepper is that it can h
 
 \subsection{Taylor-Couette}
 
+We can use our model to investigate rheological properties of suspensions. Here we will look at suspensions of varying volume fraction and particle aspect ratio; specifically we will look at 5 and 10 percent volume fractions and ellipse shaped particles of aspect ratio 3 to 1 and 6 to 1. Initially the particles are placed randomly inside the device; the initial configurations are shown in figure \ref{fig:couette_setup}. 
+
 \begin{figure}[!h]
 \begin{center}
-\includegraphics{figures/dissipation_contour.pdf}
+\begin{tabular}{c c c c}
+\includegraphics[width=3cm]{figures/couette_005_3_1.pdf} & \includegraphics[width=3cm]{figures/couette_005_6_1.pdf} &
+\includegraphics[width=3cm]{figures/couette_010_3_1.pdf} & \includegraphics[width=3cm]{figures/couette_010_6_1.pdf}
+\end{tabular}
 \end{center}
-\caption{$\log_{10}$ of the energy dissipation inside a Couette device. The outer cylinder is spinning while the inner cylinder is fixed. }\label{fig:dissipation}
+\caption{Four initial configurations for Taylor-Couette flow with varying volume fraction $\phi$ and aspect ratio $r$. From left to right: 1) $\phi=5\%$, $r = 3:1$, 2) $\phi=5\%$, $r=6:1$, 3) $\phi=10\%$, $r=3:1$, 4) $\phi=10\%$, $r=6:1$.}\label{fig:couette_setup}
+\end{figure}
+
+By measuring the torque on the inner cylinder we can get an instantaneous value of the effective viscosity of the suspension. As can be seen in figure \ref{fig:torque}, the effective viscosity increases with $\phi$, but is generally lower with the 6 to 1 shaped particles.
+\begin{figure}[!h]
+\begin{center}
+\includegraphics{figures/couette_torque.pdf}\\
+\end{center}
+\caption{Instantaneous effective viscosity for the cases shown in figure \ref{fig:couette_setup}. The inner cylinder is fixed, while the outer one spins. The ratio of the torque on the inner cylinder to the baseline torque (i.e. the torque on the inner cylinder of a device with no particles) gives the instantaneous effective viscosity.}\label{fig:torque}
+\end{figure} 
+
+Another quantity we may be interested is the alignment of the particles. On average we expect the particles to align in the direction of the shear flow, which in this case is the $\hat{\theta}$ direction. Figure \ref{fig:angles} shows the deviation from this expected orientation as a function of time for the four cases. We see that the 5\% volume fractions align quicker than the 10\% volume fractions. 
+
+\begin{figure}[!h]
+\begin{center}
+\includegraphics{figures/couette_angle_mean.pdf}\\
+\end{center}
+\caption{Deviation from the expected alignment angle. }\label{fig:angles}
+\end{figure} 
+
+\begin{figure}[!h]
+\begin{center}
+\includegraphics{figures/pressure_contour.pdf}
+\end{center}
+\caption{Pressure distribution inside a Couette device. The outer cylinder is spinning while the inner cylinder is fixed. }\label{fig:dissipation}
 \end{figure}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Conclusions\label{s:conclusions}}
