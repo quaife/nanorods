@@ -455,9 +455,26 @@ t\biggl(\mathcal{M}\begin{bmatrix}\mathbf{0}\\\mathbf{0}\\\mathbf{e}_\infty\end{
 The sequence \eqref{eq:lcp} will be solved at each time step. 
 
 \subsection{Computing Pressures and Stresses}
-\todo[inline]{Describe how the pressure, stress, energy, etc.~are
-computed}
 
+Once we have computed the density function $\pmb{\eta}$ we can use it to post-process various other quantities of interest, for example pressure, stress or energy dissipation. 
+
+From the velocity we can compute the pressure, by solving the equation
+\begin{equation*}\nabla p = \Delta \mathbf{u} .\end{equation*}
+Looking at the 1st component of this equation we get
+\begin{equation*}\frac{\partial p}{\partial x} = \Delta u \Rightarrow p(x,y) = \int \Delta u \text{d}x + f(y).\end{equation*}
+We can take $f(y)$ to be 0 since there is no reason for pressure to have a preferred direction. Using \eqref{eq:completed_DLP} we can compute this quantity,
+\begin{equation}\label{eq:pressure} p = \frac{1}{\pi\rho^2}\left(( \mathbf{I} - 2(\rr \otimes \rr)\nn\right)\cdot\pmb{\eta} + \sum\limits_{i=1}^{M_w} \frac{\mathbf{F}_i^\Gamma\cdot(\mathbf{x}-\mathbf{c}_i)}{2\pi||\mathbf{x}-c_i||^2}  + \sum\limits_{j=1}^{M_p} \frac{\mathbf{F}_j^\gamma\cdot(\mathbf{x}-\mathbf{c}_j)}{2\pi||\mathbf{x}-c_j||^2}.\end{equation}
+
+
+The stress tensor for a Newtonian fluid with unit viscosity is given by
+\begin{equation*} \pmb{\sigma} = -p \mathbf{I} + \left(\nabla \uu + (\nabla\uu)^T\right).\end{equation*}
+Using the pressure computed in \eqref{eq:pressure} and computing the viscous part of the stress tensor from \eqref{eq:completed_DLP} we get
+\begin{equation}\label{eq:stress} \ssigma = \ssigma_{\eeta} + \ssigma_{S} + \ssigma_{R},\end{equation}
+where
+\begin{align*}\ssigma_{\eeta} &= \frac{1}{\pi}\left( \frac{\nn\cdot\eeta}{\rho^2}\mathbf{I} -\frac{(\rr\cdot\nn)(\rr\cdot\eeta)(\rr\otimes\rr)}{\rho^6} + \frac{(\rr\cdot\nn)(\rr\otimes\eeta + \eeta\otimes\rr)}{\rho^4} + \frac{(\rr\cdot\eeta)(\rr\otimes\nn + \nn\otimes\rr)}{\rho^4}\right),\\
+\ssigma_S &= \sum\limits_{i=1}^{M_w} \frac{\mathbf{F}_i^\Gamma\cdot(\mathbf{c}_i-\mathbf{x})}{\pi||\mathbf{x}-c_i||^2}(\cc_i - \xx)\otimes(\cc_i-\xx)  + \sum\limits_{j=1}^{M_p} \frac{\mathbf{F}_j^\Gamma\cdot(\mathbf{c}_j-\mathbf{x})}{\pi||\mathbf{x}-c_j||^2}(\cc_j - \xx)\otimes(\cc_j-\xx),\\
+\ssigma_R &= \sum\limits_{i=1}^{M_w} \frac{L_i^\Gamma}{2\pi||\mathbf{x}-c_i||^2}((\cc_i - \xx)\otimes(\cc_i-\xx)^\perp + (\cc_i - \xx)^\perp\otimes(\cc_i-\xx))  \\&\qquad\qquad\qquad + \sum\limits_{j=1}^{M_p}  \frac{L_j^\gamma}{2\pi||\mathbf{x}-c_j||^2}((\cc_j - \xx)\otimes(\cc_j-\xx)^\perp + (\cc_j - \xx)^\perp\otimes(\cc_j-\xx)) .
+\end{align*}
 
 		
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -637,7 +654,7 @@ $2.75h$ & $3.64\e{-1}$ & $3.31\e{-1}$ & $3.13\e{-1}$ & $3.07\e{-1}$ & $3.03\e{-1
 $3.00h$ & $4.12\e{-1}$ & $3.88\e{-1}$ & $3.72\e{-1}$ & $3.67\e{-1}$ & $3.63\e{-1}$
 \end{tabular}
 \end{center}
-\caption{Study of time reversibility of the shear flow setup depiticted in figure \ref{fig:shear_experiment}. At $t=10$ the flow direction is reversed and we calculate the relative error in the starting position and the position at $t=20$. When the collision constraint is active and force is needed to keep the particles apart we no longer recover time reversibility.}\label{tab:reverse}
+\caption{Study of time reversibility of the shear flow setup depicted in figure \ref{fig:shear_experiment}. At $t=10$ the flow direction is reversed and we calculate the relative error in the starting position and the position at $t=20$. When the collision constraint is active and force is needed to keep the particles apart we no longer recover time reversibility.}\label{tab:reverse}
 \end{table}
 
 
