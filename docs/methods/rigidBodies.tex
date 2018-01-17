@@ -51,19 +51,28 @@ This is a methods paper
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Formulation\label{s:formulation}} 
-
-
-
 \subsection{Problem Formulation}
 
-We consider a suspension of rigid particles flowing in a two dimensional
-domain, $\Omega$ with boundary $\partial\Omega$.  The domain may be bounded or
-unbounded, and may be multiply-connected. The enclosures inside $\Omega$ are fixed solid walls or mobile rigid particles. The boundaries of solid walls are denoted $\Gamma_i$, $1\leq i \leq M_w$, the union of these boundaries is denoted $\Gamma$.  The boundaries of rigid particles are denoted $\gamma_j$, $1\leq j\leq M_p$ and their union is denoted $\gamma$. If the geometry is
-bounded, the overall enclosing boundary is $\Gamma_0$.  Thus we can express the boundary as,
-\begin{equation} \partial\Omega =\Gamma_0\cup \Gamma \cup \gamma,\end{equation}
-where $\Gamma_0$ is excluded if the geometry is unbounded. Each solid wall has a center $\cc^\Gamma_i$ and each rigid particle has a center $\cc^\gamma_j$ and an orientation angle $\theta^\gamma_j$.  Finally, each solid wall and rigid
-particle will have a net force and torque that they apply to the fluid denoted $\FF^\Gamma_i$ and $L^\Gamma_i$ for walls, and $\FF^\gamma_j$ and $L^\gamma_j$ for particles respectively.  A schematic
-of the geometry is in Figure~\ref{fig:geomSchematic}
+We consider of rigid particles suspended in a two-dimensional domain,
+$\Omega$, with boundary $\partial\Omega$
+(Figure~\ref{fig:geomSchematic}).  The domain may be either bounded or
+unbounded.  The boundary of the fluid geometry is denoted by
+$\Gamma$---$\Gamma_0$ is the outermost boundary if the domain is
+connected, and $\Gamma_i$, $1\leq i \leq M_w$ are the interior
+components of $\Gamma$.  The boundaries of rigid particles are denoted
+$\gamma_j$, $1\leq j\leq M_p$ and their union is denoted $\gamma$.
+Therefore, the boundary of the fluid domain is
+\begin{align*}
+  \partial\Omega =\Gamma_0\cup \Gamma \cup \gamma,
+\end{align*} 
+where $\Gamma_0$ is excluded if the geometry is unbounded. Each solid
+wall has a center $\cc^\Gamma_i$ and each rigid particle has a center
+$\cc^\gamma_i$ and an orientation angle $\theta^\gamma_i$.  Finally,
+each solid wall has a net force and torque, $\FF^\Gamma_i$ and
+$L^\Gamma_i$, respectively, that it is applying to the fluid, and
+similar forces and torques are defined for each rigid body.  A schematic
+of the geometry is in Figure~\ref{fig:geomSchematic}.
+
 
 %
 %The fluid will be in a domain $\Omega$ with a boundary
@@ -87,10 +96,13 @@ of the geometry is in Figure~\ref{fig:geomSchematic}
   solid wall. The outer boundary $\Gamma_0$ need not be present.  The
   vector $\mathbf{n}$ is the unit normal vector pointing into the fluid
   domain.}
+  \todo[inline]{Fix picture to make consistent with the text}
 \end{figure}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{Governing Equations}\label{sec:governing}
+\todo[inline]{One clean align environment with all the fluid equations
+and boundary conditions}
 At the continuum level the motion of a fluid is described by the
 incompressible Navier-Stokes equations with dimensionless Reynolds
 number
@@ -111,20 +123,29 @@ incompressible Stokes equations,
   \end{aligned}
 \end{equation}
 where $\mu$ is the viscosity, $\uu$ is the velocity, and $p$ is the
-pressure.  A Dirichlet boundary condition will be imposed on the solid
-walls,
+pressure. For the suspension of rigid bodies, the fluid viscosity sets
+the time scale, and we will assume it is one throughout the paper.
+
+Boundary conditions must be imposed on both the solid walls $\Gamma$ and
+the rigid bodies $\gamma$.  On the solid walls, a Dirichlet boundary
+condition
 \begin{align}
   \label{eq:boundary_condition}
-  \mathbf{u} = \mathbf{u}_b, \quad \xx \in \Gamma_0\cup\Gamma,
+  \uu = \uu_b, \quad \xx \in \Gamma_0\cup\Gamma,
 \end{align}
-which must satisfy the flux-free constraint 
+will be imposed which will satisfy the flux-free constraint.  In the
+case of an unbounded flow, a far-field flow velocity is imposed
 \begin{align*}
-%  \label{eq:compatibility}
-  \int_{\Gamma_0\cup\Gamma} \uu_b\cdot\nn~\text{d}s = 0.
+  \uu(\xx) = \uu_\infty(\xx), \quad |\xx| \rightarrow \infty
 \end{align*}
-On the particles we will assume no-slip boundary conditions, meaning the
-velocity at any point on the surface of a particle matches the velocity
-of the fluid.  Since the particles are rigid this can be expressed as,
+
+%which must satisfy the flux-free constraint 
+%\begin{align*}
+%%  \label{eq:compatibility}
+%  \int_{\Gamma_0\cup\Gamma} \uu_b\cdot\nn~\text{d}s = 0.
+%\end{align*}
+On the solid particles, a no-slip boundary condition is imposed. Since
+the particles are rigid this can be expressed as,
 \begin{align}
   \label{eq:particles_noslip}
   \uu = \uu^\tau_j + \omega_j(\xx-\cc^\gamma_j)^\perp, \quad \xx \in \gamma,
@@ -279,6 +300,10 @@ $\uu_\infty(\xx)$ on the right hand side.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{Repulsion Forces}
+\todo[inline]{Tone back this section significantly  Can we show that the
+net force and torque are always zero?  This is important otherwise the
+solution becomes unbounded as per Stokes paradox.  Libin's old code
+didn't support non-circular rigid particles}
 
 \begin{figure}[!h]\label{fig:collision_sketch}
 \begin{center}
@@ -480,6 +505,8 @@ where
 		
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Numerical Methods\label{s:method}} 
+\todo[inline]{Need a lot more on the time stepping method and how ours
+is novel}
 We use a Lagrangian formulation where we track the centers $\cc_i$ and
 orientations $\theta_i$ of each rigid body $\gamma_i$.  We use a fully
 implicit time stepping method and a spectral discretization in space.  All
@@ -623,6 +650,8 @@ $L_k \gets \int_{\Gamma_k}
 \section{Results\label{s:results}} 
 
 \subsection{Shear Flow}
+\todo[inline]{Plot stream lines by doing many runs and showing that they
+cross when contact first happens}
 
 A simple numerical experiment done in \cite{Lu2017} is repeated with our globally implicit time stepper. Two particles are placed in an unbounded shear flow, $\mathbf{u}^\infty = (y, 0)$. The rightmost particle is placed on the origin, while the leftmost particle is placed slightly above the $y$ axis at $(-8, 0.5)$. As the particles come close to each other the left particle is deflected above the right one and continues on a trajectory to the right with a constant $y$ value. The particles are discretized with 32 points, meaning that the arc length spacing is $2\pi/32 \approx 0.196$. In this experiment the particles never get within $2h$ of one another, meaning that if we take $\delta$ to be less than $2h$ the collision constraint is not necessary. 
 \begin{figure}[!h]
@@ -642,7 +671,7 @@ We can use this setup to look at effect of the contact force on the time reversi
 \begin{center}
 \begin{tabular}{c| c c c c c}
 $ $ & & & $\Delta t$ & &\\
-$h$ & $4\e{-2}$ &$ 2\e{-2}$ & $1\e{-2}$ & $5\e{-3}$ & $2.5\e{-3}$\\
+$\delta$ & $4\e{-2}$ &$ 2\e{-2}$ & $1\e{-2}$ & $5\e{-3}$ & $2.5\e{-3}$\\
 \hline
 0 & $1.35\e{-1}$ & $7.32\e{-2}$ & $3.74\e{-2}$ & $2.00\e{-2}$ & $1.01\e{-2}$\\
 $2h$ & $1.88\e{-1}$ & $1.41\e{-1}$ & $1.17\e{-1}$ & $1.08\e{-1}$ & $1.02\e{-1}$\\
@@ -653,6 +682,8 @@ $3.00h$ & $4.12\e{-1}$ & $3.88\e{-1}$ & $3.72\e{-1}$ & $3.67\e{-1}$ & $3.63\e{-1
 \end{tabular}
 \end{center}
 \caption{Study of time reversibility of the shear flow setup depicted in figure \ref{fig:shear_experiment}. At $t=10$ the flow direction is reversed and we calculate the relative error in the starting position and the position at $t=20$. When the collision constraint is active and force is needed to keep the particles apart we no longer recover time reversibility.}\label{tab:reverse}
+\todo[inline]{include $\delta = h$ even if there is no contact.  We
+should see first order}
 \end{table}
 
 
@@ -669,6 +700,8 @@ One of the advantages of using a globally implicit time stepper is that it can h
  \includegraphics[width=3cm]{figures/taylor_green_tracks.pdf}
 \end{tabular}
 \end{center}
+\todo[inline]{Finish this plot so that the green line goes right to the
+time horizon}
 \caption{Dense suspension in unbounded Taylor-Green flow. Particles are discretized with 32 points and a minimum separation of $0.05h$ is enforced. Snapshots of the simulation at $t=0$, $t=15$ and $t=30$ are shown. The bottom right plot shows the track of the center of the particle shaded in magenta for different time step sizes. Each line in that plot is marked where a repulsion force is necessary to enforce the minimum separation. }\label{fig:taylor_green}
 \end{figure}
 
@@ -701,6 +734,8 @@ Another quantity we may be interested is the alignment of the particles. On aver
 \includegraphics{figures/couette_angle_mean.pdf}\\
 \end{center}
 \caption{Deviation from the expected alignment angle. }\label{fig:angles}
+\todo[inline]{Need a better way to present these results.  Problem is
+that a 0 value corresponds to both no alignment and perfect alignment}
 \end{figure} 
 
 \begin{figure}[!h]
@@ -709,6 +744,14 @@ Another quantity we may be interested is the alignment of the particles. On aver
 \end{center}
 \caption{Pressure distribution inside a Couette device. The outer cylinder is spinning while the inner cylinder is fixed. }\label{fig:dissipation}
 \end{figure}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Radial Flow}
+\todo[inline]{Inlet with wall of grated circles}
+
+
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Conclusions\label{s:conclusions}}
 
