@@ -119,7 +119,7 @@ bodies are given by
     &&\mbox{conservation of momentum,}\\
   \grad \cdot \uu = 0, &\hspace{20pt} \xx \in \Omega, \gap
     &&\mbox{conservation of mass,} \\
-  \uu = \uu_b, &\hspace{20pt} \xx \in \Gamma, \gap 
+  \uu = \UU, &\hspace{20pt} \xx \in \Gamma, \gap 
     &&\mbox{wall velocity,} \\
   \uu = \uu^\tau_j + \omega_j(\xx-\cc^\gamma_j)^\perp,&\hspace{20pt} 
     \xx \in \gamma, \gap &&\mbox{no-slip on the particles,} \\
@@ -136,9 +136,9 @@ rotational velocities of rigid body $j$, respectively, and $F_j$ and
 $L_j$ are the net force and torque of rigid body $j$.  For the
 suspension of rigid bodies, the fluid viscosity sets the time scale, and
 we will assume it is one throughout the paper.  In the case of a bounded
-domain, the boundary condition $\uu_b$ must satisfy the standard
-flux-free condition, and in the case that the fluid domain is unbounded,
-the wall velocity equation is replaced with a background flow
+domain, the boundary condition $\UU$ must satisfy the standard flux-free
+condition, and in the case that the fluid domain is unbounded, the wall
+velocity equation is replaced with a background flow
 \begin{align*}
   \uu(\xx) = \uu_\infty(\xx), \quad |\xx| \rightarrow \infty.
 \end{align*}
@@ -147,7 +147,13 @@ The force-free and torque-free conditions will removed---rather, a small
 force and torque will be imposed to guarantee that rigid bodies do not
 come into unphysical contact.  This idea is first described for vesicle
 suspensions by Lu et al.~\cite{Lu2017} and we summarize the method in
-Section~\ref{sec:repulsion}.
+Section~\ref{sec:repulsion}.  Finally, given the rigid body
+translational and rotational velocities, their centers and
+inclination angles $(\cc_j,\theta_j)$, $j=1,\ldots,M_p$, satisfy
+\begin{align*}
+  \frac{d\cc_j}{dt} = \uu^\tau_j, \qquad 
+  \frac{d\theta}{dt} = \omega_j.
+\end{align*}
 
 There exist many numerical methods for simulating the suspensions of
 interfaces in a fluid such as~\eqref{eqn:modelEquations}.  However,
@@ -160,100 +166,168 @@ reformulate~\eqref{eqn:modelEquations}.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{Boundary Integral Equation Representation}
-Since we are solving a linear PDE, an integral equation formulation is
-possible.  More specifically, a {\em boundary integral equation} (BIE)
-formulation is possible.  The BIE formulation has the advantage of a
-dimension reduction in the number of unknowns while obtaining spectral
-accuracy, and the resulting linear system can be solved with optimal
-complexity by using a fast summation method.  A further discussion of
-the advantages of a BIE formulation for the incompressible Stokes
-equations can be found in Karrila and Kim~\cite{Karrila1989}.
+Since the fluid equations are linear and homogeneous, a BIE formulation
+is possible.  In addition to the advantageous dimension reduction, BIEs
+achieve high-order accuracy, automatically satisfy the incompressibility
+constraint, and can be solved with $\bigO(N)$ operations where $N$ is
+the total number of points used to discretize $\bd\Omega$.  A more
+detailed discussion of the advantages of a BIE formulation for the
+incompressible Stokes equations can be found in Karrila and
+Kim~\cite{Karrila1989}.
 
-The solution of the incompressible Stokes
-equations~\eqref{eq:stokes} at a point $\xx \in \Omega$ can be expressed
-as the double layer potential~\cite{Ladyzhenskaya1963, Pozrikidis1992},
+We start by formulating the incompressible Stokes equations in the
+absence of rigid bodies.  The {\em double-layer potential} is
+constructed by taking the convolution of the stresslet with an arbitrary
+density function.  In particular, the double-layer potential
+is~\cite{Ladyzhenskaya1963, Pozrikidis1992},
 \begin{align}
-  \label{eq:dlp}
-  \uu(\xx) = \DD[\eeta](\xx) = \frac{1}{\pi}\int_{\bd\Omega}
+  \label{eqn:dlp}
+  \uu(\xx) = \DD[\eeta](\xx) = \frac{1}{\pi}\int_{\Gamma}
   \frac{\rr\cdot\mathbf{n}}{\rho^2}\frac{\rr \otimes \rr}{\rho^2}
   \eeta(\yy)~\text{d}s_{\yy}, \quad \xx \in \Omega,
 \end{align}
-where $\eeta$ is an unknown density function defined  on $\bd\Omega$,
-$\rr = \xx - \yy$ and $\rho=|\rr|$. 
-
-The double layer potential cannot represent represent rigid body motion.  Following~\cite{Power1987,
-Power1993} for surfaces undergoing an arbitrary net force we complete
-the double layer potential as,
-\begin{align}
-  \label{eq:completed_DLP}
-  \uu(\xx) = \DD[\eeta](\xx) + 
-             \sum_{i=1}^{M_w} \left(\mathbf{S}(\xx,\cc^\Gamma_i)\FF^\Gamma_i + 
-                \mathbf{R}(\xx,\cc^\Gamma_i)L^\Gamma_i\right) + \sum_{j=1}^{M_p} \left(\mathbf{S}(\xx,\cc^\gamma_j)\FF^\gamma_j + 
-                \mathbf{R}(\xx,\cc^\gamma_j)L^\gamma_j\right)  ,
-\end{align}
-where the Stokeslet $\mathbf{S}(\mathbf{x},\mathbf{y})$ and rotlet
-$\mathbf{R}(\mathbf{x},\mathbf{y})$ are given by
+where $\rr = \xx - \yy$, $\rho=|\rr|$, and $\eeta$ is an unknown density
+function defined on $\bd\Omega$.  The double-layer
+potential~\eqref{eqn:dlp} satisfies the incompressible Stokes equations,
+and the density function $\eeta$ must satisfy
 \begin{align*}
-  \mathbf{S}(\xx,\yy) = \frac{\rr \otimes \rr}{\rho^2} - 
-  \log\rho\mathbf{I}, \qquad 
-  \mathbf{R}(\xx,\yy) = \frac{\rr^\perp}{\rho^2}.
+  \lim_{\substack{\xx \rightarrow \xx_0 \\ \xx \in \Omega}}
+    \DD[\eeta](\xx) = \UU(\xx_0),
 \end{align*}
-
-We now choose the density functions, and the strengths of the Stokeslets
-and rotlets so that the boundary
-conditions \eqref{eq:boundary_condition} and \eqref{eq:particles_noslip} are satisfied.  
-The double layer potential has a jump discontinuity at the boundary of
-the geometry. On $\Gamma_0\cup\Gamma$, this leads to
-Fredholm equation,
-\begin{equation}
-  \label{eq:vel_walls} 
-  \begin{aligned}
- \uu_b(\xx) = -\frac{1}{2}\eeta(\xx) + \DD[\eeta](\xx) + 
-             \sum_{i=1}^{M_w} \left(\mathbf{S}(\xx,\cc^\Gamma_i)\FF^\Gamma_i + 
-                \mathbf{R}(\xx,\cc^\Gamma_i)L^\Gamma_i\right) + \sum_{j=1}^{M_p} \left(\mathbf{S}(\xx,\cc^\gamma_j)\FF^\gamma_j + 
-                \mathbf{R}(\xx,\cc^\gamma_j)L^\gamma_j\right),  
-  \end{aligned}
-\end{equation}
-while on $\gamma$ we get
-\begin{equation}  \label{eq:vel_particles} 
-\begin{aligned}
-  \uu^\tau_j + \omega_j(\xx-\cc^\gamma_j)^\perp &= -\frac{1}{2}\eeta(\xx) + \DD[\eeta](\xx) + \\&
-             \sum_{i=1}^{M_w} \left(\mathbf{S}(\xx,\cc^\Gamma_i)\FF^\Gamma_i + 
-                \mathbf{R}(\xx,\cc^\Gamma_i)L^\Gamma_i\right) + \sum_{j=1}^{M_p} \left(\mathbf{S}(\xx,\cc^\gamma_j)\FF^\gamma_j + 
-                \mathbf{R}(\xx,\cc^\gamma_j)L^\gamma_j\right).
- \end{aligned}
-\end{equation}         
-
-Both \eqref{eq:vel_walls} and \eqref{eq:vel_particles} are second kind Fredholm equations for the unknown density function $\eeta(\xx)$. On $\Gamma$ we have prescribed the velocity $\uu_b(\xx)$, but we need to solve for the net force and torque on each wall. On $\gamma$ on the other hand we know the net force and torque beforehand and must solve for the translational and rotational velocity of each particle. 
-
-A simple counting argument shows that this system is indeterminate since we have more unknowns than equations. We follow Power~\cite{Power1993} and
-relate the density function $\eeta$ on each solid wall $\Gamma_i$ and
-each rigid body $\gamma_i$ to their corresponding force and torque
-\begin{equation}
-  \label{eq:closure}
-  \begin{aligned}
-    \int_{\Gamma_i} \eeta~\text{d}s &= \FF^\Gamma_i, \quad
-    \int_{\Gamma_i} \eeta\cdot (\xx - \cc^\Gamma_i)^\perp~\text{d}s = L^\Gamma_i, \\
-    \int_{\gamma_j} \eeta~\text{d}s &= \FF^\gamma_j, \quad
-    \int_{\gamma_j} \eeta\cdot (\xx - \cc^\gamma_j)^\perp~\text{d}s = L^\gamma_j.
-  \end{aligned}
-\end{equation}
-For bounded domains, this BIE
-formulation has a rank one null space~\cite{Ladyzhenskaya1963}.
-Following~\cite{Power1993}, this null space is removed by adding the
-term
+for all $\xx_0 \in \bd\Gamma$, where $\UU$ is the imposed wall velocity.
+The effect of the limit results in a jump~\cite{Pozrikidis1992}, and the
+density function must satisfy  
 \begin{align}
-  \label{eq:N0_modification}
-  \mathcal{N}_0[\eeta](\xx) = \int_{\Gamma_0}
-  \nn(\xx)\otimes\nn(\yy)~\text{d}s(\mathbf{y}),
+  -\frac{1}{2} \eeta(\xx_0) + \DD[\eeta](\xx_0) = \UU(\xx_0),
+  \label{eqn:secondKindBIE}
 \end{align}
-to~\eqref{eq:vel_walls}, but only for points $\xx \in \Gamma_0$.
+for all $\xx_0 \in \Gamma$.  The double-layer potential does satisfy the
+incompressible Stokes equations, but it cannot represent all solutions
+of the incompressible Stokes equations; in particular, it cannot
+represent rigid body motion.  This can be rectified by introducing point
+forces and torques due to each interior component of the geometry
+$\Gamma_j$, $j = 1,\ldots,M_w$~\cite{Power1987, Power1993}.  This is
+done by introducing the net force and torque about a point $\cc$
+\begin{align*}
+  \mathbf{S}(\xx,\cc) = \frac{\rr \otimes \rr}{\rho^2} - 
+  \log\rho\mathbf{I}, \quad \text{and} \quad
+  \mathbf{R}(\xx,\cc) = \frac{\rr^\perp}{\rho^2},
+\end{align*}
+respectively, where $\rr = \xx - \cc$ and $\rho = |\rr|$.  Then, the
+second-kind integral equation~\eqref{eqn:secondKindBIE} is replaced with
+the completed second-kind BIE
+\begin{equation}
+  \label{eq:completed_DLP}
+  \begin{split}
+  -\frac{1}{2}\eeta(\xx_0) + \DD_{\Gamma\Gamma}[\eeta](\xx_0) + 
+    \sum_{j=1}^{M_w} \left(\mathbf{S}(\xx,\cc^\Gamma_j)\FF^\Gamma_j + 
+      \mathbf{R}(\xx,\cc^\Gamma_j)L^\Gamma_j\right) &= \UU(\xx_0),
+      \quad &&\xx_0 \in \Gamma, \\
+  \int_{\Gamma_j} \eeta~\text{d}s &= \FF^\Gamma_j, 
+      &&j=1,\ldots,M_w, \\
+  \int_{\Gamma_j} \eeta\cdot (\xx - \cc^\Gamma_j)^\perp~\text{d}s &=   
+      L^\Gamma_j, &&j=1,\ldots,M_w.
+%                \sum_{j=1}^{M_p} \left(\mathbf{S}(\xx,\cc^\gamma_j)\FF^\gamma_j + 
+%                \mathbf{R}(\xx,\cc^\gamma_j)L^\gamma_j\right)  =
+  \end{split}
+\end{equation}
 
-In the case of unbounded domains, a background velocity
-$\uu_\infty(\xx)$ is given.  Then, equations~\eqref{eq:vel_walls}
-and~\eqref{eq:vel_particles} are augmented with the term
-$\uu_\infty(\xx)$ on the right hand side. 
+We now consider introducing a suspension of rigid bodies $\gamma_j$,
+$j=1,\ldots,M_p$.  Imposing the no-slip boundary condition on the rigid
+bodies, the BIE formulation of the suspension of rigid bodies governed
+by equation~\eqref{eqn:modelEquations} is
+\begin{subequations}
+  \label{eqn:BIEformulation}
+\begin{align}
+  \UU(\xx) &= -\frac{1}{2}\eeta(\xx) + \DD[\eeta](\xx) +
+    \sum_{j=1}^{M_w} \left(\mathbf{S}(\xx,\cc^\Gamma_j)\FF^\Gamma_j + 
+      \mathbf{R}(\xx,\cc^\Gamma_j)L^\Gamma_j\right) + 
+    \sum_{j=1}^{M_p} \left(\mathbf{S}(\xx,\cc^\gamma_j)\FF^\gamma_j + 
+      \mathbf{R}(\xx,\cc^\gamma_j)L^\gamma_j\right), 
+    \quad \xx \in \Gamma, \label{eqn:BIEformulation1} \\
+  \uu^\tau_j + \omega_j(\xx - \cc_j^\tau) &=
+    -\frac{1}{2}\eeta(\xx) + \DD[\eeta](\xx) + 
+    \sum_{j=1}^{M_w} \left(\mathbf{S}(\xx,\cc^\Gamma_j)\FF^\Gamma_j + 
+      \mathbf{R}(\xx,\cc^\Gamma_j)L^\Gamma_j\right) + 
+    \sum_{j=1}^{M_p} \left(\mathbf{S}(\xx,\cc^\gamma_j)\FF^\gamma_j + 
+      \mathbf{R}(\xx,\cc^\gamma_j)L^\gamma_j\right), 
+    \quad \xx \in \gamma, \label{eqn:BIEformulation2} \\
+  \int_{\Gamma_j} \eeta~\text{d}s &= \FF^\Gamma_j, \quad
+  \int_{\Gamma_j} \eeta\cdot (\xx - \cc^\Gamma_j)^\perp~\text{d}s =
+  L^\Gamma_j, \quad j=1,\ldots,M_w, \label{eqn:BIEformulation3} \\
+  \int_{\gamma_j} \eeta~\text{d}s &= \FF^\gamma_j, \quad
+  \int_{\gamma_j} \eeta\cdot (\xx - \cc^\gamma_j)^\perp~\text{d}s =
+  L^\gamma_j,\quad j=1,\ldots,M_p, \label{eqn:BIEformulation4} \\
+  \FF^\gamma_j &= 0, \quad \L^\gamma_j = 0,\quad j=1,\ldots,M_p.
+  \label{eqn:BIEformulation5}
+\end{align}
+\end{subequations}
+This constitutes eight equations for eight unknowns: the density
+function, net force, and net torque on the solid walls and rigid bodies,
+and the translational and rotational velocities.  We have adopted the
+method of Power~\cite{Power1993} to relate the density function on the
+rigid bodies to the corresponding force and torque.
 
+%We now choose the density functions, and the strengths of the Stokeslets
+%and rotlets so that the boundary conditions
+%\eqref{eq:boundary_condition} and \eqref{eq:particles_noslip} are
+%satisfied.  The double layer potential has a jump discontinuity at the
+%boundary of the geometry. On $\Gamma_0\cup\Gamma$, this leads to
+%Fredholm equation,
+%\begin{equation}
+%  \label{eq:vel_walls} 
+%  \begin{aligned}
+% \uu_b(\xx) = -\frac{1}{2}\eeta(\xx) + \DD[\eeta](\xx) + 
+%             \sum_{i=1}^{M_w} \left(\mathbf{S}(\xx,\cc^\Gamma_i)\FF^\Gamma_i + 
+%                \mathbf{R}(\xx,\cc^\Gamma_i)L^\Gamma_i\right) + \sum_{j=1}^{M_p} \left(\mathbf{S}(\xx,\cc^\gamma_j)\FF^\gamma_j + 
+%                \mathbf{R}(\xx,\cc^\gamma_j)L^\gamma_j\right),  
+%  \end{aligned}
+%\end{equation}
+%while on $\gamma$ we get
+%\begin{equation}  \label{eq:vel_particles} 
+%\begin{aligned}
+%  \uu^\tau_j + \omega_j(\xx-\cc^\gamma_j)^\perp &= -\frac{1}{2}\eeta(\xx) + \DD[\eeta](\xx) + \\&
+%             \sum_{i=1}^{M_w} \left(\mathbf{S}(\xx,\cc^\Gamma_i)\FF^\Gamma_i + 
+%                \mathbf{R}(\xx,\cc^\Gamma_i)L^\Gamma_i\right) + \sum_{j=1}^{M_p} \left(\mathbf{S}(\xx,\cc^\gamma_j)\FF^\gamma_j + 
+%                \mathbf{R}(\xx,\cc^\gamma_j)L^\gamma_j\right).
+% \end{aligned}
+%\end{equation}         
+While~\eqref{eqn:BIEformulation1} and~\eqref{eqn:BIEformulation2} are
+both numerically desirable second-kind Fredholm integral equations
+equations  for the unknown density function $\eeta(\xx)$,
+equation~\eqref{eqn:BIEformulation1} still has a rank one null
+space~\cite{Ladyzhenskaya1963}.  Following~\cite{Power1993}, this null
+space is removed by adding the term 
+\begin{align}
+\label{eq:N0_modification} 
+  \mathcal{N}_0[\eeta](\xx) = \int_{\Gamma_0} 
+    \nn(\xx)\otimes\nn(\yy)~\text{d}s(\mathbf{y}), 
+\end{align}
+to~\eqref{eqn:BIEformulation1}, but only for points $\xx \in \Gamma_0$.
+Finally, if there are no solid walls, there is no null space, and
+the only modification to~\eqref{eqn:BIEformulation} is that
+equation~\eqref{eqn:BIEformulation} is removed and
+equation~\eqref{eqn:BIEformulation} has the background velocity
+$\uu_\infty(\xx)$ added to the left hand side.
+
+%On $\Gamma$ we have prescribed the velocity $\uu_b(\xx)$,
+%but we need to solve for the net force and torque on each wall. On
+%$\gamma$ on the other hand we know the net force and torque beforehand
+%and must solve for the translational and rotational velocity of each
+%particle. 
+%
+%A simple counting argument shows that this system is indeterminate since we have more unknowns than equations. We follow Power~\cite{Power1993} and
+%relate the density function $\eeta$ on each solid wall $\Gamma_i$ and
+%each rigid body $\gamma_i$ to their corresponding force and torque
+%\begin{equation}
+%  \label{eq:closure}
+%  \begin{aligned}
+%    \int_{\Gamma_i} \eeta~\text{d}s &= \FF^\Gamma_i, \quad
+%    \int_{\Gamma_i} \eeta\cdot (\xx - \cc^\Gamma_i)^\perp~\text{d}s = L^\Gamma_i, \\
+%    \int_{\gamma_j} \eeta~\text{d}s &= \FF^\gamma_j, \quad
+%    \int_{\gamma_j} \eeta\cdot (\xx - \cc^\gamma_j)^\perp~\text{d}s = L^\gamma_j.
+%  \end{aligned}
+%\end{equation}
 
 
 
