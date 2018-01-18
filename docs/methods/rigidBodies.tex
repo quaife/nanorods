@@ -4,7 +4,7 @@
 \newcommand{\secref}[1]{\ref{#1}}
 
 \input{preambles.tex}
-\usepackage{comment}
+
 \begin{document}
 
 \title{Methods paper for rigid bodies}
@@ -101,56 +101,62 @@ of the geometry is in Figure~\ref{fig:geomSchematic}.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{Governing Equations}\label{sec:governing}
-\todo[inline]{One clean align environment with all the fluid equations
-and boundary conditions}
 At the continuum level the motion of a fluid is described by the
 incompressible Navier-Stokes equations with dimensionless Reynolds
-number
-\begin{align*}
-  \Re = \frac{UL}{\nu},
-\end{align*}
-where $U$ is a characteristic speed, $L$ is a characteristic lengths
-scale, and $\nu$ is the kinematic fluid viscosity.  We are interested in
-small particles and slow velocities which renders the Reynolds number
-small $\Re \ll 1$.  Therefore, the fluid is governed by the
-incompressible Stokes equations,
+number $\Re = UL/\nu$, where $U$ is a characteristic speed, $L$ is a
+characteristic lengths scale, and $\nu$ is the kinematic fluid
+viscosity.  We are interested in small particles and slow velocities
+which renders the Reynolds number small $\Re \ll 1$.  Therefore, the
+fluid is governed by the incompressible Stokes equations.  A Dirichlet
+boundary condition are imposed on both the solid walls $\Gamma$ and the
+rigid bodies $\gamma$.  Given the definitions in the previous section
+and the scales of interest, the equations for the suspension of rigid
+bodies are given by
 \begin{equation}
-  \label{eq:stokes}
-  \begin{aligned}
-  -\mu\Delta \mathbf{u} + \nabla p &= \mathbf{0},
-    &&\xx \in \Omega, \\	  
-  \nabla\cdot\mathbf{u} &= 0, && \xx \in \Omega,
-  \end{aligned}
+  \label{eqn:modelEquations}
+  \begin{split}
+  \mu \Delta \uu = \grad p, &\hspace{20pt} \xx \in \Omega, \gap
+    &&\mbox{conservation of momentum,}\\
+  \grad \cdot \uu = 0, &\hspace{20pt} \xx \in \Omega, \gap
+    &&\mbox{conservation of mass,} \\
+  \uu = \uu_b, &\hspace{20pt} \xx \in \Gamma, \gap 
+    &&\mbox{wall velocity,} \\
+  \uu = \uu^\tau_j + \omega_j(\xx-\cc^\gamma_j)^\perp,&\hspace{20pt} 
+    \xx \in \gamma, \gap &&\mbox{no-slip on the particles,} \\
+  \FF_j = 0, &\hspace{20pt}j=1,\ldots,M_p, \gap 
+    &&\mbox{force-free particles,} \\
+  L_j = 0, &\hspace{20pt}j=1,\ldots,M_p, \gap 
+    &&\mbox{torque-free particles,}
+  \end{split}
 \end{equation}
-where $\mu$ is the viscosity, $\uu$ is the velocity, and $p$ is the
-pressure. For the suspension of rigid bodies, the fluid viscosity sets
-the time scale, and we will assume it is one throughout the paper.
 
-Boundary conditions must be imposed on both the solid walls $\Gamma$ and
-the rigid bodies $\gamma$.  On the solid walls, a Dirichlet boundary
-condition
-\begin{align}
-  \label{eq:boundary_condition}
-  \uu = \uu_b, \quad \xx \in \Gamma_0\cup\Gamma,
-\end{align}
-will be imposed which will satisfy the flux-free constraint.  In the
-case of an unbounded flow, a far-field flow velocity is imposed
+Here, $\mu$ is the fluid viscosity, $\uu$ is the velocity, $p$ is the
+pressure, $\uu^\tau_j$ and $\omega_j$ are the translational and
+rotational velocities of rigid body $j$, respectively, and $F_j$ and
+$L_j$ are the net force and torque of rigid body $j$.  For the
+suspension of rigid bodies, the fluid viscosity sets the time scale, and
+we will assume it is one throughout the paper.  In the case of a bounded
+domain, the boundary condition $\uu_b$ must satisfy the standard
+flux-free condition, and in the case that the fluid domain is unbounded,
+the wall velocity equation is replaced with a background flow
 \begin{align*}
-  \uu(\xx) = \uu_\infty(\xx), \quad |\xx| \rightarrow \infty
+  \uu(\xx) = \uu_\infty(\xx), \quad |\xx| \rightarrow \infty.
 \end{align*}
 
-%which must satisfy the flux-free constraint 
-%\begin{align*}
-%%  \label{eq:compatibility}
-%  \int_{\Gamma_0\cup\Gamma} \uu_b\cdot\nn~\text{d}s = 0.
-%\end{align*}
-On the solid particles, a no-slip boundary condition is imposed. Since
-the particles are rigid this can be expressed as,
-\begin{align}
-  \label{eq:particles_noslip}
-  \uu = \uu^\tau_j + \omega_j(\xx-\cc^\gamma_j)^\perp, \quad \xx \in \gamma,
-\end{align}
-where $\uu^\tau_j$ and $\omega_j$ are the translational and rotational velocities respectively of particles $j$.
+The force-free and torque-free conditions will removed---rather, a small
+force and torque will be imposed to guarantee that rigid bodies do not
+come into unphysical contact.  This idea is first described for vesicle
+suspensions by Lu et al.~\cite{Lu2017} and we summarize the method in
+Section~\ref{sec:repulsion}.
+
+There exist many numerical methods for simulating the suspensions of
+interfaces in a fluid such as~\eqref{eqn:modelEquations}.  However,
+given that the fluid equations are linear, we opt to use a boundary
+integral equation (BIE) formulation~\cite{Pozrikidis1992}.  BIEs have
+the advantage that only the interface has to be tracked, resulting in a
+dimension reduction and ease in treating complex geometries.  In the
+next section, we introduce the necessary integral operators needed to
+reformulate~\eqref{eqn:modelEquations}.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{Boundary Integral Equation Representation}
@@ -300,6 +306,7 @@ $\uu_\infty(\xx)$ on the right hand side.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{Repulsion Forces}
+\label{sec:repulsion}
 \todo[inline]{Tone back this section significantly  Can we show that the
 net force and torque are always zero?  This is important otherwise the
 solution becomes unbounded as per Stokes paradox.  Libin's old code
