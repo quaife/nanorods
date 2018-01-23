@@ -252,7 +252,7 @@ by equation~\eqref{eqn:modelEquations} is
       &\hspace{96pt}+\sum_{j=1}^{M_p} \left(\mathbf{S}(\xx,\cc^\gamma_j)\FF^\gamma_j + 
       \mathbf{R}(\xx,\cc^\gamma_j)L^\gamma_j\right), 
     \quad \xx \in \Gamma, \label{eqn:BIEformulation1} \\
-  \uu^\tau_j + \omega_j(\xx - \cc_j^\tau) &=
+  \uu^\tau_j + \omega_j(\xx - \cc_j^\gamma) &=
     -\frac{1}{2}\eeta(\xx) + \DD[\eeta](\xx) + 
     \sum_{j=1}^{M_w} \left(\mathbf{S}(\xx,\cc^\Gamma_j)\FF^\Gamma_j + 
       \mathbf{R}(\xx,\cc^\Gamma_j)L^\Gamma_j\right) \nonumber \\
@@ -477,7 +477,7 @@ constraint that the solution $\mathbf{u}$ at a time $t_0$ should not
 introduce collisions at time $t_0+\Delta t$, in other words
 $\mathbf{V}(t_0 + \Delta t) \geq \mathbf{0}$.  This constraint can be
 incorporated in the Lagrangian \eqref{eq:lagrangian} with the
-introduction of a Lagrange multiplier $\pmb{\lambda}$ with one component
+introduction of a Lagrange multiplier $\llambda$ with one component
 foreach possible collision volume,
 \begin{equation}\label{eq:lagrangian2} \tilde{\mathcal{L}}(\mathbf{u},p,\lambda)= \mathcal{L}(\mathbf{u},p) + \pmb{\lambda} \cdot \mathbf{V}(t_0+\Delta
 t).\end{equation}
@@ -596,7 +596,7 @@ and substitute the double-layer potential~\eqref{eqn:dlp}.  By
 integrating, the pressure of the double-layer potential is
 \begin{align*}
   p(\xx) = \frac{1}{\pi}\int_{\partial\Omega}\frac{1}{\rho^2}\left((
-    \mathbf{I} - 2(\rr \otimes \rr)\nn\right)\cdot\pmb{\eta}~\text{d}s. 
+    \mathbf{I} - 2(\rr \otimes \rr)\nn\right)\cdot\eeta~\text{d}s. 
 \end{align*}
 The pressure due to the Stokeslets and rotlets can be easily computed,
 and the pressure resulting from the completed double-layer potential
@@ -604,16 +604,16 @@ formulation for the velocity~\eqref{eqn:completed_DLP} is
 \begin{align}
   \label{eqn:pressure} 
   p(\xx) = \frac{1}{\pi}\int_{\partial\Omega}\frac{1}{\rho^2}\left((
-    \mathbf{I} - 2(\rr \otimes \rr)\nn\right)\cdot\pmb{\eta}~\text{d}s +
-  \sum\limits_{i=1}^{M_w}
+    \mathbf{I} - 2(\rr \otimes \rr)\nn\right)\cdot\eeta~\text{d}s +
+  \sum_{i=1}^{M_w}
   \frac{\FF_i^\Gamma\cdot(\xx-\cc_i^\Gamma)}{2\pi||\xx-\cc_i^{\Gamma}||^2}
-  + \sum\limits_{i=1}^{M_p}
+  + \sum_{i=1}^{M_p}
     \frac{\FF_i^\gamma\cdot(\xx-\cc_i^\gamma)}{2\pi|\xx-\cc_i^\gamma|^2}.
 \end{align}
 
 To compute the stress tensor
 \begin{align*} 
-  \pmb{\sigma} = -p \mathbf{I} + \left(\nabla \uu + (\nabla\uu)^T\right),
+  \ssigma = -p \mathbf{I} + \left(\nabla \uu + (\nabla\uu)^T\right),
 \end{align*}
 we start by using the layer potential representation of the
 pressure~\eqref{eqn:pressure}.  Then, the viscous stress tensor is
@@ -630,16 +630,16 @@ where
     -\frac{(\rr\cdot\nn)(\rr\cdot\eeta)(\rr\otimes\rr)}{\rho^6} 
     +\frac{(\rr\cdot\nn)(\rr\otimes\eeta + \eeta\otimes\rr)}{\rho^4} 
     + \frac{(\rr\cdot\eeta)(\rr\otimes\nn + \nn\otimes\rr)}{\rho^4}\right)\text{d}s,\\
-  \ssigma_S(\xx) &= \sum\limits_{i=1}^{M_w} 
+  \ssigma_S(\xx) &= \sum_{i=1}^{M_w} 
     \frac{\FF_i^\Gamma\cdot(\cc_i^\Gamma-\xx)}{\pi|\xx-\cc_i^\Gamma|^2}
         (\cc_i^\Gamma - \xx)\otimes(\cc_i^\Gamma-\xx)  + 
-    \sum\limits_{i=1}^{M_p}
+    \sum_{i=1}^{M_p}
     \frac{\FF_i^\gamma\cdot(\cc_i^\gamma-\xx)}{\pi|\xx-\cc_i^\gamma|^2}
         (\cc_i^\gamma - \xx)\otimes(\cc_i^\gamma-\xx),\\
-  \ssigma_R(\xx) &= \sum\limits_{i=1}^{M_w} \frac{L_i^\Gamma}{2\pi|\xx-\cc_i^\Gamma|^2}
+  \ssigma_R(\xx) &= \sum_{i=1}^{M_w} \frac{L_i^\Gamma}{2\pi|\xx-\cc_i^\Gamma|^2}
         ((\cc_i^\gamma - \xx)\otimes(\cc_i^\gamma-\xx)^\perp + 
     (\cc_i^\gamma - \xx)^\perp\otimes(\cc_i^\gamma-\xx))  \\
-  &\qquad\qquad\qquad + \sum\limits_{i=1}^{M_p} \frac{L_i^\gamma}{2\pi|\xx-\cc_i^\gamma|^2}
+  &\qquad\qquad\qquad + \sum_{i=1}^{M_p} \frac{L_i^\gamma}{2\pi|\xx-\cc_i^\gamma|^2}
     ((\cc_i^\gamma - \xx)\otimes(\cc_i^\gamma-\xx)^\perp + 
     (\cc_i^\gamma - \xx)^\perp\otimes(\cc_i^\gamma-\xx)).
 \end{align*}
@@ -648,18 +648,28 @@ where
 \section{Numerical Methods\label{s:method}} 
 \todo[inline]{Need a lot more on the time stepping method and how ours
 is novel}
-We use a Lagrangian formulation where we track the centers $\cc_i$ and
-orientations $\theta_i$ of each rigid body $\gamma_i$.  We use a fully
-implicit time stepping method and a spectral discretization in space.  All
-the integral equations are discretized with a Nystr\"om  methods, and
-interactions between nearly touching interfaces is resolved with a
-near-singular integration scheme.  Finally, the Fast Multipole Method
-(FMM) is used to accelerate the matrix-vector multiplications that arise
-upon discretization.  By using these methods, spectral accuracy can be
-achieved for long time horizons with optimal complexity.
+With the goal of performing long-time accurate simulations of dense
+suspensions, appropriate numerical methods must be employed.  To achieve
+high-order accuracy, the spatial grid is resolved with spectral accuracy
+(Section~\ref{}), and stability is achieved by using implicit
+interactions in the time integrator (Section~\ref{}).  Finally, to
+reduce the computational cost, the fast multipole method and a
+block-diagonal preconditioner are used.
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{Spatial Discretization}
+\todo[inline]{dump of old text}
+We use a fully implicit time stepping method and a spectral
+discretization in space.  All the integral equations are discretized
+with a Nystr\"om  methods, and interactions between nearly touching
+interfaces is resolved with a near-singular integration scheme.
+Finally, the Fast Multipole Method (FMM) is used to accelerate the
+matrix-vector multiplications that arise upon discretization.  By using
+these methods, spectral accuracy can be achieved for long time horizons
+with optimal complexity.
+\todo[inline]{dump of old text}
+
 Letting $\xx(\alpha)$ be a parameterization of a rigid body or a solid
 wall, we can represent any smooth function defined on this curve using a
 Fourier series as
@@ -730,17 +740,52 @@ proportional to the cost of doing a single matrix-vector multiply.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{Time Stepping Methods}
 \todo[inline]{Bryan can write this section}
+\todo[inline]{dump of old text}
+We use a Lagrangian formulation where we track the centers
+$\cc_i^\gamma$ and orientations $\theta_i$ of each rigid body
+$\gamma_i$. 
 
 Once we solve for the translational and angular velocity of the
 particles, the position and angle of each particle are updated according
 to the ODEs,
-\[ \frac{\text{d}}{\text{d}t}\mathbf{c}_k = \mathbf{u}^\tau_k, \qquad
-\frac{\text{d}}{\text{d}t}\theta_k =\omega_k.\]
+\begin{align*}
+  \frac{\text{d}}{\text{d}t}\mathbf{c}_k = \mathbf{u}^\tau_k, \qquad
+  \frac{\text{d}}{\text{d}t}\theta_k =\omega_k.
+\end{align*}
 The ODEs are advanced in time using an explicit Euler step. 
+\todo[inline]{dump of old text}
+
+While the governing equations for the rigid bodies centers and
+inclination angle are quite simple,
+\begin{align*}
+  \frac{d\cc_j}{dt} &= \uu_j^\tau \\
+  \frac{d\theta_j}{dt} &=\omega_j,
+\end{align*}
+the stability of the method is strongly dependent on the method used to
+solve the fluid dynamics (equation~\eqref{eqn:completed_DLP}) that
+returns the translational and angular velocities $\uu_j$ and $\omega_j$.
+While the interactions between different bodies can be treated
+explicitly or implicitly, the layer potential will always be discretized
+explicitly.
+
+In the original work of Lu et al.~\cite{Lu2017}, they use a
+semi-implicit method where the interaction between a rigid body and
+itself are treated implicitly, and all other interactions are treated
+explicitly.  For example, the governing equation for the rigid
+bodies~\eqref{eqn:BIEformulation2} are discretized as
+\begin{align*}
+  \uu_j^\tau + \omega_j(\xx - \cc_j^\gamma) = -\frac{1}{2}\eeta
+\end{align*}
+
+
+
+
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{Fast Summation and Preconditioning}
+\todo[inline]{Do we describe how the preconditioner is updated by simply
+rotating?}
 The linear system arising from ~\eqref{eq:vel_walls},~\eqref{eq:vel_particles},
 and~\eqref{eq:closure}  is discretized using a collocation trapezoid
 method. For particles that are in near-contact the near singular
@@ -773,11 +818,11 @@ stepping can lead to instabilities as particles become tightly packed.
 	Compute $\mathbf{V}(\mathbf{q}^0,\mathbf{q}^*)$, $\text{d}_u\mathbf{V}$\;
 	\While {$\mathbf{V} < \mathbf{0}$}
 	{
-		$\pmb{\lambda} \gets$ LCP\_solve($\text{d}_{\mathbf{u}}\mathbf{V}$)\;
+		$\llambda \gets$ LCP\_solve($\text{d}_{\mathbf{u}}\mathbf{V}$)\;
 $\mathbf{F}_k \gets \int_{\Gamma_k}
-\text{d}_{\mathbf{u}}\mathbf{V}^T\pmb{\lambda}~\text{d}s$\;
+\text{d}_{\mathbf{u}}\mathbf{V}^T\llambda~\text{d}s$\;
 $L_k \gets \int_{\Gamma_k}
-\text{d}_{\mathbf{u}}\mathbf{V}^T\pmb{\lambda}\cdot(\mathbf{x}-\mathbf{c}_k)^\perp~\text{d}s$\;
+\text{d}_{\mathbf{u}}\mathbf{V}^T\llambda\cdot(\mathbf{x}-\mathbf{c}_k)^\perp~\text{d}s$\;
 		$\mathbf{u}^* \gets \mathbf{A}(\mathbf{q}^0,\mathbf{F}_k,\mathbf{L}_k)$\;
 		$\mathbf{q}^* \gets \mathbf{q}^0 + \Delta t \mathbf{u}^*$\;
 		Compute $\mathbf{V}(\mathbf{q}^0,\mathbf{q}^*)$, $\text{d}_u\mathbf{V}$\;
