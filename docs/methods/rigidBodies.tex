@@ -91,13 +91,12 @@ geometry is in Figure~\ref{fig:geomSchematic}.
 \includegraphics{figures/multiply_connected.pdf}
 \end{center}
 \caption{\label{fig:geomSchematic}Sketch of a possible domain $\Omega$.
-  $\gamma_1$ and $\gamma_2$ enclose particles, while $\Gamma_1$ is a
-  solid wall. The outer boundary $\Gamma_0$ need not be present.  The
-  vector $\mathbf{n}$ is the unit normal vector pointing into the fluid
-  domain.}
-  \todo[inline]{Fix picture to make consistent with the text}
-  \todo[inline]{Shade in the rigid bodies like Libin did to classify
-  rigid bodies from holes in the geometry}
+$\gamma_1$ and $\gamma_2$ enclose particles, while $\Gamma_1$ is a solid
+wall. The outer boundary $\Gamma_0$ need not be present.  The vector
+$\nn$ is the unit normal vector pointing into the fluid domain.}
+\todo[inline]{Fix picture to make consistent with the text}
+\todo[inline]{Shade in the rigid bodies like Libin did to classify rigid
+bodies from holes in the geometry}
 \end{figure}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -190,7 +189,7 @@ Pozrikidis1992},
 \begin{align}
   \label{eqn:dlp}
   \uu(\xx) = \DD[\eeta](\xx) = \frac{1}{\pi}\int_{\Gamma}
-  \frac{\rr\cdot\mathbf{n}}{\rho^2}\frac{\rr \otimes \rr}{\rho^2}
+  \frac{\rr\cdot\nn}{\rho^2}\frac{\rr \otimes \rr}{\rho^2}
   \eeta(\yy)~\text{d}s_{\yy}, \quad \xx \in \Omega,
 \end{align}
 where $\rr = \xx - \yy$, $\rho=|\rr|$, and $\eeta$ is an unknown density
@@ -311,7 +310,7 @@ space is removed by adding the term
 \begin{align}
 \label{eq:N0_modification} 
   \mathcal{N}_0[\eeta](\xx) = \int_{\Gamma_0} 
-    \nn(\xx)\otimes\nn(\yy)~\text{d}s(\mathbf{y})
+    \nn(\xx)\otimes\nn(\yy)~\text{d}s(\yy)
 \end{align}
 to~\eqref{eqn:BIEformulation1}, but only for points $\xx \in \Gamma_0$.
 Finally, if there are no solid walls, there is no null space, and
@@ -442,11 +441,15 @@ There are several possible choices for $\mathbf{V}(t)$, the simplest
 being a signed distance between all points on all particles. We use the
 concept of {\em Space-Time Interference Volumes} (STIV) introduced by
 Harmon et al.~\cite{Harmon2011} and adapted for the suspension of
-deformable and rigid particles~\cite{Lu2017}. STIVs involve a time integral and
-are therefore more expensive to compute than other metrics (e.g. a signed
-distance). In most simulations however the cost of computing an STIV is dwarfed by the cost of the linear solves necessary to compute the velocities of the particles. The advantage of STIVs compared to simpler metrics is that under the assumption of
-ballistic motion they are able to detect collisions between two particles that
-pass completely through one another, i.e. it can detect that a collision has occurred even if the final candidate configuration is contact-free.
+deformable and rigid particles~\cite{Lu2017}. STIVs involve a time
+integral and are therefore more expensive to compute than other metrics
+(e.g. a signed distance). In most simulations however the cost of
+computing an STIV is dwarfed by the cost of the linear solves necessary
+to compute the velocities of the particles. The advantage of STIVs
+compared to simpler metrics is that under the assumption of ballistic
+motion they are able to detect collisions between two particles that
+pass completely through one another, i.e. it can detect that a collision
+has occurred even if the final candidate configuration is contact-free.
 
 
 
@@ -467,10 +470,15 @@ can construct a Lagrangian for this system,
 \begin{equation}\label{eq:lagrangian} \mathcal{L}(\mathbf{u},p) =
 \mathcal{J}(\mathbf{u}) - \int_{\Omega}
 2p\nabla\cdot\mathbf{u}~\text{d}\Omega.\end{equation}
-First order optimality (KKT) conditions for $\mathcal{L}(\mathbf{u},p)$ recover
-the incompressible Stokes equations. For our problem, in addition to the
-incompressibility condition, we wish to enforce the constraint that the solution $\mathbf{u}$ at a time $t_0$ should not introduce collisions at time $t_0+\Delta t$, in other words $\mathbf{V}(t_0 + \Delta t) \geq \mathbf{0}$.
-This constraint can be incorporated in the Lagrangian \eqref{eq:lagrangian} with the introduction of a Lagrange multiplier $\pmb{\lambda}$ with one component foreach possible collision volume,
+First order optimality (KKT) conditions for $\mathcal{L}(\mathbf{u},p)$
+recover the incompressible Stokes equations. For our problem, in
+addition to the incompressibility condition, we wish to enforce the
+constraint that the solution $\mathbf{u}$ at a time $t_0$ should not
+introduce collisions at time $t_0+\Delta t$, in other words
+$\mathbf{V}(t_0 + \Delta t) \geq \mathbf{0}$.  This constraint can be
+incorporated in the Lagrangian \eqref{eq:lagrangian} with the
+introduction of a Lagrange multiplier $\pmb{\lambda}$ with one component
+foreach possible collision volume,
 \begin{equation}\label{eq:lagrangian2} \tilde{\mathcal{L}}(\mathbf{u},p,\lambda)= \mathcal{L}(\mathbf{u},p) + \pmb{\lambda} \cdot \mathbf{V}(t_0+\Delta
 t).\end{equation}
 First order optimality for \eqref{eq:lagrangian2} yields the Stokes equations
@@ -571,28 +579,70 @@ t\biggl(\mathcal{M}\begin{bmatrix}\mathbf{0}\\\mathbf{0}\\\mathbf{e}_\infty\end{
 
 The sequence \eqref{eq:lcp} will be solved at each time step. 
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{Computing Pressures and Stresses}
+To understand the rheological and statistical properties of suspensions
+of rigid bodies, it is necessary to compute quantities such as the
+pressure, stress, and energy dissipation.  In the BIE setting, computing
+these quantities is entirely a post-processing step, and they also be
+computed with high-order accuracy using methods described in
+Section~\ref{s:method}.
 
-Once we have computed the density function $\pmb{\eta}$ we can use it to post-process various other quantities of interest, for example pressure, stress or energy dissipation. 
-
-From the velocity we can compute the pressure, by solving the equation
-\begin{equation*}\nabla p = \Delta \mathbf{u} .\end{equation*}
-Looking at the 1st component of this equation we get
-\begin{equation*}\frac{\partial p}{\partial x} = \Delta u \Rightarrow p(x,y) = \int \Delta u \text{d}x + f(y).\end{equation*}
-We can take $f(y)$ to be 0 since there is no reason for pressure to have a preferred direction. Using \eqref{eq:completed_DLP} we can compute this quantity,
-\begin{equation}\label{eq:pressure} p(\xx) = \frac{1}{\pi}\int_{\partial\Omega}\frac{1}{\rho^2}\left(( \mathbf{I} - 2(\rr \otimes \rr)\nn\right)\cdot\pmb{\eta}~\text{d}s + \sum\limits_{i=1}^{M_w} \frac{\mathbf{F}_i^\Gamma\cdot(\mathbf{x}-\mathbf{c}_i)}{2\pi||\mathbf{x}-c_i||^2}  + \sum\limits_{j=1}^{M_p} \frac{\mathbf{F}_j^\gamma\cdot(\mathbf{x}-\mathbf{c}_j)}{2\pi|\mathbf{x}-\cc_j|^2}.\end{equation}
-
-
-The stress tensor for a Newtonian fluid with unit viscosity is given by
-\begin{equation*} \pmb{\sigma} = -p \mathbf{I} + \left(\nabla \uu + (\nabla\uu)^T\right).\end{equation*}
-Using the pressure computed in \eqref{eq:pressure} and computing the viscous part of the stress tensor from \eqref{eq:completed_DLP} we get
-\begin{equation}\label{eq:stress} \ssigma = \ssigma_{\eeta} + \ssigma_{S} + \ssigma_{R},\end{equation}
-where
-\begin{align*}\ssigma_{\eeta}(\xx) &= \frac{1}{\pi}\int_{\partial\Omega}\left( \frac{\nn\cdot\eeta}{\rho^2}\mathbf{I} -\frac{(\rr\cdot\nn)(\rr\cdot\eeta)(\rr\otimes\rr)}{\rho^6} + \frac{(\rr\cdot\nn)(\rr\otimes\eeta + \eeta\otimes\rr)}{\rho^4} + \frac{(\rr\cdot\eeta)(\rr\otimes\nn + \nn\otimes\rr)}{\rho^4}\right)\text{d}s,\\
-\ssigma_S(\xx) &= \sum\limits_{i=1}^{M_w} \frac{\mathbf{F}_i^\Gamma\cdot(\mathbf{c}_i-\mathbf{x})}{\pi|\mathbf{x}-\cc_i|^2}(\cc_i - \xx)\otimes(\cc_i-\xx)  + \sum\limits_{j=1}^{M_p} \frac{\mathbf{F}_j^\gamma\cdot(\mathbf{c}_j-\mathbf{x})}{\pi|\mathbf{x}-\cc_j|^2}(\cc_j - \xx)\otimes(\cc_j-\xx),\\
-\ssigma_R(\xx) &= \sum\limits_{i=1}^{M_w} \frac{L_i^\Gamma}{2\pi|\mathbf{x}-\cc_i|^2}((\cc_i - \xx)\otimes(\cc_i-\xx)^\perp + (\cc_i - \xx)^\perp\otimes(\cc_i-\xx))  \\&\qquad\qquad\qquad + \sum\limits_{j=1}^{M_p}  \frac{L_j^\gamma}{2\pi|\mathbf{x}-\cc_j|^2}((\cc_j - \xx)\otimes(\cc_j-\xx)^\perp + (\cc_j - \xx)^\perp\otimes(\cc_j-\xx)) .
+To compute the pressure, we start with the conservation of momentum
+\begin{align*}
+  \nabla p = \Delta \uu,
 \end{align*}
+and substitute the double-layer potential~\eqref{eqn:dlp}.  By
+integrating, the pressure of the double-layer potential is
+\begin{align*}
+  p(\xx) = \frac{1}{\pi}\int_{\partial\Omega}\frac{1}{\rho^2}\left((
+    \mathbf{I} - 2(\rr \otimes \rr)\nn\right)\cdot\pmb{\eta}~\text{d}s. 
+\end{align*}
+The pressure due to the Stokeslets and rotlets can be easily computed,
+and the pressure resulting from the completed double-layer potential
+formulation for the velocity~\eqref{eqn:completed_DLP} is
+\begin{align}
+  \label{eqn:pressure} 
+  p(\xx) = \frac{1}{\pi}\int_{\partial\Omega}\frac{1}{\rho^2}\left((
+    \mathbf{I} - 2(\rr \otimes \rr)\nn\right)\cdot\pmb{\eta}~\text{d}s +
+  \sum\limits_{i=1}^{M_w}
+  \frac{\FF_i^\Gamma\cdot(\xx-\cc_i^\Gamma)}{2\pi||\xx-\cc_i^{\Gamma}||^2}
+  + \sum\limits_{i=1}^{M_p}
+    \frac{\FF_i^\gamma\cdot(\xx-\cc_i^\gamma)}{2\pi|\xx-\cc_i^\gamma|^2}.
+\end{align}
 
+To compute the stress tensor
+\begin{align*} 
+  \pmb{\sigma} = -p \mathbf{I} + \left(\nabla \uu + (\nabla\uu)^T\right),
+\end{align*}
+we start by using the layer potential representation of the
+pressure~\eqref{eqn:pressure}.  Then, the viscous stress tensor is
+computed by computing the Jacobian of the double-layer
+potential~\eqref{eqn:dlp} and the stokeslets and Rotlets to form
+\begin{align}
+  \label{eq:stress}
+  \ssigma = \ssigma_{\eeta} + \ssigma_{S} + \ssigma_{R},
+\end{align}
+where
+\begin{align*}
+  \ssigma_{\eeta}(\xx) &= \frac{1}{\pi}\int_{\partial\Omega}\left( 
+    \frac{\nn\cdot\eeta}{\rho^2}\mathbf{I} 
+    -\frac{(\rr\cdot\nn)(\rr\cdot\eeta)(\rr\otimes\rr)}{\rho^6} 
+    +\frac{(\rr\cdot\nn)(\rr\otimes\eeta + \eeta\otimes\rr)}{\rho^4} 
+    + \frac{(\rr\cdot\eeta)(\rr\otimes\nn + \nn\otimes\rr)}{\rho^4}\right)\text{d}s,\\
+  \ssigma_S(\xx) &= \sum\limits_{i=1}^{M_w} 
+    \frac{\FF_i^\Gamma\cdot(\cc_i^\Gamma-\xx)}{\pi|\xx-\cc_i^\Gamma|^2}
+        (\cc_i^\Gamma - \xx)\otimes(\cc_i^\Gamma-\xx)  + 
+    \sum\limits_{i=1}^{M_p}
+    \frac{\FF_i^\gamma\cdot(\cc_i^\gamma-\xx)}{\pi|\xx-\cc_i^\gamma|^2}
+        (\cc_i^\gamma - \xx)\otimes(\cc_i^\gamma-\xx),\\
+  \ssigma_R(\xx) &= \sum\limits_{i=1}^{M_w} \frac{L_i^\Gamma}{2\pi|\xx-\cc_i^\Gamma|^2}
+        ((\cc_i^\gamma - \xx)\otimes(\cc_i^\gamma-\xx)^\perp + 
+    (\cc_i^\gamma - \xx)^\perp\otimes(\cc_i^\gamma-\xx))  \\
+  &\qquad\qquad\qquad + \sum\limits_{i=1}^{M_p} \frac{L_i^\gamma}{2\pi|\xx-\cc_i^\gamma|^2}
+    ((\cc_i^\gamma - \xx)\otimes(\cc_i^\gamma-\xx)^\perp + 
+    (\cc_i^\gamma - \xx)^\perp\otimes(\cc_i^\gamma-\xx)).
+\end{align*}
 		
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Numerical Methods\label{s:method}} 
