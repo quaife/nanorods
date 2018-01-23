@@ -53,25 +53,24 @@ This is a methods paper
 \section{Formulation\label{s:formulation}} 
 \subsection{Problem Formulation}
 
-We consider of rigid particles suspended in a two-dimensional domain,
-$\Omega$, with boundary $\partial\Omega$
-(Figure~\ref{fig:geomSchematic}).  The domain may be either bounded or
-unbounded.  The boundary of the fluid geometry is denoted by
-$\Gamma$---$\Gamma_0$ is the outermost boundary if the domain is
-connected, and $\Gamma_i$, $1\leq i \leq M_w$ are the interior
-components of $\Gamma$.  The boundaries of rigid particles are denoted
-$\gamma_j$, $1\leq j\leq M_p$ and their union is denoted $\gamma$.
-Therefore, the boundary of the fluid domain is
+We consider a collection of rigid particles suspended in a
+two-dimensional bounded or unbounded domain, $\Omega$, with boundary
+$\partial\Omega$ (Figure~\ref{fig:geomSchematic}).  The boundary of the
+fluid geometry is denoted by $\Gamma$ with $\Gamma_0$ being the
+outermost boundary if the domain is bounded, and $\Gamma_i$, $1\leq i
+\leq M_w$ are the other components of $\Gamma$.  The boundaries of rigid
+particles are $\gamma_j$, $1\leq j\leq M_p$, and their union is denoted
+$\gamma$.  Therefore, the boundary of the fluid domain is
 \begin{align*}
-  \partial\Omega =\Gamma_0\cup \Gamma \cup \gamma,
+  \partial\Omega =\Gamma \cup \gamma.
 \end{align*} 
-where $\Gamma_0$ is excluded if the geometry is unbounded. Each solid
-wall has a center $\cc^\Gamma_i$ and each rigid particle has a center
-$\cc^\gamma_i$ and an orientation angle $\theta^\gamma_i$.  Finally,
-each solid wall has a net force and torque, $\FF^\Gamma_i$ and
-$L^\Gamma_i$, respectively, that it is applying to the fluid, and
-similar forces and torques are defined for each rigid body.  A schematic
-of the geometry is in Figure~\ref{fig:geomSchematic}.
+For each interior solid wall, we choose an interior point
+$\cc^\Gamma_i$, and each rigid particle has an interior point
+$\cc^\gamma_i$ and a corresponding orientation angle $\theta^\gamma_i$.
+Finally, each solid wall has a net force and torque, $\FF^\Gamma_i$ and
+$L^\Gamma_i$, respectively, that it applies to the fluid, and similar
+forces and torques are defined for each rigid body.  A schematic of the
+geometry is in Figure~\ref{fig:geomSchematic}.
 
 
 %
@@ -97,58 +96,66 @@ of the geometry is in Figure~\ref{fig:geomSchematic}.
   vector $\mathbf{n}$ is the unit normal vector pointing into the fluid
   domain.}
   \todo[inline]{Fix picture to make consistent with the text}
+  \todo[inline]{Shade in the rigid bodies like Libin did to classify
+  rigid bodies from holes in the geometry}
 \end{figure}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{Governing Equations}\label{sec:governing}
-At the continuum level the motion of a fluid is described by the
-incompressible Navier-Stokes equations with dimensionless Reynolds
-number $\Re = UL/\nu$, where $U$ is a characteristic speed, $L$ is a
-characteristic lengths scale, and $\nu$ is the kinematic fluid
+We start by assuming that the fluid is governed by the incompressible
+Navier-Stokes equations 
+\begin{align*}
+  \rho\left(\pderiv{\uu}{t} + (\uu \cdot \grad) \uu \right) &= 
+    -\grad p + \mu \Delta \uu, \\
+    \grad \cdot \uu &= 0,
+\end{align*}
+where $\uu$ is the velocity, $p$ is the pressure, $\rho$ is the fluid
+density, and $\mu$ is the fluid viscosity.  The equations are
+nondimensionalized by choosing a characteristic speed $U$ and
+characteristic length scale $L$.  The resulting dimensionless number is
+the Reynolds number $\Re = UL/\nu$ where $\nu$ is the kinematic fluid
 viscosity.  We are interested in small particles and slow velocities
 which renders the Reynolds number small $\Re \ll 1$.  Therefore, the
 fluid is governed by the incompressible Stokes equations.  A Dirichlet
-boundary condition are imposed on both the solid walls $\Gamma$ and the
-rigid bodies $\gamma$.  Given the definitions in the previous section
-and the scales of interest, the equations for the suspension of rigid
-bodies are given by
+boundary condition $\UU$ is imposed on the solid walls $\Gamma$, and a
+no-slip boundary condition is assumed for the rigid bodies $\gamma$.
+Given the definitions in the previous section and the scales of
+interest, the equations for the suspension of rigid bodies are given by
 \begin{equation}
   \label{eqn:modelEquations}
   \begin{split}
   \mu \Delta \uu = \grad p, &\hspace{20pt} \xx \in \Omega, \gap
-    &&\mbox{conservation of momentum,}\\
+    &&\mbox{\em conservation of momentum,}\\
   \grad \cdot \uu = 0, &\hspace{20pt} \xx \in \Omega, \gap
-    &&\mbox{conservation of mass,} \\
+    &&\mbox{\em conservation of mass,} \\
   \uu = \UU, &\hspace{20pt} \xx \in \Gamma, \gap 
-    &&\mbox{wall velocity,} \\
+    &&\mbox{\em wall velocity,} \\
   \uu = \uu^\tau_j + \omega_j(\xx-\cc^\gamma_j)^\perp,&\hspace{20pt} 
-    \xx \in \gamma, \gap &&\mbox{no-slip on the particles,} \\
-  \FF_j = 0, &\hspace{20pt}j=1,\ldots,M_p, \gap 
-    &&\mbox{force-free particles,} \\
-  L_j = 0, &\hspace{20pt}j=1,\ldots,M_p, \gap 
-    &&\mbox{torque-free particles,}
+    \xx \in \gamma, \gap &&\mbox{\em no-slip on the particles,} \\
+  \FF_j^\gamma = 0, &\hspace{20pt}j=1,\ldots,M_p, \gap 
+    &&\mbox{\em force-free particles,} \\
+  L_j^\gamma = 0, &\hspace{20pt}j=1,\ldots,M_p, \gap 
+    &&\mbox{\em torque-free particles,}
   \end{split}
 \end{equation}
-
-Here, $\mu$ is the fluid viscosity, $\uu$ is the velocity, $p$ is the
-pressure, $\uu^\tau_j$ and $\omega_j$ are the translational and
-rotational velocities of rigid body $j$, respectively, and $F_j$ and
-$L_j$ are the net force and torque of rigid body $j$.  For the
+Here, $\uu^\tau_j$ and $\omega_j$ are the translational and rotational
+velocities of rigid body $j$, respectively, and $F_j^\gamma$ and
+$L_j^\gamma$ are the net force and torque of rigid body $j$.  For the
 suspension of rigid bodies, the fluid viscosity sets the time scale, and
 we will assume it is one throughout the paper.  In the case of a bounded
 domain, the boundary condition $\UU$ must satisfy the standard flux-free
 condition, and in the case that the fluid domain is unbounded, the wall
-velocity equation is replaced with a background flow
+velocity equation is replaced with a background flow condition
 \begin{align*}
   \uu(\xx) = \uu_\infty(\xx), \quad |\xx| \rightarrow \infty.
 \end{align*}
 
-The force-free and torque-free conditions will removed---rather, a small
-force and torque will be imposed to guarantee that rigid bodies do not
-come into unphysical contact.  This idea is first described for vesicle
-suspensions by Lu et al.~\cite{Lu2017} and we summarize the method in
-Section~\ref{sec:repulsion}.  Finally, given the rigid body
-translational and rotational velocities, their centers and
+We will eventually relax the force-free and torque-free conditions.
+Rather, a small force and torque will be imposed to guarantee that rigid
+bodies do not come into unphysical contact.  This idea is first
+described for vesicle suspensions by Lu et al.~\cite{Lu2017} and we
+summarize the method in Section~\ref{sec:repulsion}.  Finally, given the
+rigid body translational and rotational velocities, their centers and
 inclination angles $(\cc_j,\theta_j)$, $j=1,\ldots,M_p$, satisfy
 \begin{align*}
   \frac{d\cc_j}{dt} = \uu^\tau_j, \qquad 
@@ -156,13 +163,13 @@ inclination angles $(\cc_j,\theta_j)$, $j=1,\ldots,M_p$, satisfy
 \end{align*}
 
 There exist many numerical methods for simulating the suspensions of
-interfaces in a fluid such as~\eqref{eqn:modelEquations}.  However,
+interfaces in a fluid by solving~\eqref{eqn:modelEquations}.  However,
 given that the fluid equations are linear, we opt to use a boundary
 integral equation (BIE) formulation~\cite{Pozrikidis1992}.  BIEs have
-the advantage that only the interface has to be tracked, resulting in a
-dimension reduction and ease in treating complex geometries.  In the
-next section, we introduce the necessary integral operators needed to
-reformulate~\eqref{eqn:modelEquations}.
+several advantages including that only the interface has to be tracked,
+resulting in a dimension reduction and simplification of complex
+geometries.  In the next section, we introduce the necessary integral
+operators needed to reformulate~\eqref{eqn:modelEquations}.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{Boundary Integral Equation Representation}
@@ -176,10 +183,10 @@ incompressible Stokes equations can be found in Karrila and
 Kim~\cite{Karrila1989}.
 
 We start by formulating the incompressible Stokes equations in the
-absence of rigid bodies.  The {\em double-layer potential} is
-constructed by taking the convolution of the stresslet with an arbitrary
-density function.  In particular, the double-layer potential
-is~\cite{Ladyzhenskaya1963, Pozrikidis1992},
+absence of rigid bodies.  The {\em double-layer potential} is the
+convolution of the stresslet with an arbitrary density function.  In
+particular, the double-layer potential is~\cite{Ladyzhenskaya1963,
+Pozrikidis1992},
 \begin{align}
   \label{eqn:dlp}
   \uu(\xx) = \DD[\eeta](\xx) = \frac{1}{\pi}\int_{\Gamma}
@@ -189,28 +196,29 @@ is~\cite{Ladyzhenskaya1963, Pozrikidis1992},
 where $\rr = \xx - \yy$, $\rho=|\rr|$, and $\eeta$ is an unknown density
 function defined on $\bd\Omega$.  The double-layer
 potential~\eqref{eqn:dlp} satisfies the incompressible Stokes equations,
-and the density function $\eeta$ must satisfy
+and the density function $\eeta$ satisfies
 \begin{align*}
   \lim_{\substack{\xx \rightarrow \xx_0 \\ \xx \in \Omega}}
-    \DD[\eeta](\xx) = \UU(\xx_0),
+    \DD[\eeta](\xx) = \UU(\xx_0), \quad \xx_0 \in \Gamma,
 \end{align*}
-for all $\xx_0 \in \bd\Gamma$, where $\UU$ is the imposed wall velocity.
-The effect of the limit results in a jump~\cite{Pozrikidis1992}, and the
-density function must satisfy  
+where $\UU$ is the imposed wall velocity.  When taking the limit, the
+singularity of the stresslet results in a jump~\cite{Pozrikidis1992},
+and the density function must satisfy  
 \begin{align}
-  -\frac{1}{2} \eeta(\xx_0) + \DD[\eeta](\xx_0) = \UU(\xx_0),
+  -\frac{1}{2} \eeta(\xx_0) + \DD[\eeta](\xx_0) = \UU(\xx_0), 
+    \quad \xx_0 \in \Gamma.
   \label{eqn:secondKindBIE}
 \end{align}
-for all $\xx_0 \in \Gamma$.  The double-layer potential does satisfy the
-incompressible Stokes equations, but it cannot represent all solutions
-of the incompressible Stokes equations; in particular, it cannot
-represent rigid body motion.  This can be rectified by introducing point
-forces and torques due to each interior component of the geometry
-$\Gamma_j$, $j = 1,\ldots,M_w$~\cite{Power1987, Power1993}.  This is
-done by introducing the net force and torque about a point $\cc$
+The double-layer potential does satisfy the incompressible Stokes
+equations, but it cannot represent all solutions of the incompressible
+Stokes equations; in particular, it cannot represent rigid body motion.
+This can be rectified by introducing point forces and torques due to
+each interior component of the geometry $\Gamma_j$, $j =
+1,\ldots,M_w$~\cite{Power1987, Power1993}.  This is done by introducing
+the net force and torque about a point $\cc$ outside of $\Omega$
 \begin{align*}
-  \mathbf{S}(\xx,\cc) = \frac{\rr \otimes \rr}{\rho^2} - 
-  \log\rho\mathbf{I}, \quad \text{and} \quad
+  \mathbf{S}(\xx,\cc) = -\log\rho\mathbf{I} + 
+  \frac{\rr \otimes \rr}{\rho^2}, \quad \text{and} \quad
   \mathbf{R}(\xx,\cc) = \frac{\rr^\perp}{\rho^2},
 \end{align*}
 respectively, where $\rr = \xx - \cc$ and $\rho = |\rr|$.  Then, the
@@ -219,7 +227,7 @@ the completed second-kind BIE
 \begin{equation}
   \label{eq:completed_DLP}
   \begin{split}
-  -\frac{1}{2}\eeta(\xx_0) + \DD_{\Gamma\Gamma}[\eeta](\xx_0) + 
+  -\frac{1}{2}\eeta(\xx_0) + \DD[\eeta](\xx_0) + 
     \sum_{j=1}^{M_w} \left(\mathbf{S}(\xx,\cc^\Gamma_j)\FF^\Gamma_j + 
       \mathbf{R}(\xx,\cc^\Gamma_j)L^\Gamma_j\right) &= \UU(\xx_0),
       \quad &&\xx_0 \in \Gamma, \\
@@ -232,24 +240,24 @@ the completed second-kind BIE
   \end{split}
 \end{equation}
 
-We now consider introducing a suspension of rigid bodies $\gamma_j$,
+We now introduce a suspension of rigid bodies $\gamma_j$,
 $j=1,\ldots,M_p$.  Imposing the no-slip boundary condition on the rigid
 bodies, the BIE formulation of the suspension of rigid bodies governed
 by equation~\eqref{eqn:modelEquations} is
 \begin{subequations}
   \label{eqn:BIEformulation}
-\begin{align}
-  \UU(\xx) &= -\frac{1}{2}\eeta(\xx) + \DD[\eeta](\xx) +
+  \begin{align}
+    \UU(\xx) &= -\frac{1}{2}\eeta(\xx) + \DD[\eeta](\xx) +
     \sum_{j=1}^{M_w} \left(\mathbf{S}(\xx,\cc^\Gamma_j)\FF^\Gamma_j + 
-      \mathbf{R}(\xx,\cc^\Gamma_j)L^\Gamma_j\right) + 
-    \sum_{j=1}^{M_p} \left(\mathbf{S}(\xx,\cc^\gamma_j)\FF^\gamma_j + 
+      \mathbf{R}(\xx,\cc^\Gamma_j)L^\Gamma_j\right)  \nonumber \\
+      &\hspace{96pt}+\sum_{j=1}^{M_p} \left(\mathbf{S}(\xx,\cc^\gamma_j)\FF^\gamma_j + 
       \mathbf{R}(\xx,\cc^\gamma_j)L^\gamma_j\right), 
     \quad \xx \in \Gamma, \label{eqn:BIEformulation1} \\
   \uu^\tau_j + \omega_j(\xx - \cc_j^\tau) &=
     -\frac{1}{2}\eeta(\xx) + \DD[\eeta](\xx) + 
     \sum_{j=1}^{M_w} \left(\mathbf{S}(\xx,\cc^\Gamma_j)\FF^\Gamma_j + 
-      \mathbf{R}(\xx,\cc^\Gamma_j)L^\Gamma_j\right) + 
-    \sum_{j=1}^{M_p} \left(\mathbf{S}(\xx,\cc^\gamma_j)\FF^\gamma_j + 
+      \mathbf{R}(\xx,\cc^\Gamma_j)L^\Gamma_j\right) \nonumber \\
+    &\hspace{96pt}+\sum_{j=1}^{M_p} \left(\mathbf{S}(\xx,\cc^\gamma_j)\FF^\gamma_j + 
       \mathbf{R}(\xx,\cc^\gamma_j)L^\gamma_j\right), 
     \quad \xx \in \gamma, \label{eqn:BIEformulation2} \\
   \int_{\Gamma_j} \eeta~\text{d}s &= \FF^\Gamma_j, \quad
@@ -266,7 +274,8 @@ This constitutes eight equations for eight unknowns: the density
 function, net force, and net torque on the solid walls and rigid bodies,
 and the translational and rotational velocities.  We have adopted the
 method of Power~\cite{Power1993} to relate the density function on the
-rigid bodies to the corresponding force and torque.
+rigid bodies to the corresponding force and torque. \todo[inline]{I
+don't understand this last sentence}
 
 %We now choose the density functions, and the strengths of the Stokeslets
 %and rotlets so that the boundary conditions
@@ -295,20 +304,21 @@ rigid bodies to the corresponding force and torque.
 While~\eqref{eqn:BIEformulation1} and~\eqref{eqn:BIEformulation2} are
 both numerically desirable second-kind Fredholm integral equations
 equations  for the unknown density function $\eeta(\xx)$,
-equation~\eqref{eqn:BIEformulation1} still has a rank one null
-space~\cite{Ladyzhenskaya1963}.  Following~\cite{Power1993}, this null
+equation~\eqref{eqn:BIEformulation1} still has a rank one null space
+because of the flux-free condition of the boundary data
+$\UU$~\cite{Ladyzhenskaya1963}.  Following~\cite{Power1993}, this null
 space is removed by adding the term 
 \begin{align}
 \label{eq:N0_modification} 
   \mathcal{N}_0[\eeta](\xx) = \int_{\Gamma_0} 
-    \nn(\xx)\otimes\nn(\yy)~\text{d}s(\mathbf{y}), 
+    \nn(\xx)\otimes\nn(\yy)~\text{d}s(\mathbf{y})
 \end{align}
 to~\eqref{eqn:BIEformulation1}, but only for points $\xx \in \Gamma_0$.
 Finally, if there are no solid walls, there is no null space, and
 the only modification to~\eqref{eqn:BIEformulation} is that
-equation~\eqref{eqn:BIEformulation} is removed and
-equation~\eqref{eqn:BIEformulation} has the background velocity
-$\uu_\infty(\xx)$ added to the left hand side.
+equation~\eqref{eqn:BIEformulation1} is removed and
+equation~\eqref{eqn:BIEformulation2} has the background velocity
+$\uu_\infty(\xx)$ added to the right hand side.
 
 %On $\Gamma$ we have prescribed the velocity $\uu_b(\xx)$,
 %but we need to solve for the net force and torque on each wall. On
@@ -609,19 +619,18 @@ Fourier series as
 The FFT is used to compute $\hat{f}$, and all derivatives are computed
 with this Fourier series so that spectral accuracy is achieved.
 
-The double-layer potentials in~\eqref{eq:vel_walls}
-and~\eqref{eq:vel_particles} are discretized with a Nystr\"om method.
-Because the kernels are smooth, the trapezoid rule guarantees spectral
-accuracy~\cite{tre-wei2014}.  For example,
-equation~\eqref{eq:vel_walls} is discretized as
+The double-layer potentials in~\eqref{eqn:BIEformulation} are
+discretized with a Nystr\"om method.  Because the kernels are smooth,
+the trapezoid rule guarantees spectral accuracy~\cite{tre-wei2014}.  For
+example, equation~\eqref{eqn:BIEformulation1} is discretized as
 \begin{equation*}
   \begin{aligned}
-  \uu_b(\xx_j) = -\frac{1}{2}\eeta(\xx_j) + 
-  \sum_{k=1}^{N} K(\xx_j,\xx_k) \eeta(\xx_k) \Delta s_k
-    &+ \sum_{i=1}^{M} \left(\mathbf{S}(\xx_j,\dd_i)\llambda_i +
-    \mathbf{R}(\xx_j,\dd_i)\mu_i\right)  \\
-    &+ \sum_{i=1}^{N} \left(\mathbf{S}(\xx_j,\cc_i)\FF_i +
-    \mathbf{R}(\xx_j,\cc_i)\L_i\right),
+  \UU(\xx_i) = -\frac{1}{2}\eeta(\xx_i) + 
+  \sum_{k=1}^{N} K(\xx_i,\xx_k) \eeta(\xx_k) \Delta s_k
+    &+ \sum_{j=1}^{M_w} \left(\mathbf{S}(\xx_i,\cc^\gamma_j)\FF_j +
+    \mathbf{R}(\xx_i,\dd_j)L_j\right)  \\
+    &+ \sum_{j=1}^{N} \left(\mathbf{S}(\xx_i,\cc^\Gamma_j)\FF_j +
+    \mathbf{R}(\xx_i,\cc^\Gamma_j)\L_j\right),
   \end{aligned}
 \end{equation*}
 where $N = M_w N_w + M_p N_p$ is the total number of discretization
@@ -631,11 +640,11 @@ points and
                \frac{\rr \otimes \rr}{\rho^2}
 \end{align*}
 is the kernel of the double-layer potential.
-Equation~\eqref{eq:vel_particles} is discretized in a similar fashion.
-For the diagonal entries, we use the limiting value of $K$
+Equation~\eqref{eqn:BIEformulation2} is discretized in a similar
+fashion.  For the diagonal entries, we use the limiting value of $K$
 \begin{align*}
-  \lim_{\substack{\yy \rightarrow \xx \\ \yy \in \bd\Omega}} K(\xx,\yy) = 
-  \frac{\kappa\tt\otimes\tt}{2\pi},
+  \lim_{\substack{\yy \rightarrow \xx \\ \yy \in \bd\Omega}} 
+    K(\xx,\yy) = \frac{\kappa}{2\pi}\tt\otimes\tt,
     \quad \xx \in \bd\Omega
 \end{align*}
 where $\kappa(\xx)$ is the curvature and $\tt(\xx)$ is the tangent
@@ -668,14 +677,20 @@ matrix-vector multiplications, the algorithmic cost per time step is
 proportional to the cost of doing a single matrix-vector multiply.
 
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Time Stepping Methods}
+\todo[inline]{Bryan can write this section}
+
+Once we solve for the translational and angular velocity of the
+particles, the position and angle of each particle are updated according
+to the ODEs,
+\[ \frac{\text{d}}{\text{d}t}\mathbf{c}_k = \mathbf{u}^\tau_k, \qquad
+\frac{\text{d}}{\text{d}t}\theta_k =\omega_k.\]
+The ODEs are advanced in time using an explicit Euler step. 
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\subsection{Fast Summation Methods}
-
-
-
-
+\subsection{Fast Summation and Preconditioning}
 The linear system arising from ~\eqref{eq:vel_walls},~\eqref{eq:vel_particles},
 and~\eqref{eq:closure}  is discretized using a collocation trapezoid
 method. For particles that are in near-contact the near singular
@@ -687,13 +702,6 @@ Fredholm equation the condition number of the matrix is bounded and does
 not increase with finer resolution. The number of GMRES iterations is
 therefore mesh resolution independent. This leads to a solver that is
 $O(n)$, where $n$ is the number of mesh points. 
-
-Once we solve for the translational and angular velocity of the
-particles, the position and angle of each particle are updated according
-to the ODEs,
-\[ \frac{\text{d}}{\text{d}t}\mathbf{c}_k = \mathbf{u}^\tau_k, \qquad
-\frac{\text{d}}{\text{d}t}\theta_k =\omega_k.\]
-The ODEs are advanced in time using an explicit Euler step. 
 
 The matrices described in \eqref{eq:vel_walls} and
 \eqref{eq:vel_particles} are full. They can be made block-diagonal by
