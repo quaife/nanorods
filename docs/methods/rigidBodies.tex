@@ -224,7 +224,7 @@ respectively, where $\rr = \xx - \cc$ and $\rho = |\rr|$.  Then, the
 second-kind integral equation~\eqref{eqn:secondKindBIE} is replaced with
 the completed second-kind BIE
 \begin{equation}
-  \label{eq:completed_DLP}
+  \label{eqn:completed_DLP}
   \begin{split}
   -\frac{1}{2}\eeta(\xx_0) + \DD[\eeta](\xx_0) + 
     \sum_{j=1}^{M_w} \left(\mathbf{S}(\xx,\cc^\Gamma_j)\FF^\Gamma_j + 
@@ -308,7 +308,7 @@ because of the flux-free condition of the boundary data
 $\UU$~\cite{Ladyzhenskaya1963}.  Following~\cite{Power1993}, this null
 space is removed by adding the term 
 \begin{align}
-\label{eq:N0_modification} 
+\label{eqn:N0_modification} 
   \mathcal{N}_0[\eeta](\xx) = \int_{\Gamma_0} 
     \nn(\xx)\otimes\nn(\yy)~\text{d}s(\yy)
 \end{align}
@@ -620,7 +620,7 @@ pressure~\eqref{eqn:pressure}.  Then, the viscous stress tensor is
 computed by computing the Jacobian of the double-layer
 potential~\eqref{eqn:dlp} and the stokeslets and Rotlets to form
 \begin{align}
-  \label{eq:stress}
+  \label{eqn:stress}
   \ssigma = \ssigma_{\eeta} + \ssigma_{S} + \ssigma_{R},
 \end{align}
 where
@@ -643,6 +643,9 @@ where
     ((\cc_i^\gamma - \xx)\otimes(\cc_i^\gamma-\xx)^\perp + 
     (\cc_i^\gamma - \xx)^\perp\otimes(\cc_i^\gamma-\xx)).
 \end{align*}
+
+\todo[inline]{How do we compute the energy dissipation and the effective
+  viscosity using~\eqref{eqn:stress}}
 		
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Numerical Methods\label{s:method}} 
@@ -668,6 +671,10 @@ Finally, the Fast Multipole Method (FMM) is used to accelerate the
 matrix-vector multiplications that arise upon discretization.  By using
 these methods, spectral accuracy can be achieved for long time horizons
 with optimal complexity.
+
+For particles that are in near-contact the near singular
+integration scheme described in~\cite{Quaife2014, Ying2006} is used.
+
 \todo[inline]{dump of old text}
 
 Letting $\xx(\alpha)$ be a parameterization of a rigid body or a solid
@@ -771,11 +778,53 @@ explicitly.
 In the original work of Lu et al.~\cite{Lu2017}, they use a
 semi-implicit method where the interaction between a rigid body and
 itself are treated implicitly, and all other interactions are treated
-explicitly.  For example, the governing equation for the rigid
-bodies~\eqref{eqn:BIEformulation2} are discretized as
-\begin{align*}
-  \uu_j^\tau + \omega_j(\xx - \cc_j^\gamma) = -\frac{1}{2}\eeta
-\end{align*}
+explicitly.  For example, in the governing equation for the rigid
+bodies~\eqref{eqn:bieformulation2}, the jump and double-layer potential
+terms are discretized as
+\begin{align}
+  -\frac{1}{2}\eeta^{N+1}(\xx_j) + \DD[\eeta^{N+1}](\xx_j) \approx
+  -\frac{1}{2}\eeta^{N+1}_{k_0}(\xx_j) + 
+  \DD[\eeta^{N}_{k_0}](\xx_j) + 
+  \sum_{\substack{k=1 \\ k \neq k_0}}^{M_p} \DD[\eeta^{N}_k](\xx_j),
+  \label{eqn:BlockImplicit}
+\end{align}
+where $\xx_j$ is on body $k_0$, and the superscript denotes the time
+step.  The interaction between the rigid bodies and the solid walls'
+density function, Stokeslets, and rotlets are also discretized
+explicitly.  The advantage of this discretization is that it results in
+a block-diagonal matrix structure, so the total number of GMRES
+iterations is the maximum number of iterations required to solve a BIE
+formulation of the incompressible Stokes equations with only a single
+body.  Moreover, by including STIV with a sufficiently large buffer
+region (on the order of an arclength term), the stiffness introduced by
+interactions between different bodies is avoided.  However, rigid bodies
+do come very close together, especially in concentrated flows, so there
+is a need to reduce the size of the buffer region.  However, by allowing
+larger interactions between different bodies, stiffness is introduced
+and a smaller time step must be taken.  Similar to the methodology
+outline described for vesicle suspensions~\cite{Quaife2014}, we instead
+change the fluid solver so that large time steps can still be taken
+without introducing stiffness.  In particular, with the same setup
+described in~\eqref{eqn:BlockImplicit}, we discretize the fluid
+equations as
+\begin{align}
+  -\frac{1}{2}\eeta^{N+1}(\xx_j) + \DD[\eeta^{N+1}](\xx_j) =
+  -\frac{1}{2}\eeta^{N+1}_{k_0}(\xx_j) + 
+  \sum_{k=1}^{M_p} \DD[\eeta^{N+1}_k](\xx_j).
+  \label{eqn:SemiImplicit}
+\end{align}
+Equation~\eqref{eqn:SemiImplicit} does require additional computational
+resources since additional GMRES iterations are required, and the
+interactions between different bodies must be computed at every
+iteration rather than once per time step (to form the right hand side).
+However, as was observed for dense vesicle suspensions~\cite{Quaife2014}
+\todo[inline]{3D papers here too}, this additional cost is offset by the
+excessively small time step that is required if the fluid
+solver~\eqref{eqn:BlockImplicit} is used.  Moreover, as we will see in
+the Results section, it is possible that if the buffer region is
+sufficiently small and the suspension is sufficiently dense,
+then~\eqref{eqn:BlockImplicit} is unstable for time step sizes that vary
+over several orders of magnitude.
 
 
 
@@ -786,17 +835,20 @@ bodies~\eqref{eqn:BIEformulation2} are discretized as
 \subsection{Fast Summation and Preconditioning}
 \todo[inline]{Do we describe how the preconditioner is updated by simply
 rotating?}
-The linear system arising from ~\eqref{eq:vel_walls},~\eqref{eq:vel_particles},
-and~\eqref{eq:closure}  is discretized using a collocation trapezoid
-method. For particles that are in near-contact the near singular
-integration scheme described in~\cite{Quaife2014, Ying2006} is used. The
-discretized system is solved with GRMES~\cite{Saad1986} with a block
-diagonal preconditioner and accelerated using the fast multipole method
-\cite{Greengard1987}.  Since the linear system arises from a second kind
-Fredholm equation the condition number of the matrix is bounded and does
-not increase with finer resolution. The number of GMRES iterations is
-therefore mesh resolution independent. This leads to a solver that is
-$O(n)$, where $n$ is the number of mesh points. 
+After discretizing~\eqref{eqn:bieformulation1}
+and~\eqref{eqn:bieformulation2} using the Nystr\"om method, dense linear
+systems need to be solved.  The discretized system is solved with
+GRMES~\cite{Saad1986}, and since these are both second-kind Fredholm
+integral equations, the number of required GMRES iteartions is
+independent of the resolution~\cite{cam-ips-kel-mey-xue1996}.
+
+with a block diagonal preconditioner and
+accelerated using the fast multipole method \cite{Greengard1987}.  Since
+the linear system arises from a second kind Fredholm equation the
+condition number of the matrix is bounded and does not increase with
+finer resolution. The number of GMRES iterations is therefore mesh
+resolution independent. This leads to a solver that is $O(n)$, where $n$
+is the number of mesh points. 
 
 The matrices described in \eqref{eq:vel_walls} and
 \eqref{eq:vel_particles} are full. They can be made block-diagonal by
