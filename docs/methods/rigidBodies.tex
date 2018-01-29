@@ -94,9 +94,6 @@ geometry is in Figure~\ref{fig:geomSchematic}.
 $\gamma_1$ and $\gamma_2$ enclose particles, while $\Gamma_1$ is a solid
 wall. The outer boundary $\Gamma_0$ need not be present.  The vector
 $\nn$ is the unit normal vector pointing into the fluid domain.}
-\todo[inline]{Fix picture to make consistent with the text}
-\todo[inline]{Shade in the rigid bodies like Libin did to classify rigid
-bodies from holes in the geometry}
 \end{figure}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -420,12 +417,12 @@ interpolant, we check if any collisions occurred in the interval
 $[t^n,t^{n+1}]$.  If the time step is contact-free, the candidate
 configuration is accepted.  If contact is detected, the candidate
 solution is rejected and we resolve
-equations~\eqref{eq:vel_walls},~\eqref{eq:vel_particles},
-and~\eqref{eq:closure}, but with artificial repulsion forces $\FF^\gamma_j$ and torques
+equations~\eqref{eqn:BIEformulation}, but with artificial repulsion forces $\FF^\gamma_j$ and torques
 $L^\gamma_j$ that are chosen to try and avoid contact.  This lets us form a new candidate configuration. This process is repeated until we end up with a contact-free configuration.
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{comment}
 \subsection{Avoiding Contact with STIV}
 Before discussing how collisions can be resolved, we first define a
 metric that measures collision.  This metric should track all pairwise
@@ -495,10 +492,11 @@ single constraint,
 \begin{equation}\label{eq:ncp_constraint} \mathbf{V}(t_0 + \Delta t)\geq
 \mathbf{0} \perp \pmb{\lambda}\geq \mathbf{0}.\end{equation}
 
-
+\end{comment}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\subsection{Incorporating Repulsion Forces}
+\subsection{Balancing Repulsion Forces}
 
+\begin{comment}
 The addition of a forcing term to the right hand side of the Stokes equations
 would normally lead to a volume integral. However, in this case since
 $\text{d}_{\mathbf{u}} V$ can be non-zero only on the boundary, we can capture
@@ -506,8 +504,18 @@ the repulsion force by adding a net force and torque to each particle or wall as
 \[ \mathbf{F}^k_p = \int_{\Gamma_k}
 \text{d}_\mathbf{u}V^T\pmb{\lambda}~\text{d}s, \qquad L_p^k = \int_{\Gamma_k}
 \text{d}_\mathbf{u}V^T\pmb{\lambda}\cdot(\mathbf{x}-\mathbf{c}_k)^\perp~\text{d}s.\]
+\end{comment}
+Physically we expect that any repsulsion force exerted by one particle on another is balanced by an equal and opposite repulsion force from the second particle. In this way the net force in the system is always zero, i.e. 
+\begin{equation*}
+	\sum\limits_{j=1}^{M_w} \FF^\Gamma_j + \sum\limits_{j=1}^{M_p}\FF^\gamma_j = \mathbf{0}.
+\end{equation*}
+
+This is particularily important for unbounded domains, as for planar flow Stokes paradox says that only force-free configurations have bounded solutions at infinity \cite{Power1993, Pozrikidis1992}. After computing the repulsion forces they may need to be balanced manually. To do this, we group all particles that are in contact into distinct clusters. For each cluster, the particle that is in contact with the most other particles (to break ties, the particle with the largest repulsion force in magnitude) is given a net force equal to the negative sum of all other particles in the cluster. 
+
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{comment}
 \subsection{Complementary Problem}
 
 To compute the repulsion forces we must first compute $\pmb{\lambda}$ for each
@@ -578,7 +586,7 @@ t\biggl(\mathcal{M}\begin{bmatrix}\mathbf{0}\\\mathbf{0}\\\mathbf{e}_\infty\end{
 \mathbf{0}.\end{aligned}\end{equation}
 
 The sequence \eqref{eq:lcp} will be solved at each time step. 
-
+\end{comment}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{Computing Pressures and Stresses}
 To understand the rheological and statistical properties of suspensions
