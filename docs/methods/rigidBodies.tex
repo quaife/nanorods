@@ -59,11 +59,9 @@ $\partial\Omega$ (Figure~\ref{fig:geomSchematic}).  The boundary of the
 fluid geometry is denoted by $\Gamma$ with $\Gamma_0$ being the
 outermost boundary if the domain is bounded, and $\Gamma_i$, $1\leq i
 \leq M_w$ are the other components of $\Gamma$.  The boundaries of rigid
-particles are $\gamma_j$, $1\leq j\leq M_p$, and their union is denoted
-$\gamma$.  Therefore, the boundary of the fluid domain is
-\begin{align*}
-  \partial\Omega =\Gamma \cup \gamma.
-\end{align*} 
+particles are $\gamma_j$, $1\leq j\leq M_p$, and their union is denoted by
+$\gamma$.  Therefore, the boundary of the fluid domain is $ \partial\Omega =\Gamma \cup \gamma$.
+ 
 For each interior solid wall, we choose an interior point
 $\cc^\Gamma_i$, and each rigid particle has an interior point
 $\cc^\gamma_i$ and a corresponding orientation angle $\theta^\gamma_i$.
@@ -90,9 +88,9 @@ geometry is in Figure~\ref{fig:geomSchematic}.
 \begin{center}
 \includegraphics{figures/multiply_connected.pdf}
 \end{center}
-\caption{\label{fig:geomSchematic}Sketch of a possible domain $\Omega$.
-$\gamma_1$ and $\gamma_2$ enclose particles, while $\Gamma_1$ is a solid
-wall. The outer boundary $\Gamma_0$ need not be present.  The vector
+\caption{\label{fig:geomSchematic}Sketch of a fluid domain $\Omega$.
+$\gamma_1$ and $\gamma_2$ enclose rigid particles, while $\Gamma_1$ is a solid
+wall. The outer boundary $\Gamma_0$ may or may not be present.  The vector
 $\nn$ is the unit normal vector pointing into the fluid domain.}
 \end{figure}
 
@@ -102,21 +100,20 @@ We start by assuming that the fluid is governed by the incompressible
 Navier-Stokes equations 
 \begin{align*}
   \rho\left(\pderiv{\uu}{t} + (\uu \cdot \grad) \uu \right) &= 
-    -\grad p + \mu \Delta \uu, \\
-    \grad \cdot \uu &= 0,
+    -\grad p + \mu \Delta \uu \qquad \xx\in\Omega,\\
+    \grad \cdot \uu &= 0 \qquad \xx\in\Omega,
 \end{align*}
 where $\uu$ is the velocity, $p$ is the pressure, $\rho$ is the fluid
 density, and $\mu$ is the fluid viscosity.  The equations are
 nondimensionalized by choosing a characteristic speed $U$ and
-characteristic length scale $L$.  The resulting dimensionless number is
-the Reynolds number $\Re = UL/\nu$ where $\nu$ is the kinematic fluid
+characteristic length scale $L$, which results in the dimensionless
+Reynolds number $\Re = UL/\nu$ where $\nu$ is the kinematic fluid
 viscosity.  We are interested in small particles and slow velocities
 which renders the Reynolds number small $\Re \ll 1$.  Therefore, the
 fluid is governed by the incompressible Stokes equations.  A Dirichlet
-boundary condition $\UU$ is imposed on the solid walls $\Gamma$, and a
-no-slip boundary condition is assumed for the rigid bodies $\gamma$.
-Given the definitions in the previous section and the scales of
-interest, the equations for the suspension of rigid bodies are given by
+boundary condition $\UU$ is imposed on the solid walls $\Gamma$, a
+no-slip boundary condition is assumed for the rigid bodies $\gamma$ and 
+the rigid bodies are assumed to be force and torque free.
 \begin{equation}
   \label{eqn:modelEquations}
   \begin{split}
@@ -131,7 +128,7 @@ interest, the equations for the suspension of rigid bodies are given by
   \FF_j^\gamma = 0, &\hspace{20pt}j=1,\ldots,M_p, \gap 
     &&\mbox{\em force-free particles,} \\
   L_j^\gamma = 0, &\hspace{20pt}j=1,\ldots,M_p, \gap 
-    &&\mbox{\em torque-free particles,}
+    &&\mbox{\em torque-free particles.}
   \end{split}
 \end{equation}
 Here, $\uu^\tau_j$ and $\omega_j$ are the translational and rotational
@@ -146,11 +143,7 @@ velocity equation is replaced with a background flow condition
   \uu(\xx) = \uu_\infty(\xx), \quad |\xx| \rightarrow \infty.
 \end{align*}
 
-We will eventually relax the force-free and torque-free conditions.
-Rather, a small force and torque will be imposed to guarantee that rigid
-bodies do not come into unphysical contact.  This idea is first
-described for vesicle suspensions by Lu et al.~\cite{Lu2017} and we
-summarize the method in Section~\ref{sec:repulsion}.  Finally, given the
+Given the
 rigid body translational and rotational velocities, their centers and
 inclination angles $(\cc_j,\theta_j)$, $j=1,\ldots,M_p$, satisfy
 \begin{align*}
@@ -158,14 +151,21 @@ inclination angles $(\cc_j,\theta_j)$, $j=1,\ldots,M_p$, satisfy
   \frac{d\theta}{dt} = \omega_j.
 \end{align*}
 
+Finally, we will eventually relax the force-free and torque-free conditions,
+and instead allow a small force and torque to guarantee that rigid
+bodies do not come into unphysical contact.  This idea is first
+described for vesicle suspensions by Lu et al.~\cite{Lu2017} and we
+summarize the method in Section~\ref{sec:repulsion}.  
+
+
+
 There exist many numerical methods for simulating the suspensions of
 interfaces in a fluid by solving~\eqref{eqn:modelEquations}.  However,
-given that the fluid equations are linear, we opt to use a boundary
+given that the fluid equations are linear and the geometry mobile, we opt to use a boundary
 integral equation (BIE) formulation~\cite{Pozrikidis1992}.  BIEs have
 several advantages including that only the interface has to be tracked,
 resulting in a dimension reduction and simplification of complex
-geometries.  In the next section, we introduce the necessary integral
-operators needed to reformulate~\eqref{eqn:modelEquations}.
+geometries.  In the next section we reformulate ~\eqref{eqn:modelEquations} as a BIE.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{Boundary Integral Equation Representation}
@@ -192,12 +192,12 @@ Pozrikidis1992},
 where $\rr = \xx - \yy$, $\rho=|\rr|$, and $\eeta$ is an unknown density
 function defined on $\bd\Omega$.  The double-layer
 potential~\eqref{eqn:dlp} satisfies the incompressible Stokes equations,
-and the density function $\eeta$ satisfies
+and a Dirichlet boundary condition $\UU$ is found by solving
 \begin{align*}
   \lim_{\substack{\xx \rightarrow \xx_0 \\ \xx \in \Omega}}
     \DD[\eeta](\xx) = \UU(\xx_0), \quad \xx_0 \in \Gamma,
 \end{align*}
-where $\UU$ is the imposed wall velocity.  When taking the limit, the
+for $\eeta$.  When taking the limit, the
 singularity of the stresslet results in a jump~\cite{Pozrikidis1992},
 and the density function must satisfy  
 \begin{align}
@@ -205,19 +205,17 @@ and the density function must satisfy
     \quad \xx_0 \in \Gamma.
   \label{eqn:secondKindBIE}
 \end{align}
-The double-layer potential does satisfy the incompressible Stokes
-equations, but it cannot represent all solutions of the incompressible
+While the double-layer potential satisfies the incompressible Stokes
+equations, it cannot represent all solutions of the incompressible
 Stokes equations; in particular, it cannot represent rigid body motion.
-This can be rectified by introducing point forces and torques due to
-each interior component of the geometry $\Gamma_j$, $j =
-1,\ldots,M_w$~\cite{Power1987, Power1993}.  This is done by introducing
-the net force and torque about a point $\cc$ outside of $\Omega$
+This is rectified by introducing point forces and torques due to
+each interior component of the geometry $\Gamma_j$ ~\cite{Power1987, Power1993}.  To accomplish this we introduce a Stokeslet $\mathbf{S}(\xx,\cc)$ representing the velocity field due to a point force and a rotlet $\RR(\xx,\cc)$ representing the velocity field due to a point torque,
 \begin{align*}
   \mathbf{S}(\xx,\cc) = -\log\rho\mathbf{I} + 
   \frac{\rr \otimes \rr}{\rho^2}, \quad \text{and} \quad
   \mathbf{R}(\xx,\cc) = \frac{\rr^\perp}{\rho^2},
 \end{align*}
-respectively, where $\rr = \xx - \cc$ and $\rho = |\rr|$.  Then, the
+ where $\rr = \xx - \cc$ and $\rho = |\rr|$.  Then, the
 second-kind integral equation~\eqref{eqn:secondKindBIE} is replaced with
 the completed second-kind BIE
 \begin{equation}
@@ -249,7 +247,7 @@ by equation~\eqref{eqn:modelEquations} is
       &\hspace{96pt}+\sum_{j=1}^{M_p} \left(\mathbf{S}(\xx,\cc^\gamma_j)\FF^\gamma_j + 
       \mathbf{R}(\xx,\cc^\gamma_j)L^\gamma_j\right), 
     \quad \xx \in \Gamma, \label{eqn:BIEformulation1} \\
-  \uu^\tau_j + \omega_j(\xx - \cc_j^\gamma) &=
+  \uu^\tau_j + \omega_j(\xx - \cc_j^\gamma)^\perp &=
     -\frac{1}{2}\eeta(\xx) + \DD[\eeta](\xx) + 
     \sum_{j=1}^{M_w} \left(\mathbf{S}(\xx,\cc^\Gamma_j)\FF^\Gamma_j + 
       \mathbf{R}(\xx,\cc^\Gamma_j)L^\Gamma_j\right) \nonumber \\
@@ -270,8 +268,7 @@ This constitutes eight equations for eight unknowns: the density
 function, net force, and net torque on the solid walls and rigid bodies,
 and the translational and rotational velocities.  We have adopted the
 method of Power~\cite{Power1993} to relate the density function on the
-rigid bodies to the corresponding force and torque. \todo[inline]{I
-don't understand this last sentence}
+rigid bodies to the corresponding force and torque.
 
 %We now choose the density functions, and the strengths of the Stokeslets
 %and rotlets so that the boundary conditions
@@ -299,8 +296,8 @@ don't understand this last sentence}
 %\end{equation}         
 While~\eqref{eqn:BIEformulation1} and~\eqref{eqn:BIEformulation2} are
 both numerically desirable second-kind Fredholm integral equations
-equations  for the unknown density function $\eeta(\xx)$,
-equation~\eqref{eqn:BIEformulation1} still has a rank one null space
+equations,
+equation~\eqref{eqn:BIEformulation1} has a rank one null space
 because of the flux-free condition of the boundary data
 $\UU$~\cite{Ladyzhenskaya1963}.  Following~\cite{Power1993}, this null
 space is removed by adding the term 
@@ -310,7 +307,7 @@ space is removed by adding the term
     \nn(\xx)\otimes\nn(\yy)~\text{d}s(\yy)
 \end{align}
 to~\eqref{eqn:BIEformulation1}, but only for points $\xx \in \Gamma_0$.
-Finally, if there are no solid walls, there is no null space, and
+Finally, if $\Omega$ is unbounded, there is no null space, and
 the only modification to~\eqref{eqn:BIEformulation} is that
 equation~\eqref{eqn:BIEformulation1} is removed and
 equation~\eqref{eqn:BIEformulation2} has the background velocity
@@ -385,12 +382,8 @@ $\uu_\infty(\xx)$ added to the right hand side.
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\subsection{Repulsion Forces}
+\subsection{A contact based repulsion force}
 \label{sec:repulsion}
-\todo[inline]{Tone back this section significantly  Can we show that the
-net force and torque are always zero?  This is important otherwise the
-solution becomes unbounded as per Stokes paradox.  Libin's old code
-didn't support non-circular rigid particles}
 
 \begin{figure}[!h]\label{fig:collision_sketch}
 \begin{center}
@@ -404,13 +397,13 @@ forces. When evaluating a target point close to the boundary (as is necessary wh
 
 One such approach is to introduce an artificial repulsion force. There
 are many possible choices for the type of force. One possibility is a repulsion force based on a Morse or 
-Lennard -Jones type potential that grows as a high order polynomial as two particles become close together \cite{Flormann2017, Liu2006}. This has been shown to work for dense
+Lennard-Jones type potential that grows as a high order polynomial as two particles become close together \cite{Flormann2017, Liu2006}. This has been shown to work for dense
 suspensions, however the resulting ODEs become very stiff as the
 separation between particles decreases, thus requiring smaller time
-steps. Spring based models \cite{Tsubota2006, Zhao2013, Kabacogulu2017} have also been used to generate artificial repulsion forces.
+steps. Spring based models \cite{Tsubota2006, Zhao2013, Kabacogulu2017} have also been used to generate artificial repulsion forces, although these models also introduce stiffness. One further disadvantage of these methods is that neither approach explicitly guarantees no contact between particles. If too large a time step is chosen collisions can still occur. 
 
-Our approach mirrors \cite{Lu2017} whereby we choose the forces in such a way as to
-explicitly guarantee each time step is collision free.  At each time
+Our approach mirrors \cite{Lu2017} where the forces are chosen in such a way as to
+explicitly guarantee that each time step is collision free.  At each time
 step $t^n$ the Stokes equations are solved and the particles are
 advanced to a candidate configuration at $t^{n+1}$.  Using a linear
 interpolant, we check if any collisions occurred in the interval
@@ -419,6 +412,15 @@ configuration is accepted.  If contact is detected, the candidate
 solution is rejected and we resolve
 equations~\eqref{eqn:BIEformulation}, but with artificial repulsion forces $\FF^\gamma_j$ and torques
 $L^\gamma_j$ that are chosen to try and avoid contact.  This lets us form a new candidate configuration. This process is repeated until we end up with a contact-free configuration.
+
+
+It is well known that the Stokes equations  are the Euler-Lagrange equations for the variational problem,
+\[ \min \int_{\Omega} \nabla\mathbf{u}:\nabla\mathbf{u}~\text{d}\Omega  ~\text{ such that }~ \nabla\cdot\mathbf{u} = 0 \text{ in
+}\Omega.\]
+In this formulation incompressibility shows up as a constraint in the variation problem, and the pressure $p$ is the associated Lagrange multiplier in the Euler-Lagrange equations. In \cite{Lu2017}, an additional constraint that requires the configuration of rigid particles to be contact-free is imposed. This constraint necessitates an additional Lagrange multiplier $\lambda$ which determines the magnitude of the repulsion force. The direction comes from the response of the contact volume to changes in the velocity. To solve for $\lambda$ requires the solution of a nonlinear complementary problem (NCP). This NCP can be linearized, leading to a sequence of linear complementary problems that must be solved at each time step.
+
+As detailed in \cite{Lu2017, Harmon2011}, space-time interference volumes (STIV) offer a metric to quantify collision volumes. One advantage of STIVs over other collision detection methods, such as a signed distance, is that STIVs involve a time integral and can detect collisions even if the final configuration is contact-free. Thus, even if one particle passes completely through another, using STIVs we can compute a contact volume and its response to changes in the velocity of the particles.
+
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -475,7 +477,7 @@ introduce collisions at time $t_0+\Delta t$, in other words
 $\mathbf{V}(t_0 + \Delta t) \geq \mathbf{0}$.  This constraint can be
 incorporated in the Lagrangian \eqref{eq:lagrangian} with the
 introduction of a Lagrange multiplier $\llambda$ with one component
-foreach possible collision volume,
+for each possible collision volume,
 \begin{equation}\label{eq:lagrangian2} \tilde{\mathcal{L}}(\mathbf{u},p,\lambda)= \mathcal{L}(\mathbf{u},p) + \pmb{\lambda} \cdot \mathbf{V}(t_0+\Delta
 t).\end{equation}
 First order optimality for \eqref{eq:lagrangian2} yields the Stokes equations
@@ -505,12 +507,15 @@ the repulsion force by adding a net force and torque to each particle or wall as
 \text{d}_\mathbf{u}V^T\pmb{\lambda}~\text{d}s, \qquad L_p^k = \int_{\Gamma_k}
 \text{d}_\mathbf{u}V^T\pmb{\lambda}\cdot(\mathbf{x}-\mathbf{c}_k)^\perp~\text{d}s.\]
 \end{comment}
-Physically we expect that any repsulsion force exerted by one particle on another is balanced by an equal and opposite repulsion force from the second particle. In this way the net force in the system is always zero, i.e. 
+
+Physically we expect that any repulsion force exerted by one particle on another is balanced by an equal and opposite repulsion force from the second particle. In this way the net force in the system coming from repulsion forces is always zero, i.e. 
 \begin{equation*}
-	\sum\limits_{j=1}^{M_w} \FF^\Gamma_j + \sum\limits_{j=1}^{M_p}\FF^\gamma_j = \mathbf{0}.
+	\sum\limits_{j=1}^{M_p} \FF^\gamma_j = \mathbf{0}.
 \end{equation*}
 
-This is particularily important for unbounded domains, as for planar flow Stokes paradox says that only force-free configurations have bounded solutions at infinity \cite{Power1993, Pozrikidis1992}. After computing the repulsion forces they may need to be balanced manually. To do this, we group all particles that are in contact into distinct clusters. For each cluster, the particle that is in contact with the most other particles (to break ties, the particle with the largest repulsion force in magnitude) is given a net force equal to the negative sum of all other particles in the cluster. 
+This is particularly important for unbounded domains, as for planar flow Stokes paradox says that only force-free configurations have bounded solutions at infinity \cite{Power1993, Pozrikidis1992}. 
+
+If only two particles are in contact, the symmetry of the STIV ensures that the net force is zero. However, if one particle is in contact with more than one particle, then due to the scaling of the magnitudes of the forces, the net force may be nonzero. Thus the repulsion forces they may need to be balanced manually. To do this, we group all particles that are in contact into distinct clusters. For each cluster, the particle that is in contact with the most other particles (to break ties, the particle with the largest repulsion force in magnitude) is given a net force equal to the negative sum of all other particles in the cluster. Whenever a the force on a particle is scaled the torque on that particle is scaled by the same amount. 
 
 
 
@@ -592,26 +597,22 @@ The sequence \eqref{eq:lcp} will be solved at each time step.
 To understand the rheological and statistical properties of suspensions
 of rigid bodies, it is necessary to compute quantities such as the
 pressure, stress, and energy dissipation.  In the BIE setting, computing
-these quantities is entirely a post-processing step, and they also be
+these quantities is a post-processing step, and they also be
 computed with high-order accuracy using methods described in
 Section~\ref{s:method}.
 
-To compute the pressure, we start with the conservation of momentum
-\begin{align*}
-  \nabla p = \Delta \uu,
-\end{align*}
-and substitute the double-layer potential~\eqref{eqn:dlp}.  By
+To compute the pressure substitute the double-layer potential~\eqref{eqn:dlp} into the conservation of momentum equation $\Delta\uu = \nabla p$.  By
 integrating, the pressure of the double-layer potential is
 \begin{align*}
-  p(\xx) = \frac{1}{\pi}\int_{\partial\Omega}\frac{1}{\rho^2}\left((
-    \mathbf{I} - 2(\rr \otimes \rr)\nn\right)\cdot\eeta~\text{d}s. 
+  p(\xx) = \frac{1}{\pi}\int_{\partial\Omega}\frac{1}{\rho^2}\left(
+    \mathbf{I} - 2(\rr \otimes \rr)\nn\right)\cdot\eeta~\text{d}s, \qquad\xx\in\Omega.
 \end{align*}
 The pressure due to the Stokeslets and rotlets can be easily computed,
 and the pressure resulting from the completed double-layer potential
 formulation for the velocity~\eqref{eqn:completed_DLP} is
 \begin{align}
   \label{eqn:pressure} 
-  p(\xx) = \frac{1}{\pi}\int_{\partial\Omega}\frac{1}{\rho^2}\left((
+  p(\xx) = \frac{1}{\pi}\int_{\partial\Omega}\frac{1}{\rho^2}\left(
     \mathbf{I} - 2(\rr \otimes \rr)\nn\right)\cdot\eeta~\text{d}s +
   \sum_{i=1}^{M_w}
   \frac{\FF_i^\Gamma\cdot(\xx-\cc_i^\Gamma)}{2\pi||\xx-\cc_i^{\Gamma}||^2}
@@ -621,12 +622,12 @@ formulation for the velocity~\eqref{eqn:completed_DLP} is
 
 To compute the stress tensor
 \begin{align*} 
-  \ssigma = -p \mathbf{I} + \left(\nabla \uu + (\nabla\uu)^T\right),
+  \ssigma = -p \mathbf{I} + \left(\nabla \uu + (\nabla\uu)^T\right), \qquad \xx\in\Omega
 \end{align*}
 we start by using the layer potential representation of the
 pressure~\eqref{eqn:pressure}.  Then, the viscous stress tensor is
 computed by computing the Jacobian of the double-layer
-potential~\eqref{eqn:dlp} and the stokeslets and Rotlets to form
+potential~\eqref{eqn:dlp} and the Stokeslets and Rotlets to form
 \begin{align}
   \label{eqn:stress}
   \ssigma = \ssigma_{\eeta} + \ssigma_{S} + \ssigma_{R},
@@ -662,31 +663,25 @@ is novel}
 With the goal of performing long-time accurate simulations of dense
 suspensions, appropriate numerical methods must be employed.  To achieve
 high-order accuracy, the spatial grid is resolved with spectral accuracy
-(Section~\ref{}), and stability is achieved by using implicit
-interactions in the time integrator (Section~\ref{}).  Finally, to
+(Section~\ref{sec:spatial}), and stability is achieved by using implicit
+interactions in the time integrator (Section~\ref{sec:temporal}).  Finally, to
 reduce the computational cost, the fast multipole method and a
 block-diagonal preconditioner are used.
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\subsection{Spatial Discretization}
-\todo[inline]{dump of old text}
-We use a fully implicit time stepping method and a spectral
-discretization in space.  All the integral equations are discretized
+\subsection{Spatial Discretization}\label{sec:spatial}
+ All the integral equations are discretized
 with a Nystr\"om  methods, and interactions between nearly touching
-interfaces is resolved with a near-singular integration scheme.
-Finally, the Fast Multipole Method (FMM) is used to accelerate the
-matrix-vector multiplications that arise upon discretization.  By using
+interfaces is resolved with a near-singular integration scheme. By using
 these methods, spectral accuracy can be achieved for long time horizons
 with optimal complexity.
 
 For particles that are in near-contact the near singular
 integration scheme described in~\cite{Quaife2014, Ying2006} is used.
 
-\todo[inline]{dump of old text}
-
-Letting $\xx(\alpha)$ be a parameterization of a rigid body or a solid
-wall, we can represent any smooth function defined on this curve using a
+Let $\xx(\alpha)$ be a parameterization of a rigid body or a solid
+wall which is represented with $N_p$ or $N_w$ Fourier modes. We can represent smooth functions defined on this curve using a
 Fourier series as
 \begin{align}
   f(\alpha) = f(\xx(\alpha)) = \sum_{k \in \ZZ} \hat{f}_k e^{ik\alpha}.
@@ -697,10 +692,21 @@ with this Fourier series so that spectral accuracy is achieved.
 The double-layer potentials in~\eqref{eqn:BIEformulation} are
 discretized with a Nystr\"om method.  Because the kernels are smooth,
 the trapezoid rule guarantees spectral accuracy~\cite{tre-wei2014}.  For
-example, equation~\eqref{eqn:BIEformulation1} is discretized as
+Equation~\eqref{eqn:BIEformulation1} is discretized as
 \begin{equation*}
   \begin{aligned}
   \UU(\xx_i) = -\frac{1}{2}\eeta(\xx_i) + 
+  \sum_{k=1}^{N} K(\xx_i,\xx_k) \eeta(\xx_k) \Delta s_k
+    &+ \sum_{j=1}^{M_w} \left(\mathbf{S}(\xx_i,\cc^\gamma_j)\FF_j +
+    \mathbf{R}(\xx_i,\dd_j)L_j\right)  \\
+    &+ \sum_{j=1}^{N} \left(\mathbf{S}(\xx_i,\cc^\Gamma_j)\FF_j +
+    \mathbf{R}(\xx_i,\cc^\Gamma_j)\L_j\right),
+  \end{aligned}
+\end{equation*}
+and ~\eqref{eqn:BIEformulation2} is discretized as
+\begin{equation*}
+  \begin{aligned}
+  \uu^\tau_j + \omega_j(\xx_i - \cc^\gamma_j)^\perp = -\frac{1}{2}\eeta(\xx_i) + 
   \sum_{k=1}^{N} K(\xx_i,\xx_k) \eeta(\xx_k) \Delta s_k
     &+ \sum_{j=1}^{M_w} \left(\mathbf{S}(\xx_i,\cc^\gamma_j)\FF_j +
     \mathbf{R}(\xx_i,\dd_j)L_j\right)  \\
@@ -741,9 +747,8 @@ quadrature~\cite{hel-oja2008}.  In this work, we use an interpolation
 based scheme~\cite{Ying2006} which has been used for other
 two-dimensional suspensions~\cite{Quaife2014}.
 
-Once each of the
-equations~\eqref{eq:vel_walls},~\eqref{eq:vel_particles},
-and~\eqref{eq:closure} have been discretized using the above described
+Once all of the
+equations in \eqref{eqn:BIEformulation} are discretized using the above described
 quadrature rules, the result is a dense $N \times N$ linear system.
 Since this linear system is the discretization of a second-kind integral
 equation, GMRES~\cite{Saad1986} converges in a mesh-independent number of
@@ -753,9 +758,9 @@ proportional to the cost of doing a single matrix-vector multiply.
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\subsection{Time Stepping Methods}
+\subsection{Time Stepping Methods}\label{sec:temporal}
 \todo[inline]{Bryan can write this section}
-\todo[inline]{dump of old text}
+
 We use a Lagrangian formulation where we track the centers
 $\cc_i^\gamma$ and orientations $\theta_i$ of each rigid body
 $\gamma_i$. 
@@ -768,7 +773,6 @@ to the ODEs,
   \frac{\text{d}}{\text{d}t}\theta_k =\omega_k.
 \end{align*}
 The ODEs are advanced in time using an explicit Euler step. 
-\todo[inline]{dump of old text}
 
 While the governing equations for the rigid bodies centers and
 inclination angle are quite simple,
@@ -838,7 +842,7 @@ over several orders of magnitude.
 
 
 
-
+\begin{comment}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{Fast Summation and Preconditioning}
 \todo[inline]{Do we describe how the preconditioner is updated by simply
@@ -864,7 +868,7 @@ treating inter-particle interactions explicitly and moving them to the
 right hand side. This is termed {\em locally implicit} and is described
 in \cite{Lu2017}. For dense suspensions however this type of time
 stepping can lead to instabilities as particles become tightly packed. 
-
+\end{comment}
 \begin{comment}
 \begin{algorithm}
 	 \SetKwInOut{Input}{Input}
@@ -889,7 +893,6 @@ $L_k \gets \int_{\Gamma_k}
 	}
 \end{algorithm}
 \end{comment}
-
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Results\label{s:results}} 
 
@@ -897,7 +900,7 @@ $L_k \gets \int_{\Gamma_k}
 \todo[inline]{Plot stream lines by doing many runs and showing that they
 cross when contact first happens}
 
-A simple numerical experiment done in \cite{Lu2017} is repeated with our globally implicit time stepper. Two particles are placed in an unbounded shear flow, $\mathbf{u}^\infty = (y, 0)$. The rightmost particle is placed on the origin, while the leftmost particle is placed slightly above the $y$ axis at $(-8, 0.5)$. As the particles come close to each other the left particle is deflected above the right one and continues on a trajectory to the right with a constant $y$ value. The particles are discretized with 32 points, meaning that the arc length spacing is $2\pi/32 \approx 0.196$. In this experiment the particles never get within $2h$ of one another, meaning that if we take $\delta$ to be less than $2h$ the collision constraint is not necessary. 
+A simple numerical experiment done in \cite{Lu2017} is repeated with our globally implicit time stepper. Two particles are placed in an unbounded shear flow, $\mathbf{u}^\infty = (y, 0)$. One  particle is centered on the origin, while the other is centered slightly above the $y$ axis at $(-8, 0.5)$. The slight elevation difference causes the particles to approach one another. As the particles come close to each other the left particle is deflected above the right one and continues on a trajectory to the right with a constant $y$ value. The particles are discretized with 32 points, meaning that the arc length spacing is $2\pi/32 \approx 0.196$. In this experiment the particles are never within $2h$ of one another, meaning that if we take $\delta$ to be less than $2h$ the collision constraint is not necessary. 
 \begin{figure}[!h]
 \begin{center}
 \includegraphics{figures/shear_setup1.pdf}
@@ -909,7 +912,7 @@ A simple numerical experiment done in \cite{Lu2017} is repeated with our globall
 \caption{Shear experiment. Top: initial setup and trajectories of the centers of both rigid bodies. Bottom left: the $y$ coordinate of the center of the particle initially on the left as a function of its horizontal displacement. Bottom right: the final vertical displacement of the particle initially on the right as a function of separation distance.}\label{fig:shear_experiment}
 \end{figure}
 
-We can use this setup to look at effect of the contact force on the time reversibility of the flow. By reversing the shear direction at $t=10$ we can measure the relative error between the initial particle center and the particle center at $t=20$. The results for various value of $\delta$ are shown in table \ref{tab:reverse}. For $\delta = 0$ (no contact constraint) we get first order accuracy in the reversibility of the flow. This is expected as we are using forward Euler as our time stepper. For $\delta \geq 2$ we see that we no longer recover reversibility. This is due to the fact that the force has the no the effect of shifting the particles onto a streamline that is contact free. If we reverse the direction of the flow we will be traversing this contact-free streamline. 
+We use this setup to look at the effect of the contact force on the time reversibility of the flow. By reversing the shear direction at $t=10$ we can measure the relative error between the initial particle center and the particle center at $t=20$. The results for various value of $\delta$ are shown in Table \ref{tab:reverse}. For $\delta = 0$ (no contact constraint) we achieve first order accuracy in the reversibility of the flow. This is expected as we are using forward Euler as our time stepper. For $\delta \geq 2$ we see that we no longer recover reversibility. This is due to the fact that the force has the no the effect of shifting the particles onto a streamline that is contact free. If we reverse the direction of the flow we will be traversing this contact-free streamline. 
 
 \begin{table}[!h]
 \begin{center}
@@ -925,7 +928,7 @@ $2.75h$ & $3.64\e{-1}$ & $3.31\e{-1}$ & $3.13\e{-1}$ & $3.07\e{-1}$ & $3.03\e{-1
 $3.00h$ & $4.12\e{-1}$ & $3.88\e{-1}$ & $3.72\e{-1}$ & $3.67\e{-1}$ & $3.63\e{-1}$
 \end{tabular}
 \end{center}
-\caption{Study of time reversibility of the shear flow setup depicted in figure \ref{fig:shear_experiment}. At $t=10$ the flow direction is reversed and we calculate the relative error in the starting position and the position at $t=20$. When the collision constraint is active and force is needed to keep the particles apart we no longer recover time reversibility.}\label{tab:reverse}
+\caption{Study of time reversibility of the shear flow setup depicted in figure \ref{fig:shear_experiment}. At $t=10$ the flow direction is reversed and we calculate the relative error in the starting position and the position at $t=20$. When the collision constraint is active and force is needed to keep the particles apart the error in the reversibility is dominated by the contact algorithm.}\label{tab:reverse}
 \todo[inline]{include $\delta = h$ even if there is no contact.  We
 should see first order}
 \end{table}
@@ -933,7 +936,7 @@ should see first order}
 
 \subsection{Taylor-Green}
 
-One of the advantages of using a globally implicit time stepper is that it can handle dense suspensions without requiring an excessively small time step. We will look at a dense suspension of 75 rigid particles in unbounded Taylor-Green flow. The background velocity field $\mathbf{u}^\infty$ is given by $(\cos(x)\sin(y), -\sin(x)\cos(y))$. Snapshots of the simulation are shown in figure \ref{fig:taylor_green}. 
+One of the advantages of using a globally implicit time stepper is that it can handle dense suspensions without requiring an excessively small time step. We will look at a dense suspension of 75 rigid particles in unbounded Taylor-Green flow. The background velocity field $\mathbf{u}^\infty$ is given by $(\cos(x)\sin(y), -\sin(x)\cos(y))$. Snapshots of the simulation are shown in figure \ref{Fig:taylor_green}. 
 
 \begin{figure}[!h]
 \begin{center}
@@ -951,7 +954,7 @@ time horizon}
 
 \subsection{Taylor-Couette}
 
-We can use our model to investigate rheological properties of suspensions. Here we will look at suspensions of varying volume fraction and particle aspect ratio; specifically we will look at 5 and 10 percent volume fractions and ellipse shaped particles of aspect ratio 3 to 1 and 6 to 1. Initially the particles are placed randomly inside the device; the initial configurations are shown in figure \ref{fig:couette_setup}. 
+We can use our model to investigate rheological and statistical properties of slender body suspensions. We consider look at suspensions of varying volume fraction and particle aspect ratio; specifically we will look at 5 and 10 percent volume fractions and ellipse shaped particles of aspect ratio 3 to 1 and 6 to 1. The particles are placed initially randomly inside the device; the initial configurations are shown in Figure \ref{fig:couette_setup}. The inner cylinder is fixed, while the outer cylinder rotates at a constant angular velocity.
 
 \begin{figure}[!h]
 \begin{center}
@@ -963,7 +966,7 @@ We can use our model to investigate rheological properties of suspensions. Here 
 \caption{Four initial configurations for Taylor-Couette flow with varying volume fraction $\phi$ and aspect ratio $r$. From left to right: 1) $\phi=5\%$, $r = 3:1$, 2) $\phi=5\%$, $r=6:1$, 3) $\phi=10\%$, $r=3:1$, 4) $\phi=10\%$, $r=6:1$.}\label{fig:couette_setup}
 \end{figure}
 
-By measuring the torque on the inner cylinder we can get an instantaneous value of the effective viscosity of the suspension. As can be seen in figure \ref{fig:torque}, the effective viscosity increases with $\phi$, but is generally lower with the 6 to 1 shaped particles.
+By measuring the torque on the inner cylinder (which is the strength of the rotlet centered at the origin) we can get an instantaneous value of the effective viscosity of the suspension. As can be seen in Figure \ref{fig:torque}, the effective viscosity increases with $\phi$, but is generally lower with the 6 to 1 shaped particles. The spikes in Figure 6 occur when a repulsion force is added to the system. 
 \begin{figure}[!h]
 \begin{center}
 \includegraphics{figures/couette_torque.pdf}\\
@@ -997,10 +1000,13 @@ that a 0 value corresponds to both no alignment and perfect alignment}
 \begin{figure}[!h]
 \begin{tabular}{c c c}
 \includegraphics{figures/injection_plate0.pdf}&
-\includegraphics{figures/injection_plate_expanded.pdf}&
-\includegraphics{figures/injection_plate_final.pdf}
+\includegraphics{figures/injection_plate2.pdf}&
+\includegraphics{figures/injection_plate4.pdf}\\
+\includegraphics{figures/injection_plate6.pdf}&
+\includegraphics{figures/injection_plate8.pdf}&
+\includegraphics{figures/injection_plate8_overlay.pdf}\\
 \end{tabular}
-\caption{Snapshots of simulation of the experiment setup described in \cite{MacMinn2015} with rigid particles. Fluid is injected at a constant rate starting at $t=0$. At $t=4$ the flow direction is reversed. Fixed particles are bordered in red, while particles undergoing a repulsion force are outlined in green. From left to right: $t=0$, $t=4$, $t=8$. The initial configuration has been superimposed on the final configuration at $t=8$. We can see the repulsion forces break reversibility.} 
+\caption{Snapshots of simulation of the experiment setup described in \cite{MacMinn2015} with rigid particles. Fluid is injected at a constant rate starting at $t=0$. At $t=4$ the flow direction is reversed. Fixed particles are filled in red, while particles subject to a repulsion force are filled in green.The initial configuration has been superimposed on the final configuration at $t=8$. We can see the repulsion forces break reversibility.} 
 \end{figure}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
