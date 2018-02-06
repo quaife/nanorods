@@ -936,7 +936,7 @@ should see first order}
 
 \subsection{Taylor-Green}
 
-One of the advantages of using a globally implicit time stepper is that it can handle dense suspensions without requiring an excessively small time step. We will look at a dense suspension of 75 rigid particles in unbounded Taylor-Green flow. The background velocity field $\mathbf{u}^\infty$ is given by $(\cos(x)\sin(y), -\sin(x)\cos(y))$. Snapshots of the simulation are shown in figure \ref{Fig:taylor_green}. 
+One of the advantages of using a globally implicit time stepper is that it can handle dense suspensions without requiring an excessively small time step. We will look at a dense suspension of 75 rigid particles in unbounded Taylor-Green flow. The background velocity field $\mathbf{u}^\infty$ is given by $(\cos(x)\sin(y), -\sin(x)\cos(y))$. Snapshots of the simulation are shown in Figure \ref{fig:taylor_green}. 
 
 \begin{figure}[!h]
 \begin{center}
@@ -944,11 +944,9 @@ One of the advantages of using a globally implicit time stepper is that it can h
 \includegraphics[width=3cm]{figures/taylor_green0.pdf} &
 \includegraphics[width=3cm]{figures/taylor_green1.pdf}&
 \includegraphics[width=3cm]{figures/taylor_green2.pdf} &
- \includegraphics[width=3cm]{figures/taylor_green_tracks.pdf}
+ \includegraphics[width=3cm]{figures/taylor_green_tracks_new.pdf}
 \end{tabular}
 \end{center}
-\todo[inline]{Finish this plot so that the green line goes right to the
-time horizon}
 \caption{Dense suspension in unbounded Taylor-Green flow. Particles are discretized with 32 points and a minimum separation of $0.05h$ is enforced. Snapshots of the simulation at $t=0$, $t=15$ and $t=30$ are shown. The bottom right plot shows the track of the center of the particle shaded in magenta for different time step sizes. Each line in that plot is marked where a repulsion force is necessary to enforce the minimum separation. }\label{fig:taylor_green}
 \end{figure}
 
