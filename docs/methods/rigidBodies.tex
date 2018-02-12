@@ -296,19 +296,18 @@ of how contact can occur is illustrated in
 Figure~\ref{fig:collision_sketch}.  The two main sources of error are
 the quadrature error---especially for nearly touching rigid bodies---and
 time stepping error.  Issues with quadrature have been addressed using
-near-singular integration techniques~\cite{Ying2006, Kockner2013,
-qua-bir2014} \todo[inline]{need references from Barnett, Wu,
-Veerapaneni, and regularization group (Beale, Cortez, Merced person?},
+near-singular integration techniques~\cite{Ying2006, Klockner2013,
+Quaife2014, Barnett2014} \todo[inline]{need references from regularization group (Beale, Cortez, Merced person?},
 and high-order or even spectral accuracy in space can be achieved.
 Errors due to time stepping have recently received more attention, and
-methods that control stiffness~\cite{qua-bir2014} \todo[inline]{other
+methods that control stiffness~\cite{Quaife2014} \todo[inline]{other
 papers here}, and use adaptive time step sizes~\cite{Kropinski1999,
-qua-bir2016} \todo[inline]{other papers including Dhairya's recent
+Quaife2015} \todo[inline]{other papers including Dhairya's recent
 submission}.  Alternatively, repulsion forces can be added~\cite{}, or
 the analytic solutions of the flow due to lubrication forces can be
 added to the dynamics~\cite{Mammoli2006}.  Unfortunately, repulsion
 forces often introduce non-linear stiffness that restricts the time step
-size, and using lubrication theory is difficult for particles of aribitrary geometry due to the complicated asymptotics needed.
+size, and using lubrication theory is difficult for particles of arbitrary geometry due to the complicated asymptotics needed.
 
 
 %When evaluating a target point close to the boundary (as is
@@ -355,14 +354,14 @@ but adding the additional constraints that the suspension remains
 collision-free. From an algorithmic point of view, this starts by
 advancing the force- and torque-free particles from time $t$ to $t +
 \Delta t$ according to equation~\eqref{eqn:centersAngles} where the
-translational and angular velocities satisfy~\eqref{eqn:BIEformualtion}.
+translational and angular velocities satisfy~\eqref{eqn:BIEformulation2}.
 Next, collision detection is performed.  However, instead of requiring
 that the bodies are contact-free, we make the additional restriction
 that the minimum separation distance is greater than some user-specified
 tolerance.  Finally, based on the amount of overlap that occurs,
 artificial forces and torques are added to the bodies, and the governing
 equations~\eqref{eqn:BIEformulation} are resolved, except that forces
-and torques are included in equation~\eqref{eqn:BIEformualtion5}.  To
+and torques are included in equation~\eqref{eqn:BIEformulation5}.  To
 find the amount of overlap, the space-time interference volume
 (STIV)~\cite{Harmon2011} based on a linear trajectory of the rigid
 bodies is used. Once the new candidate solution is computed, the
@@ -969,10 +968,21 @@ that a 0 value corresponds to both no alignment and perfect alignment}
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\subsection{Radial Flow}
-\todo[inline]{Inlet with wall of grated circles}
+\FloatBarrier
+\subsection{Fluid Driven Deformation}
 
-\begin{figure}[!h]
+In \cite{MacMinn2015} an experimental setup is described to investigate the effects of fluid injection on the deformation of a porous material. In their experiment a monolayer of soft particles in placed in a circular disk. In the center of the disk, fluid is injected and allowed to leave through the outer wall of the disk. At time $T$ the injection is reversed and fluid is sucked out through the center of the disk until time $2T$. The movement of the soft particles is tracked and their displacement at time $2T$ is noted.
+
+\begin{figure}[h!]
+\begin{center}
+\includegraphics{figures/injection_plate_setup.pdf}
+\end{center}
+\caption{Experimental model setup to simulate the experiment described in \cite{MacMinn2015}. Fixed solid particles are shaded in black.}\label{fig:radial}
+\end{figure}
+
+A similar experiment involving rigid particles can be modeled by setting the considering two concentric disks and prescribing an inflow velocity $Q$ on the center disk and a corresponding outflow velocity on the outer disk, such that $\int_\Omega \uu\cdot\nn~\text{d}\Omega = 0$. With this setup however, we do not want the particles to come into contact with the outer wall because this complicates the outflow profile. To get around this we place a ring of \textit{fixed} particles at some radius between the inner and outer disks.  The spacing between the particles in the ring is small enough that no mobile particles can pass between two fixed particles.  Our monlayer of rigid particles will be confined between the inner disk and this ring of fixed particles. Assuming the outer wall is far enough away from the ring of particles the velocity profile on the outer wall should still be radially symmetric and we can prescribe a constant outflow rate on the outer wall. Figure \ref{fig:radial} shows this setup. 
+
+\begin{figure}[h!]
 \begin{tabular}{c c c}
 \includegraphics{figures/injection_plate0.pdf}&
 \includegraphics{figures/injection_plate2.pdf}&
@@ -981,10 +991,13 @@ that a 0 value corresponds to both no alignment and perfect alignment}
 \includegraphics{figures/injection_plate8.pdf}&
 \includegraphics{figures/injection_plate8_overlay.pdf}\\
 \end{tabular}
-\caption{Snapshots of simulation of the experiment setup described in \cite{MacMinn2015} with rigid particles. Fluid is injected at a constant rate starting at $t=0$. At $t=4$ the flow direction is reversed. Fixed particles are filled in red, while particles subject to a repulsion force are filled in green.The initial configuration has been superimposed on the final configuration at $t=8$. We can see the repulsion forces break reversibility.} 
+\caption{Snapshots of simulation of the experiment setup described in \cite{MacMinn2015} with rigid particles. Fluid is injected at a constant rate starting at $t=0$. At $t=4$ the flow direction is reversed. Fixed particles are filled in red, while particles subject to a repulsion force are filled in green.The initial configuration has been superimposed on the final configuration at $t=8$. We can see the repulsion forces break reversibility.} \label{fig:macminn}
 \end{figure}
 
+
+For the case of soft particles their deformation breaks the time reversibility of the experiment. For rigid particles the contact algorithm described above breaks reversibility. This can be seen in Figure \ref{fig:macminn}. 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\FloatBarrier
 \section{Conclusions\label{s:conclusions}}
 
 
