@@ -17,7 +17,7 @@
 \usetikzlibrary{math}
 
 \begin{document}
-		\begin{tikzpicture}[scale=1]
+		\begin{tikzpicture}[scale=0.6]
 		\draw(0,0)circle(0.1);
 		\draw(0,0)circle(5);
 		\foreach \n in {0,...,25}
@@ -25,8 +25,8 @@
 				\fill({2.5*sin(360/26*\n)},{2.5*cos(360/26*\n)}) circle(0.2);
 			} 
 		 \draw[->](0.1,0)--(0.8,0);
-		\draw(1,0.3) node {$Q \mathbf{n}/(2\pi R_{\text{in}})$};
+		\draw(1,0.3) node {\tiny$Q \mathbf{n}/(2\pi R_{\text{in}})$};
 		 \draw[->](5,0)--(5.3,0);
-		\draw(6.1,0.3) node {$Q \mathbf{n}/(2\pi R_{\text{out}})$};
+		\draw(6.2,0.3) node {\tiny$Q \mathbf{n}/(2\pi R_{\text{out}})$};
 \end{tikzpicture}
 \end{document}

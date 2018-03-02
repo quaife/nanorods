@@ -28,9 +28,13 @@ scale only axis,
 xmin=0.000,
 xmax=3.000,
 xlabel style={font=\color{white!15!black}},
-xlabel={$\delta$},
+xlabel={$\delta/h$},
 ymin=0.090,
 ymax=0.170,
+yticklabel style={
+        /pgf/number format/fixed,
+        /pgf/number format/precision=2
+},
 ylabel style={font=\color{white!15!black}},
 ylabel={displacement},
 axis background/.style={fill=white}
