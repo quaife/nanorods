@@ -124,7 +124,7 @@ suspension of rigid bodies, the fluid viscosity sets the time scale, and
 we assume it is one throughout the paper.  In the case of a bounded
 domain, the boundary condition $\UU$ must satisfy the standard flux-free
 condition, and in the case that the fluid domain is unbounded, the wall
-velocity equation is replaced with a farfield condition
+velocity equation is replaced with a far-field condition
 \begin{align*}
   \uu(\xx) = \uu_\infty(\xx), \quad |\xx| \rightarrow \infty.
 \end{align*}
@@ -200,7 +200,7 @@ This is rectified by introducing point forces and torques due to each
 interior component of the geometry $\Gamma_j$~\cite{Power1987,
 Power1993}.  To accomplish this we introduce the velocity fields due to a
 point force $\mathbf{S}(\xx,\cc)$ (Stokeslet) and due to a 
-point torque $\mathbf{R}(\xx,\cc)$ (Rotlet) both centered at $\cc$,
+point torque $\mathbf{R}(\xx,\cc)$ (rotlet) both centered at $\cc$,
 \begin{align*}
   \mathbf{S}(\xx,\cc) = -\log\rho\mathbf{I} + 
   \frac{\rr \otimes \rr}{\rho^2}, \quad \text{and} \quad
@@ -345,15 +345,13 @@ still occur.
 Our approach mirrors~\cite{Lu2017} where the choice of forces and
 torques guarantee that each time step is collision-free.
 It is well known that the Stokes equations are the Euler-Lagrange
-equations for the variational problem, 
-In this formulation incompressibility shows up as a constraint in the
-variation problem, 
+for a variational problem,
 \begin{align*}
   \min \int_{\Omega} \nabla\uu:\nabla\uu~\text{d}\Omega,
-  \quad\text{ such that }\quad \nabla\cdot\uu = 0 \text{ in }\Omega,
+  \quad\text{ such that }\quad \nabla\cdot\uu = 0 \text{ in }\Omega.
 \end{align*} 
-and the pressure $p$ is the associated Lagrange
-multiplier in the Euler-Lagrange equations. In \cite{Lu2017}, an
+In the Euler-Lagrange equations, the pressure $p$ is the Lagrange
+multiplier associated with the incompressibility constraint. In \cite{Lu2017}, an
 additional constraint that requires the configuration of rigid particles
 to be contact-free is imposed. This constraint necessitates an
 additional Lagrange multiplier $\lambda$ which determines the magnitude
@@ -1003,7 +1001,7 @@ when a repulsion force is added to the system.
 \begin{center}
 \includegraphics{figures/couette_torque.pdf}\\
 \end{center}
-\caption{Instantaneous effective viscosity for the cases shown in figure
+\caption{Instantaneous effective viscosity for the cases shown in Figure
 \ref{fig:couette_setup}. The inner cylinder is fixed, while the outer one spins.The ratio of the torque on the inner cylinder to the baseline torque (i.e. the
 torque on the inner cylinder of a device with no particles) gives the
 instantaneous effective viscosity.}\label{fig:torque}
@@ -1012,9 +1010,16 @@ instantaneous effective viscosity.}\label{fig:torque}
 Another quantity we may be interested is the alignment of the particles. On
 average we expect the particles to align in the direction of the shear flow,
 which in this case is the perpendicular to the radial direction. One way to measure the alignment is using the order parameter, $S$ defined as,
-\[ S = \langle \frac{d - \cos^2\tilde{\theta}}{d - 1}\rangle,\]
-where $d$ is the dimension of the problem (2 in this case), $\tilde{\theta}$ is the deviation from the expected angle and $\langle \cdot\rangle$ denotes the average over all particles. If a particle is centered at $(x,y)$ its expected angle is $\tan^{-1}(y/x) + \pi/2$. The parameter $S$ ranges between -1 and 1, with 1 being a suspension perfectly aligned with the expected angle, 0 being a random suspension (no alignment) and -1 being a suspension perfectly aligned perpendicular to the expected angle. Figure \ref{fig:angles}
-shows the order parameter as a function of time for the four cases. The 6:1 fibers align much better than the 3:1 fibers. This makes sense, since in simple shear flow particles undergo Jeffery orbits. In this case particles align with the shear direction \textit{on average}, however at any point in time they will in general not be aligned with the shear direction. Particles with a higher aspect ratio rotate more quickly when then they are perpendicular to the shear direction and thus spend more time nearly aligned with the shear direction.
+\[ S = \langle \frac{d \cos^2\tilde{\theta} - 1}{d - 1}\rangle,\]
+where $d$ is the dimension of the problem (2 in this case), $\tilde{\theta}$ is the deviation from the expected angle and $\langle \cdot\rangle$ denotes the average over all particles. If a particle is centered at $(x,y)$ its expected angle is $\tan^{-1}(y/x) + \pi/2$. The parameter $S$ ranges between -1 and 1, with 1 being a suspension perfectly aligned with the expected angle, 0 being a random suspension (no alignment) and -1 being a suspension perfectly aligned perpendicular to the expected angle.
+
+Figure \ref{fig:angles} shows the order parameter as a function of time for the four cases. The 6:1 fibers align much better than the 3:1 fibers. This makes sense, since in simple shear flow particles undergo Jeffery orbits. In this case particles align with the shear direction \textit{on average}, however at any point in time they will in general not be aligned with the shear direction. Particles with a higher aspect ratio rotate more quickly when then they are perpendicular to the shear direction and thus spend more time nearly aligned with the shear direction. We can compare this to the time averaged order parameter for a single ellipse shaped fiber in an unbounded shear flow. A single ellipse with major axis $a$ and minor axis $b$ in an unbounded shear flow with shear rate $g$ rotates with period $\tau = \pi/(2| g|)(a/b + b/a)$ according to
+\[ \phi(t) = \tan^{-1}\left(\frac{b}{a}\tan\left(\frac{a b gt}{a^2+b^2}\right)\right).\]
+The time average order parameter is then,
+\[
+	S = \frac{1}{\tau}\int_0^\tau\left( 2\cos^2(\phi(t)) - 1\right)~\text{d}t =  -1 + \frac{2a}{a+b}.
+\]
+The time average order parameter is 1/2 for a 3:1 ellipse and 5/7$\approx 0.7143$ for a 6:1 ellipse (independent of shear rate). 
 
 \begin{figure}[!h]
 \begin{center}
@@ -1059,7 +1064,7 @@ $\int_\Omega \uu\cdot\nn~\text{d}\Omega = 0$. With this setup however, we do not
 complicates the outflow profile. To get around this we place a ring of
 \textit{fixed} particles at some radius between the inner and outer disks. The
 spacing between the particles in the ring is small enough that no mobile
-particles can pass between two fixed particles. Our monlayer of rigid particles
+particles can pass between two fixed particles. Our monolayer of rigid particles
 will be confined between the inner disk and this ring of fixed particles.
 Assuming the outer wall is far enough away from the ring of particles the
 velocity profile on the outer wall should still be radially symmetric and we can prescribe a constant outflow rate on the outer wall. Figure \ref{fig:radial}
