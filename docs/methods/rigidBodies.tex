@@ -291,9 +291,7 @@ $\uu_\infty(\xx)$ added to the right hand side.
 \label{sec:repulsion}
 Exact solutions of the Stokes equations prohibit contact between
 force-free and torque-free particles in finite time.  Therefore, any
-contact between rigid bodies is caused by numerical errors.  A schematic
-of how contact can occur is illustrated in
-Figure~\ref{fig:collision_sketch}.  The two main sources of error are
+contact between rigid bodies is caused by numerical errors.  The two main sources of error are
 the quadrature error---especially for nearly touching rigid bodies---and
 time stepping error.  Issues with quadrature have been addressed using
 near-singular integration techniques~\cite{Ying2006, Klockner2013,
@@ -313,12 +311,13 @@ Quaife2015, Sorgentone2018}.
 %evaluate the double layer potential accurately, time stepping errors can
 %still lead to contact. To keep computational costs reasonable we must
 %turn to alternative approaches. 
-\begin{figure}[!h]\label{fig:collision_sketch}
-\begin{center}
-\includegraphics{figures/collisions.pdf}
-\end{center}
-\caption{Sketch of potential collisions.}
-\end{figure}
+
+%\begin{figure}[!h]\label{fig:collision_sketch}
+%\begin{center}
+%\includegraphics{figures/collisions.pdf}
+%\end{center}
+%\caption{Sketch of potential collisions.}
+%\end{figure}
 
  Alternatively, repulsion forces can be added~\cite{Malhotra2018}, or
 the analytic solutions of the flow due to lubrication forces can be
@@ -694,8 +693,6 @@ to the ODEs,
 \end{align*}
 The ODEs are advanced in time using an explicit Euler step. A low cost first order time stepper is justifiable since we are interested mainly in statistical quantities of the overall suspension, as opposed to completely accurate particle trajectories. 
 
-\todo[inline]{Mention adaptive time stepping as reason to not use Adams-Bashforth?}
-
 The stability of the method is depends strongly on the method used to
 solve~\eqref{eqn:BIEformulation} for the translational and angular velocities $\uu_j$ and $\omega_j$.
 While the interactions between different bodies can be treated
@@ -819,7 +816,7 @@ infinity \cite{Power1993, Pozrikidis1992}.
 
 If only two particles are in contact, the symmetry of the STIV ensures that the
 net force is zero. However, if one particle is in contact with more than one
-particle, then due to the scaling of the magnitudes of the forces, the net force may be nonzero. Thus the repulsion forces they may need to be balanced manually.To do this, we group all particles that are in contact into distinct clusters.
+particle, then due to the scaling of the magnitudes of the forces, the net force may be nonzero. In this case the repulsion forces may need to be balanced manually.To do this, we group all particles that are in contact into distinct clusters.
 For each cluster, the particle that is in contact with the most other particles
 (to break ties, the particle with the largest repulsion force in magnitude) is
 given a net force that balances all other particles in the
@@ -972,7 +969,7 @@ Using the globally implicit discretization\eqref{eqn:SemiImplicit} our solver re
 We can use our model to investigate rheological and statistical properties of
 slender body suspensions. We consider look at suspensions of varying volume
 fraction and particle aspect ratio; specifically we will look at 5 and 10
-percent volume fractions and ellipse shaped particles of aspect ratio 3 to 1 and 6 to 1. The particles are placed initially randomly inside the device; the
+percent volume fractions and ellipse shaped particles of aspect ratio, $\psi$, defined as the ratio of the semi-major axis to the semi-minor axis. The particles are initially distributed randomly inside the device; the
 initial configurations are shown in Figure \ref{fig:couette_setup}. The inner
 cylinder is fixed, while the outer cylinder rotates at a constant angular
 velocity.
@@ -986,25 +983,21 @@ velocity.
 \includegraphics[width=3cm]{figures/couette_010_6_1.pdf}
 \end{tabular}
 \end{center}
-\caption{Four initial configurations for Taylor-Couette flow with varying volume fraction $\phi$ and aspect ratio $r$. From left to right: 1) $\phi=5\%$, $r =
-3:1$, 2) $\phi=5\%$, $r=6:1$, 3) $\phi=10\%$, $r=3:1$, 4) $\phi=10\%$,
-$r=6:1$.}\label{fig:couette_setup}
+\caption{Four initial configurations for Taylor-Couette flow with varying volume fraction $\phi$ and aspect ratio $\psi$. From left to right: 1) $\phi=5\%$, $\psi=
+3$, 2) $\phi=5\%$, $\psi=6$, 3) $\phi=10\%$, $\psi=3$, 4) $\phi=10\%$,
+$\psi=6$.}\label{fig:couette_setup}
 \end{figure}
 
 By measuring the torque on the inner cylinder (which is the strength of the
-rotlet centered at the origin) we can get an instantaneous value of the
-effective viscosity of the suspension. As can be seen in Figure
-\ref{fig:torque}, the effective viscosity increases with $\phi$, but is
+rotlet centered at the origin) we can measure how much the bulk shear stress of the suspension increases when particles are added. As can be seen in Figure
+\ref{fig:torque}, the bulk shear stress increases with $\phi$, but is
 generally lower with the 6 to 1 shaped particles. The spikes in Figure 6 occur
-when a repulsion force is added to the system.
+when a repulsion force is added to the system. Similar spikes were observed numerically in \cite{Lu2017}.
 \begin{figure}[!h]
 \begin{center}
 \includegraphics{figures/couette_torque.pdf}\\
 \end{center}
-\caption{Instantaneous effective viscosity for the cases shown in Figure
-\ref{fig:couette_setup}. The inner cylinder is fixed, while the outer one spins.The ratio of the torque on the inner cylinder to the baseline torque (i.e. the
-torque on the inner cylinder of a device with no particles) gives the
-instantaneous effective viscosity.}\label{fig:torque}
+\caption{Instantaneous bulk shear stress relative to the baseline case with no particles.  The inner cylinder is fixed, while the outer one rotates at a constant angular velocity. $L_{\text{in}}$ is the torque on the inner cylinder for the suspension, while $L_0$ is the torque on the inner cylinder when the volume fraction is 0.}\label{fig:torque}
 \end{figure} 
 
 Another quantity we may be interested is the alignment of the particles. On
@@ -1013,20 +1006,34 @@ which in this case is the perpendicular to the radial direction. One way to meas
 \[ S = \langle \frac{d \cos^2\tilde{\theta} - 1}{d - 1}\rangle,\]
 where $d$ is the dimension of the problem (2 in this case), $\tilde{\theta}$ is the deviation from the expected angle and $\langle \cdot\rangle$ denotes the average over all particles. If a particle is centered at $(x,y)$ its expected angle is $\tan^{-1}(y/x) + \pi/2$. The parameter $S$ ranges between -1 and 1, with 1 being a suspension perfectly aligned with the expected angle, 0 being a random suspension (no alignment) and -1 being a suspension perfectly aligned perpendicular to the expected angle.
 
-Figure \ref{fig:angles} shows the order parameter as a function of time for the four cases. The 6:1 fibers align much better than the 3:1 fibers. This makes sense, since in simple shear flow particles undergo Jeffery orbits. In this case particles align with the shear direction \textit{on average}, however at any point in time they will in general not be aligned with the shear direction. Particles with a higher aspect ratio rotate more quickly when then they are perpendicular to the shear direction and thus spend more time nearly aligned with the shear direction. We can compare this to the time averaged order parameter for a single ellipse shaped fiber in an unbounded shear flow. A single ellipse with major axis $a$ and minor axis $b$ in an unbounded shear flow with shear rate $g$ rotates with period $\tau = \pi/(2| g|)(a/b + b/a)$ according to
-\[ \phi(t) = \tan^{-1}\left(\frac{b}{a}\tan\left(\frac{a b gt}{a^2+b^2}\right)\right).\]
-The time average order parameter is then,
-\[
-	S = \frac{1}{\tau}\int_0^\tau\left( 2\cos^2(\phi(t)) - 1\right)~\text{d}t =  -1 + \frac{2a}{a+b}.
-\]
-The time average order parameter is 1/2 for a 3:1 ellipse and 5/7$\approx 0.7143$ for a 6:1 ellipse (independent of shear rate). 
-
 \begin{figure}[!h]
 \begin{center}
 \includegraphics{figures/order_parameter.pdf}\\
 \end{center}
 \caption{The order parameter as a function of time for different fiber concentrations and aspect ratios. We see that the 6:1 fibers align better. This is because as in simple shear flow, the fibers still rotate through all the orientations and align with the shear direction only on average.The 6:1 fibers rotate rotate through the angle perpendicular to the shear direction more quickly than the 3:1 fibers and thus spend more time approximately aligned with the shear direction. }\label{fig:angles}
 \end{figure} 
+
+
+Figure \ref{fig:angles} shows the order parameter as a function of time for the four cases. The 6:1 fibers align much better than the 3:1 fibers. This makes sense, since in simple shear flow particles undergo Jeffery orbits. In this case particles align with the shear direction \textit{on average}, however at any point in time they will in general not be aligned with the shear direction. Particles with a higher aspect ratio rotate more quickly when then they are perpendicular to the shear direction and thus spend more time nearly aligned with the shear direction. We can compare this to the time averaged order parameter for a single ellipse shaped fiber in an unbounded shear flow. A single ellipse in an unbounded shear flow with shear rate $g$ rotates with period $\tau = \pi/(2| g|)(\psi + \psi^{-1})$ \cite{Jeffery1922} according to
+\[ \varphi(t) = \tan^{-1}\left(\frac{1}{\psi}\tan\left(\frac{\psi gt}{\psi^2 + 1}\right)\right).\]
+The time average order parameter is then,
+\[
+	\langle S\rangle ~=~ \frac{1}{\tau}\int_0^\tau\left( 2\cos^2(\varphi(t)) - 1\right)~\text{d}t ~=~ \frac{\psi -1}{\psi+1}.
+\]
+The time average order parameter is 1/2 for $\psi = 3$ and 5/7$\approx 0.7143$ for $\psi=6$ (independent of shear rate). Table \ref{tab:order} shows the time and space averaged order parameter for the Couette apparatus. We have arbitrarily decided to time average over only the second revolution of the outer cylinder. We see that in all cases our computed time averaged order parameter is higher than the theoretical single fiber case. This could be due to the hydrodynamic interactions between the particles, or the effect of the solid walls.
+
+\begin{table}[!h]
+\begin{center}
+\begin{tabular}{c |c |c |c}
+volume fraction, $\phi$ & aspect ratio, $\psi$ & computed $ \langle S  \rangle$ & theoretical $\langle S \rangle$ (single fiber)\\
+5\% &3& 0.5243 & 0.5\\
+10\% &3 & 0.6043 & 0.5\\
+5\% & 6 & 0.9115 & 0.7143\\
+10\% & 6 & 0.8884 & 0.7143
+\end{tabular}
+\end{center}
+\caption{The time averaged order parameter during the second revolution of the Couette apparatus. }\label{tab:order}
+\end{table} 
 
 %\begin{figure}[!h]
 %\begin{center}
