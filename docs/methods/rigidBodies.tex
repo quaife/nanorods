@@ -879,10 +879,8 @@ $L_k \gets \int_{\Gamma_k}
 \section{Results\label{s:results}} 
 
 \subsection{Shear Flow}
-\todo[inline]{Plot stream lines by doing many runs and showing that they
-cross when contact first happens}
 
-We repeat an experiment from \cite{Lu2017} is repeated with our new
+We repeat an experiment from \cite{Lu2017} with our new
 globally implicit time stepper. The particles are arranged initially so that they approach one another, deflect off one another, and then separate. 
 The particles are discretized with 32 points, so that the arc length
 spacing $h  = 2\pi/32 \approx 0.196$. Given the particles initial placement, the separation distance is always greater than $h$, so that if we take the desired separation distance $\delta$ to be less than $h$ the collision constraint is never necessary. 
@@ -905,7 +903,14 @@ center at $t=20$. The results for various values of $\delta$ are in Table
 \ref{tab:reverse}. For $\delta = 0$ (no contact constraint) we achieve first-order accuracy in the reversibility of the flow since we are
 using forward Euler as our time stepper. For $\delta \geq 2h$, reversibility is broken because the contact force has the  effect of shifting the particles onto a contact-free streamline. When
 we reverse the direction of the flow the particles traverse these contact-free
-streamlines.
+streamlines. The effect of the contact force on the streamlines can be seen in Figure \ref{fig:shear_cross}. Keeping the minimum separation fixed at $\delta = 3h$, we vary the initial $y$ coordinate of the left particle. Initially the particle the blue streamline is on the bottom, but after the repulsion force is applied it is now on top. The streamlines cross at around $x = -0.25$. 
+
+\begin{figure}[!h]
+\begin{center}
+\includegraphics{figures/shear_streamlines_cross.pdf}
+\end{center}
+\caption{Repulsion forces causes streamlines to cross. Keeping the minimum separation fixed, we vary the starting $y$ location of the left particle.}\label{fig:shear_cross}
+\end{figure}
 
 \begin{table}[!h]
 \begin{center}
