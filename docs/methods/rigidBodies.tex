@@ -28,9 +28,6 @@ We consider suspensions of rigid bodies in two dimensions \ldots
 \maketitle
 
 
-
-
-
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Introduction\label{s:intro}}
 
@@ -46,9 +43,58 @@ This is a methods paper
   \item Time integrator
 \end{itemize}
 
+\paragraph{Contributions} The main contribution is that we extend the
+time stepping strategy introduced for vesicle
+suspensions~\cite{Quaife2014} to rigid body suspensions.  Deformable
+bodies, such as vesicles, typically have a minimum separation distance
+where the Stokesian hydrodynamics are valid.  However, for rigid bodies,
+their proximity can be orders of magnitude smaller than deformable
+capsules.  Because of the near-proximity of the rigid bodies, we use a
+collision algorithm developed by Lu et al.~\cite{Lu2017} which
+guarantees a minimum separation distance between bodies. In their work,
+the interaction between different bodies is treated explicitly.  In
+particular, if $\uu_j$ is the velocity induced by body $j$, then the
+time stepping method used is
+\begin{align*}
+  \frac{\xx_i(t + \Delta t) -  \xx_i(t)}{dt} = \uu_i(t+\Delta t) +
+    \sum_{j \neq i} \uu_j(t).
+\end{align*}
+A limitation of this method is that the minimum separation distance must
+be sufficiently large so that the inter-body interaction term does not
+introduce an excessive amount of stiffness---a typical minimum
+separation distance is $\mathcal{O}(1)$ arclength spacings.  In the
+present work, we treat the interactions semi-implicitly as
+\begin{align*}
+  \frac{\xx_i(t + \Delta t) -  \xx_i(t)}{dt} = \uu_i(t+\Delta t) +
+    \sum_{j \neq i} \uu_j(t+\Delta t).
+\end{align*}
+With this modification, we are able to take much smaller collision
+parameters with introducing excessive stiffness---a typical minimum
+separation distance is $\mathcal{O}(10^{-2})$ arclength spacings.
+
+\todo[inline]{We examine the effect of STIV on reversibility.}
+
+With the ability to do more realistic suspensions of rigid bodies, we
+examine the rheological properties of rigid body suspensions.  In
+particular, we effective viscosity of a suspension of rigid bodies in a
+Couette device and examine the effect of the suspension's area fraction
+and the body's aspect ratio.  Motivated by polymer applications~\cite{}
+\todo[inline]{need help from Sachin here}, we also examine the
+statistical properties of the suspensions.  We are particularly
+interested in the alignment angle of rigid fibers.
+
+\paragraph{Limitations} The main limitation is that the method is
+developed in two-dimensions. Many of the algorithms we will present have
+been developed in three dimensions including the time stepping
+method~\cite{} and fast summation methods~\cite{}.  The algorithms that
+must be extended to higher dimensions include the preconditioner and the
+space-time interference volume~\todo[inline]{Is this right?}. 
 
 
+\paragraph{Related work}
 
+
+\paragraph{Outline of the paper}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Formulation\label{s:formulation}} 
 \subsection{Problem Formulation}
@@ -1007,9 +1053,19 @@ when a repulsion force is added to the system. Similar spikes were observed nume
 
 Another quantity we may be interested is the alignment of the particles. On
 average we expect the particles to align in the direction of the shear flow,
-which in this case is the perpendicular to the radial direction. One way to measure the alignment is using the order parameter, $S$ defined as,
-\[ S = \langle \frac{d \cos^2\tilde{\theta} - 1}{d - 1}\rangle,\]
-where $d$ is the dimension of the problem (2 in this case), $\tilde{\theta}$ is the deviation from the expected angle and $\langle \cdot\rangle$ denotes the average over all particles. If a particle is centered at $(x,y)$ its expected angle is $\tan^{-1}(y/x) + \pi/2$. The parameter $S$ ranges between -1 and 1, with 1 being a suspension perfectly aligned with the expected angle, 0 being a random suspension (no alignment) and -1 being a suspension perfectly aligned perpendicular to the expected angle.
+which in this case is the perpendicular to the radial direction. One way
+to measure the alignment is using the order parameter, $S$ defined as,
+\begin{align*}
+  S = \left\langle \frac{d \cos^2\tilde{\theta} - 1}{d - 1} \right\rangle,
+\end{align*}
+where $d$ is the dimension of the problem (2 in this case),
+$\tilde{\theta}$ is the deviation from the expected angle and $\langle
+\cdot\rangle$ denotes the average over all particles. If a particle is
+centered at $(x,y)$ its expected angle is $\tan^{-1}(y/x) + \pi/2$. The
+parameter $S$ ranges between -1 and 1, with 1 being a suspension
+perfectly aligned with the expected angle, 0 being a random suspension
+(no alignment) and -1 being a suspension perfectly aligned perpendicular
+to the expected angle.
 
 \begin{figure}[!h]
 \begin{center}
