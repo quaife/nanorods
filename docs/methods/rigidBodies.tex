@@ -199,8 +199,8 @@ incompressible Stokes equations is broken.  We systematically examine
 the effect of the collision algorithm on the reversibility of the
 simulations.
 
-With the ability to do more realistic suspensions of rigid bodies, we can
-examine the rheological properties of rigid body suspensions.  In
+With the ability to do more realistic suspensions of rigid bodies, we
+can examine the rheological properties of rigid body suspensions.  In
 particular, we effective viscosity of a suspension of rigid bodies in a
 Couette device and examine the effect of the suspension's area fraction
 and the body's aspect ratio.  Motivated by simulations and analysis by
@@ -209,30 +209,52 @@ suspensions.  We are particularly interested in the alignment angle of
 fibers.
 
 \paragraph{Limitations} The main limitation is that the method is
-developed in two-dimensions. Many of the algorithms we will present have
-been developed in three dimensions including the time stepping
-method~\cite{} and fast summation methods~\cite{}.  The algorithms that
-must be extended to higher dimensions include the preconditioner and the
-space-time interference volume.~\todo[inline]{Is this right?}.  However,
-by limiting ourselves to two-dimensions, we are able to perform
-simulations of denser suspensions with high-order accuracy.
+developed in two-dimensions.  By limiting ourselves to two-dimensions,
+we are able to perform simulations of denser suspensions with high-order
+accuracy.  However, many of the algorithms we present have been
+developed for rigid bodies three dimensions including boundary integral
+equation methods and fast summation methods~\cite{cor-gre-rac-vee2017,
+kli-tor2014, kli-tor2016}.  The most challenging algorithms that must be
+extended to three dimensions include efficient preconditioners and the
+space-time interference volume that requires integrating a
+four-dimensional domain ($3$ space dimensions and $1$ time dimension).
 
 
-\paragraph{Related work}
+\paragraph{Related work} Particulate suspensions in viscous fluid is a
+well-studied field.  Rather than giving an exhaustive list of all the
+related work, we focus on related work that focuses on using BIEs to
+simulate rigid body suspensions, and the related algorithms.  A more
+general overview of BIEs for particulate suspensions can be found in the
+texts of Pozrikidis~\cite{Pozrikidis1992, Guazzelli2011, Karrila1991}.
+This work draws heavily from methods developed for simulating two
+dimensional vesicle suspensions~\cite{Quaife2014, Quaife2015,
+qua-bir2016, Rahimian2010, Lu2017}.  We represent the velocity as a
+completed double-layer potential representation~\cite{Power1987,
+Power1993, Karrila1989} that is discretized with a Nystr\"om method
+using the trapezoid rule~\cite{Trefethen2014} and solved iterative with
+GMRES~\cite{Saad1986}.  Alternatively, a Galerkin discretization is
+possible~\cite{Mammoli1999, Mammoli2002, Mammoli2006}.
 
-Particle suspensions in a viscous fluid is a well studied discipline.
-The texts~\cite{Pozrikidis1992, Guazzelli2011} provide an excellent
-overview of the theoretical formulation and applications of
-microhydrodynamics, while ~cite{Karrila1991} places the theory in the
-context of linear operators and provides some details on the numerical
-methods needed. This paper draws largely on work done for 2D vesicle
-suspensions~\cite{Quaife2014, Quaife2015, Quaife2015a, Rahimian2010,
-Lu2017}. In particular we adopt the completed double layer potential
-formulation~\cite{Power1987, Power1993, Karrila1989} that leads to a
-well conditioned linear system. The resulting equations can be
-discretized using the Galkerkin based boundary element
-method~\cite{Mammoli1999, Mammoli2002, Mammoli2006} however we will the
-spectrally accurate collocation Nystr\"{o}m method.  The kernels arising
+Particular challenges with the BIE formulation, especially for dense
+suspensions, are large numbers of required GMRES iterations,
+weakly-singular and nearly-singular integrands, expensive dense
+matrix-vector multiplication.  
+
+
+%Particle suspensions in a viscous fluid is a
+%well studied discipline.  The texts~\cite{Pozrikidis1992, Guazzelli2011}
+%provide an excellent overview of the theoretical formulation and
+%applications of microhydrodynamics, while~\cite{Karrila1991} places the
+%theory in the context of linear operators and provides some details on
+%the numerical methods needed. This paper draws largely on work done for
+%2D vesicle suspensions~\cite{Quaife2014, Quaife2015, Quaife2015a,
+%Rahimian2010, Lu2017}. In particular we adopt the completed double layer
+%potential formulation~\cite{Power1987, Power1993, Karrila1989} that
+%leads to a well conditioned linear system. The resulting equations can
+%be discretized using the Galkerkin based boundary element
+%method~\cite{Mammoli1999, Mammoli2002, Mammoli2006} however we will the
+%spectrally accurate collocation Nystr\"{o}m method.  
+The kernels arising
 from the integral formulation are are weakly singular as target points
 approach the boundary, so specialized integration techniques are needed.
 Upsampling~\cite{Kropinski1999, Mammoli2006} is one possible avenue,
@@ -241,7 +263,7 @@ the memory requirements needed to accurately evaluate such closely
 touching particles can become prohibitively expensive. Quadrature by
 expansion~\cite{Klockner2013} uses local expansions to evaluate the
 kernels to high accuracy near the particle surface and has been used to
-solve the resistance problem in Stokes flow~\cite{Klinteberg2016}.An
+solve the resistance problem in Stokes flow~\cite{kli-tor2016}.An
 interpolation and limited upsampling based approach~\cite{Ying2006,
 Quaife2014} is simpler to implement and gives high-order accuracy even
 near the boundary. 
