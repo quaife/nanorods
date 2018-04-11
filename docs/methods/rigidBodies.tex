@@ -228,16 +228,13 @@ general overview of BIEs for particulate suspensions can be found in the
 texts of Pozrikidis~\cite{Pozrikidis1992, Guazzelli2011, Karrila1991}.
 This work draws heavily from methods developed for simulating two
 dimensional vesicle suspensions~\cite{Quaife2014, Quaife2015,
-qua-bir2016, Rahimian2010, Lu2017}.  We represent the velocity as a
-completed double-layer potential representation~\cite{Power1987,
+qua-bir2016, Rahimian2010, Lu2017}.  We represent the velocity as a completed double-layer potential representation~\cite{Power1987,
 Power1993, Karrila1989} that is discretized with a Nystr\"om method
 using the trapezoid rule~\cite{Trefethen2014} and solved iterative with
 GMRES~\cite{Saad1986}.  Alternatively, a Galerkin discretization is
 possible~\cite{Mammoli1999, Mammoli2002, Mammoli2006}.
 
-Particular challenges with the BIE formulation, especially for dense
-suspensions, are large numbers of required GMRES iterations, expensive
-matrix-vector multiplication, and weakly-singular and nearly-singular
+Particular challenges with the BIE formulation, especially for dense suspensions, are large numbers of required GMRES iterations, expensive matrix-vector multiplication, and weakly-singular and nearly-singular
 integrands.  We develop a second-kind boundary integral equation, so the
 number of required GMRES iterations is
 mesh-independent~\cite{Campbell1996}, but the number of iterations is
@@ -1163,16 +1160,65 @@ $L_k \gets \int_{\Gamma_k}
 \end{comment}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Results\label{s:results}} 
+We use our time integrator to simulate suspensions of two-dimensional
+rigid bodies in a Stokesian fluid in several bounded and unbounded
+geometries.  In addition to the initial condition and minimum separation
+distance $\delta,$ the main parameters are the number of discretization
+points $N$ and the time step size $\Delta t$. We perform convergence
+studies and investigate the effect loss of reversibility caused by the
+STIV algorithm.  To further demonstrate the consequence of STIV, we
+include plots of the streamlines which clearly cross whenever the
+collision detection algorithm is applied.  The particular experiments we
+perform are now summarized.
+\begin{itemize}
+  \item {\bf Shear Flow}: We consider the classic problem of two
+  identical rigid circles in the shear flow $\uu = (y,0)$ with the left
+  body slightly elevated from the right body.  We report similar results
+  to those presented in~\cite{Lu2017}, but with a slightly smaller
+  displacement.  The simulations is performed with different minimum
+  separations $\delta$, including $\delta=0$, and the result of this
+  parameter on the reversibility of the flow is examined for $\delta >
+  0$.  Furthermore, we form streamlines by simulating the trajectory
+  with several different initial configurations and show how the
+  streamlines intersect.
 
+  \item {\bf Taylor-Green Flow}: For a small minimum separation distance
+  $\delta$, we simulate 48 rigid ellipses in an unbounded Taylor-Green
+  flow.  At the prescribed separation distance, our new time stepping
+  method is able to stably reach the time horizon, while the locally
+  semi-implicit time integrator proposed by Lu et al.~\cite{Lu2017}
+  results in the STIV algorithm stalling, even with $\Delta t = 10^{-8}$
+
+  \item {\bf Taylor-Couette Flow}: With the ability to do denser
+  concentrations without imposing a non-physical minimum separation
+  distance, we simulate rigid bodies of varying aspect ratios inside a
+  Taylor-Couette device.  We examine rheological properties of the flow
+  by estimating the effective viscosity and quantifying the alignment
+  angles.  Results are presented at several volume fractions
+
+  \item {\bf Porous Monolayer Injection}: Motivated by an experiment by
+  MacMinn et al.~\cite{MacMinn2015}, we consider dense suspensions of
+  confined rigid circular bodies.  The flow is driven by an inflow 
+  at the center of the device and an outflow at a distance that is well
+  separated from the rigid bodies.  We again examine the effect STIV on
+  the reversibility of the flow, and compute the shear strain rate and
+  make qualitative comparisons to results for deformable
+  bodies~\cite{MacMinn2015}.
+\end{itemize}
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{Shear Flow}
 
-We repeat an experiment from \cite{Lu2017} with our new
-globally implicit time stepper. The particles are arranged initially so that they approach one
-another, deflect off one another, and then separate.
-The particles are discretized with 32 points, so that the arc length
-spacing $h = 2\pi/32 \approx 0.196$. Given the particles initial placement, the separation distance
-is always greater than $h$, so that if we take the desired separation distance $\delta$ to be less
-than $h$ the collision constraint is never necessary.
+We repeat an experiment from \cite{Lu2017} with our new globally
+implicit time stepper. The particles are arranged initially so that they
+approach one another, deflect off one another, and then separate.  The
+particles are discretized with 32 points, so that the arc length spacing
+$h = 2\pi/32 \approx 0.196$. Given the particles initial placement, the
+separation distance is always greater than $h$, so that if we take the
+desired separation distance $\delta$ to be less than $h$ the collision
+constraint is never necessary.
 \begin{figure}[!h]
 \begin{center}
 \includegraphics{figures/shear_setup1.pdf}
