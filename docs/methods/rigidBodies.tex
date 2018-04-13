@@ -950,36 +950,66 @@ proportional to the cost of doing a single matrix-vector multiply.
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\subsection{Time Stepping Methods}\label{sec:temporal}
-\todo[inline]{Bryan can write this section}
+\subsection{Time Stepping Methods}
+\label{sec:temporal}
 
 We use a Lagrangian formulation where we track the centers
 $\cc_i^\gamma$ and orientations $\theta_i$ of each rigid body
-$\gamma_i$. Given a suspension of rigid bodies,~\eqref{eqn:BIEformulation} is solved for the
-translational and rotational velocities of each body. Then, the position and angle of each particle
-are updated according
-to the ODEs,
+$\gamma_i$. Given a suspension of rigid
+bodies,~\eqref{eqn:BIEformulation} is solved for the translational and
+rotational velocities of each body. Then, the position and angle of each
+particle are updated according to the ODEs,
 \begin{align*}
   \frac{\text{d}}{\text{d}t}\mathbf{c}_k = \mathbf{u}^\tau_k, \qquad
   \frac{\text{d}}{\text{d}t}\theta_k =\omega_k.
 \end{align*}
-The ODEs are advanced in time using an explicit Euler step. A low cost first order time stepper is
-justifiable since we are interested mainly in statistical quantities of the overall suspension, as
-opposed to completely accurate particle trajectories.
+The ODEs are advanced in time using an explicit Euler step
+\begin{align*}
+  \cc_k^{N+1} &= \cc_k^N + \Delta t \left(\uu_k^\tau\right)^N, \\
+  \theta_k^{N+1} &= \theta_k^N + \Delta t \left(\omega_k\right)^N.
+\end{align*}
+This low cost first-order time stepper is justifiable since we are
+not interested in accurate particle trajectories, but rather are
+interested in statistical quantities of bulk quantities related to the
+suspension over large amounts of parameter values.
 
 The stability of the method is depends strongly on the method used to
-solve~\eqref{eqn:BIEformulation} for the translational and angular velocities $\uu_j$ and
-$\omega_j$.
-While the interactions between different bodies can be treated
-explicitly or implicitly, the layer potential will always be discretized
-explicitly. By this we mean that the density function $\eeta$ at time step $N$ will be discretized
-on the body configuration at time step $N$.
-In the original work of Lu et al.~\cite{Lu2017}, they use a
-semi-implicit method where the interaction between a rigid body and
-itself are treated implicitly, and all other interactions are treated
-explicitly.  For example, in the governing equation for the rigid
-bodies~\eqref{eqn:BIEformulation2}, double-layer potential
-terms is discretized as
+solve~\eqref{eqn:BIEformulation} for the translational and angular
+velocities $\uu_j$ and $\omega_j$. If the numerical error of the
+computed velocity is too large, unphysical contact will occur and
+which STIV will attempt to resolve.  However, if large errors are caused
+by interactions of bodies that are closer than the minimum separation
+distance, then these errors will not be resolved by STIV unless a very
+small time step is taken.  Therefore, if simulations result in nearly
+touching bodies, such as in dense concentrations, the it is important to
+use a time stepping method that allows for small minimum separations.
+
+The leading source of stiffness for a particular rigid body
+is the velocity field induced by the body itself. This leading source of
+stiffness is typically resolved by using the {\em locally implicit}
+discretization
+\begin{align*}
+  \DD[\eeta](\xx) \approx \DD^{n}[\eeta^]
+\end{align*}
+
+
+A secondary
+source of stiffness is caused by nearly touching bodies.  The amount of
+stiffness is a direct consequence of how the double-layer potential
+in~\eqref{eqn:BIEformulation} is discretized. 
+
+
+
+While the interactions between
+different bodies can be treated explicitly or implicitly, the layer
+potential will always be discretized explicitly. By this we mean that
+the density function $\eeta$ at time step $N$ will be discretized on the
+body configuration at time step $N$.  In the original work of Lu et
+al.~\cite{Lu2017}, they use a semi-implicit method where the interaction
+between a rigid body and itself are treated implicitly, and all other
+interactions are treated explicitly.  For example, in the governing
+equation for the rigid bodies~\eqref{eqn:BIEformulation2}, double-layer
+potential terms is discretized as
 \begin{align}
  \DD[\eeta^{N+1}](\xx_j) \approx
   \DD[\eeta^{N+1}_{k_0}](\xx_j) + 
