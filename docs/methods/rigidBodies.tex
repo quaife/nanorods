@@ -230,7 +230,7 @@ This work draws heavily from methods developed for simulating two
 dimensional vesicle suspensions~\cite{Quaife2014, Quaife2015,
 qua-bir2016, Rahimian2010, Lu2017}.  We represent the velocity as a completed double-layer potential representation~\cite{Power1987,
 Power1993, Karrila1989} that is discretized with a Nystr\"om method
-using the trapezoid rule~\cite{Trefethen2014} and solved iterative with
+using the trapezoid rule~\cite{Trefethan2014} and solved iteratively with
 GMRES~\cite{Saad1986}.  Alternatively, a Galerkin discretization is
 possible~\cite{Mammoli1999, Mammoli2002, Mammoli2006}.
 
@@ -464,9 +464,9 @@ Power1993}.  To accomplish this we introduce the velocity fields due to a
 point force $\mathbf{S}(\xx,\cc)$ (Stokeslet) and due to a 
 point torque $\mathbf{R}(\xx,\cc)$ (rotlet) both centered at $\cc$,
 \begin{align*}
-  \mathbf{S}(\xx,\cc) = -\log\rho\mathbf{I} + 
-  \frac{\rr \otimes \rr}{\rho^2}, \quad \text{and} \quad
-  \mathbf{R}(\xx,\cc) = \frac{\rr^\perp}{\rho^2},
+  \mathbf{S}(\xx,\cc) = \frac{1}{4\pi}\left(-\log\rho\mathbf{I} + 
+  \frac{\rr \otimes \rr}{\rho^2}\right), \quad \text{and} \quad
+  \mathbf{R}(\xx,\cc) = \frac{\rr^\perp}{4\pi\rho^2},
 \end{align*}
 where $\rr = \xx - \cc$ and $\rho = |\rr|$.  Then, the second-kind
 integral equation~\eqref{eqn:secondKindBIE} is replaced with the
@@ -552,7 +552,7 @@ $\uu_\infty(\xx)$ added to the right hand side.
 \subsection{A contact based repulsion force}
 \label{sec:repulsion}
 Exact solutions of the Stokes equations prohibit contact between
-force-free and torque-free particles in finite time.  Therefore, any
+force- and torque-free particles in finite time.  Therefore, any
 contact between rigid bodies is caused by numerical errors.  The two main sources of error are
 the quadrature error---especially for nearly touching rigid bodies---and
 time stepping error.  Issues with quadrature have been addressed using
@@ -777,20 +777,19 @@ problems that must be solved at each time step.
 %The sequence \eqref{eq:lcp} will be solved at each time step. 
 %\end{comment}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\subsection{Computing Pressures and Stresses}
+\subsection{Computing the Pressure and Stress}
 To understand the rheological and statistical properties of suspensions
 of rigid bodies, it is necessary to compute quantities such as the
 pressure, stress, and energy dissipation.  In the BIE setting, computing
-these quantities is a post-processing step, and they can also be
+these quantities is a post-processing step, and they are 
 computed with high-order accuracy using methods described in
 Section~\ref{s:method}.
 
-To compute the pressure substitute the double-layer potential~\eqref{eqn:dlp}
-into the conservation of momentum equation $\Delta\uu = \nabla p$. By
-integrating, the pressure of the double-layer potential is
+ By
+integrating $\Delta \uu$, the pressure of the double-layer potential is \cite{Power1993}
 \begin{align*}
   p(\xx) = \frac{1}{\pi}\int_{\partial\Omega}\frac{1}{\rho^2}\left(
-\mathbf{I} - 2(\rr \otimes \rr)\nn\right)\cdot\eeta~\text{d}s,
+\mathbf{I} - 2\frac{\rr \otimes \rr)\nn}{\rho^2}\right)\cdot\eeta~\text{d}s,
 \qquad\xx\in\Omega.
 \end{align*}
 The pressure due to the Stokeslets and rotlets can be easily computed,
@@ -801,14 +800,14 @@ formulation for the velocity~\eqref{eqn:completed_DLP} is
   p(\xx) = \frac{1}{\pi}\int_{\partial\Omega}\frac{1}{\rho^2}\left(
     \mathbf{I} - 2(\rr \otimes \rr)\nn\right)\cdot\eeta~\text{d}s +
   \sum_{i=1}^{M_w}
-  \frac{\FF_i^\Gamma\cdot(\xx-\cc_i^\Gamma)}{2\pi||\xx-\cc_i^{\Gamma}||^2}
+  \frac{\FF_i^\Gamma\cdot(\xx-\cc_i^\Gamma)}{2\pi|\xx-\cc_i^{\Gamma}|^2}
   + \sum_{i=1}^{M_p}
     \frac{\FF_i^\gamma\cdot(\xx-\cc_i^\gamma)}{2\pi|\xx-\cc_i^\gamma|^2}.
 \end{align}
 
 To compute the stress tensor
 \begin{align*} 
-\ssigma = -p \mathbf{I} + \left(\nabla \uu + (\nabla\uu)^T\right), \qquad
+\ssigma = -p \mathbf{I} + \left(\nabla \uu + (\nabla\uu)^\intercal\right), \qquad
 \xx\in\Omega
 \end{align*}
 we start by using the layer potential representation of the
@@ -823,27 +822,27 @@ where
 \begin{align*}
   \ssigma_{\eeta}(\xx) &= \frac{1}{\pi}\int_{\partial\Omega}\left( 
     \frac{\nn\cdot\eeta}{\rho^2}\mathbf{I} 
-    -\frac{(\rr\cdot\nn)(\rr\cdot\eeta)(\rr\otimes\rr)}{\rho^6} 
+    -8\frac{(\rr\cdot\nn)(\rr\cdot\eeta)(\rr\otimes\rr)}{\rho^6} 
     +\frac{(\rr\cdot\nn)(\rr\otimes\eeta + \eeta\otimes\rr)}{\rho^4} 
 + \frac{(\rr\cdot\eeta)(\rr\otimes\nn +
 \nn\otimes\rr)}{\rho^4}\right)\text{d}s,\\
-  \ssigma_S(\xx) &= \sum_{i=1}^{M_w} 
-    \frac{\FF_i^\Gamma\cdot(\cc_i^\Gamma-\xx)}{\pi|\xx-\cc_i^\Gamma|^2}
-        (\cc_i^\Gamma - \xx)\otimes(\cc_i^\Gamma-\xx)  + 
+  \ssigma_S(\xx) &= -\sum_{i=1}^{M_w} 
+    \frac{\FF_i^\Gamma\cdot(\xx - \cc_i^\Gamma)}{\pi|\xx-\cc_i^\Gamma|^2}
+        (\xx - \cc_i^\Gamma)\otimes(\xx - \cc_i^\Gamma)  -
     \sum_{i=1}^{M_p}
-    \frac{\FF_i^\gamma\cdot(\cc_i^\gamma-\xx)}{\pi|\xx-\cc_i^\gamma|^2}
-        (\cc_i^\gamma - \xx)\otimes(\cc_i^\gamma-\xx),\\
-\ssigma_R(\xx) &= \sum_{i=1}^{M_w} \frac{L_i^\Gamma}{2\pi|\xx-\cc_i^\Gamma|^2}
-((\cc_i^\gamma - \xx)\otimes(\cc_i^\gamma-\xx)^\perp +
-    (\cc_i^\gamma - \xx)^\perp\otimes(\cc_i^\gamma-\xx))  \\
-&+ \sum_{i=1}^{M_p}
+    \frac{\FF_i^\gamma\cdot(\xx - \cc_i^\gamma)}{\pi|\xx-\cc_i^\gamma|^2}
+        (\xx-\cc_i^\gamma )\otimes(\xx-\cc_i^\gamma),\\
+\ssigma_R(\xx) &= -\sum_{i=1}^{M_w} \frac{L_i^\Gamma}{2\pi|\xx-\cc_i^\Gamma|^2}
+((\xx-\cc_i^\gamma)\otimes(\xx-\cc_i^\gamma)^\perp +
+    (\xx-\cc_i^\gamma)^\perp\otimes(\xx-\cc_i^\gamma))  \\
+\qquad&-\sum_{i=1}^{M_p}
 \frac{L_i^\gamma}{2\pi|\xx-\cc_i^\gamma|^2}
-    ((\cc_i^\gamma - \xx)\otimes(\cc_i^\gamma-\xx)^\perp + 
-    (\cc_i^\gamma - \xx)^\perp\otimes(\cc_i^\gamma-\xx)).
+    ((\xx-\cc_i^\gamma )\otimes(\xx-\cc_i^\gamma)^\perp + 
+    (\xx-\cc_i^\gamma)^\perp\otimes(\xx-\cc_i^\gamma)).
 \end{align*}
 
-\todo[inline]{How do we compute the energy dissipation and the effective
-  viscosity using~\eqref{eqn:stress}}
+These expressions hold inside $\Omega$. On the boundary theres is a jump in the pressure and stress, as reported in \cite{Quaife2014}.
+Using the divergence theorem we can compute quantities like the volume average stress by computing only boundary integrals~\cite{Pozrikidis1992}. 
 		
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Numerical Methods\label{s:method}} 
@@ -936,7 +935,7 @@ expansion~\cite{Klockner2013}, barycentric
 interpolation~\cite{Barnett2015}, and panel-based
 quadrature~\cite{Helsing2008}.  In this work, we use an interpolation
 based scheme~\cite{Ying2006} which has been used for other
-two-dimensional suspensions~\cite{Quaife2014}.
+two-dimensional suspensions.  To compute the pressure and stress, odd-even integration with singularity subtraction is used.~\cite{Quaife2014}.
 
 Once all of the
 equations in \eqref{eqn:BIEformulation} are discretized using the above
