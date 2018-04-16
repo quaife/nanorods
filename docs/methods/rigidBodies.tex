@@ -60,7 +60,7 @@ As $\nu$ increases, the interactions between fibers become significant.
 Batchelor extended Jeffery's theory for multiple particles, by relating
 the average stress tensor, ${\bm \sigma}$, to the distribution of fiber
 orientation $\mathbf{p}$, and the deformation tensor $\mathbf{D} =
-(\nabla \mathbf{v} + \nabla \mathbf{v}^T)/2$. Assuming purely
+(\nabla \mathbf{v} + \nabla \mathbf{v}^\intercal)/2$. Assuming purely
 hydrodynamic interactions between fibers, and a slender body
 approximation ($\lambda \gg 1$)~\cite{Batchelor1970, Batchelor1970a,
 Doi1978, Dinh1984, Shaqfeh1990},
@@ -242,7 +242,7 @@ not geometry-independent.  We are able to use an exact block-diagonal
 preconditioner since the number of unknowns per particle is moderate in
 two dimensions.  However, to extend our work to three dimensions, other
 preconditioners such as the IFMM~\cite{qua-cou-dar2018, cou-pou-dar2017}
-multigrid~\cite{qua-bir2015a, bra-lub1990, hem-sch1981}, or sparse
+multigrid~\cite{Quaife2015, bra-lub1990, hem-sch1981}, or sparse
 approximate inverses~\cite{che2000} will have to be developed.  While
 the required number of GMRES iterations is important, the cost is
 dominated by the cost of applying dense matrix-vector multiplication.
@@ -1310,7 +1310,7 @@ discretized with 32 points and the minimum separation $\delta=0.05h$.
 Snapshots of the simulation at $t=0$, $t=15$ and $t=30$ are shown. The bottom
 right plot shows the track of the center of the particle shaded in magenta for
 different time step sizes. Each line in that plot is marked where a repulsion
-force is used to enforce the minimum separation. }\label{fig:taylor_green}
+force is used to enforce the minimum separation. Here the number of particles per unit volume $\nu$ is approximately 3.1. This is greater than $1/L^2 = 1.108$, which puts the simulation well outside the dilute regime. }\label{fig:taylor_green}
 \end{figure}
 
 Using the globally implicit discretization\eqref{eqn:SemiImplicit} our solver remains stable with a
@@ -1351,7 +1351,7 @@ increases when particles are added. As can be seen in Figure
 \ref{fig:torque}, the bulk shear stress increases with $\phi$, but is
 generally lower with the 6 to 1 shaped particles. The spikes in Figure 6 occur
 when a repulsion force is added to the system. Similar spikes were observed numerically in
-\cite{Lu2017}.
+\cite{Lu2017}. The time averaged bulk shear stresses for the the plots in Figure \ref{fig:torque} are given in Table \ref{tab:viscosity}.
 \begin{figure}[!h]
 \begin{center}
 \includegraphics{figures/couette_torque_005.pdf}\\
@@ -1362,6 +1362,19 @@ cylinder is fixed, while the outer one rotates at a constant angular velocity. $
 the torque on the inner cylinder for the suspension, while $L_0$ is the torque on the inner cylinder
 when the volume fraction is 0. Top: 5\% volume fraction. Bottom: 10\% volume fraction.}\label{fig:torque}
 \end{figure} 
+
+\begin{table}
+\begin{center}
+\begin{tabular}{c| c | c |  c}
+$\psi$ & 5\% volume fraction  & 10\% volume fraction  & 15\% volume fraction\\
+\hline
+1 & 1.1235 & 1.2180 & 1.4182 \\
+3 & 1.1036& 1.2255 &  1.3561\\
+6 & 1.0813 & 1.1772 & 
+\end{tabular}
+\end{center}
+\caption{Time averaged shear bulk shear stress for various volume fractions and aspect ratios. The time average is done between the first and second revolutions of the outer cylinder. As $\phi$ increases the bulk shear stress increases as expected. }\label{tab:viscosity}
+\end{table}
 
 Another quantity we may be interested is the alignment of the particles. On
 average we expect the particles to align in the direction of the shear flow,
