@@ -33,7 +33,7 @@ magenta\\%
 \begin{tikzpicture}
 
 \begin{axis}[%
-width=12cm,
+width=14cm,
 height=6cm,
 at={(0cm,0cm)},
 scale only axis,
@@ -41,9 +41,9 @@ xmin=0.000,
 xmax=2.000,
 xlabel style={font=\color{white!15!black}},
 xlabel={number of outer cylinder revolutions},
-ylabel={$L_{in}/L_0$},
+ylabel={$\mu_{\text{eff}}$},
 ymin=1.05,
-ymax=1.35,
+ymax=1.25,
 axis background/.style={fill=white},
 title style={font=\bfseries},
 axis x line*=bottom,
@@ -738,7 +738,7 @@ cycle list name=mycolorlist,
 4.092	1.080\\
 4.098	1.080\\
 };
-\addlegendentry{$\psi=1$}
+\addlegendentry{$\lambda=1$}
 \addplot
   table[row sep=crcr]{%
 0.000	1.108\\
@@ -1743,7 +1743,7 @@ cycle list name=mycolorlist,
 2.997	1.100\\
 3.000	1.100\\
 };
-\addlegendentry{$\psi=3$}
+\addlegendentry{$\lambda=3$}
 \addplot
   table[row sep=crcr]{%
 0.000	1.138\\
@@ -2748,7 +2748,7 @@ cycle list name=mycolorlist,
 2.997	1.089\\
 3.000	1.089\\
 };
-\addlegendentry{$\psi=6$}
+\addlegendentry{$\lambda=6$}
 \end{axis}
 \end{tikzpicture}%
 \end{document}

@@ -39,7 +39,7 @@ scale only axis,
 xmin=0.000,
 xmax=2.000,
 xlabel style={font=\color{white!15!black}},
-xlabel={percentage of outer cylinder revolution},
+xlabel={number of outer cylinder revolutions},
 ymin=0.000,
 ymax=1.000,
 ylabel={order parameter, $S$},
@@ -48,7 +48,7 @@ axis x line*=bottom,
 axis y line*=left,
 style = {thick},
 cycle list name=mycolorlist,
-legend style={at={(0.02,1)},anchor=north west}
+legend style={at={(0.98,0.04)},anchor=south east}
 ]
 \addplot
   table[row sep=crcr]{%
@@ -2053,7 +2053,7 @@ legend style={at={(0.02,1)},anchor=north west}
 1.998	0.533\\
 1.999	0.533\\
 };
-\addlegendentry{5\%, 3:1}
+\addlegendentry{$\phi=5\%, \lambda=3$}
 
 \addplot
   table[row sep=crcr]{%
@@ -4058,7 +4058,7 @@ legend style={at={(0.02,1)},anchor=north west}
 1.998	0.656\\
 1.999	0.656\\
 };
-\addlegendentry{10\%, 3:1}
+\addlegendentry{$\phi=10\%, \lambda=3$}
 
 \addplot 
   table[row sep=crcr]{%
@@ -6063,7 +6063,7 @@ legend style={at={(0.02,1)},anchor=north west}
 1.998	0.863\\
 1.999	0.862\\
 };
-\addlegendentry{5\%, 6:1}
+\addlegendentry{$\phi=5\%,\lambda= 6$}
 
 \addplot
   table[row sep=crcr]{%
@@ -8068,7 +8068,7 @@ legend style={at={(0.02,1)},anchor=north west}
 1.998	0.891\\
 1.999	0.891\\
 };
-\addlegendentry{10\%, 6:1}
+\addlegendentry{$\phi=10\%, \lambda=6$}
 
 \end{axis}
 \end{tikzpicture}%
