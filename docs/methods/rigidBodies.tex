@@ -988,14 +988,19 @@ is the velocity field induced by the body itself. This leading source of
 stiffness is typically resolved by using the {\em locally implicit}
 discretization
 \begin{align*}
-  \DD[\eeta](\xx) \approx \DD^{n}[\eeta^]
+  \DD[\eeta](\xx) \approx \DD^{n}[\eeta^{N+1}](\xx) +
+  \DD^{n}[\eeta^N](\xx),
 \end{align*}
-
-
-A secondary
-source of stiffness is caused by nearly touching bodies.  The amount of
-stiffness is a direct consequence of how the double-layer potential
-in~\eqref{eqn:BIEformulation} is discretized. 
+where the superscript on the layer potential $\DD$ means that the layer
+potential is defined in terms of the geometry at time step $n$.  A
+secondary source of stiffness is caused by nearly touching bodies.  This
+can be resolved by treating not only the self-interactions  implicitly,
+but also treating the interactions between different bodies implicitly.
+This method is the {\em globally implicit} discretization
+\begin{align*}
+  \DD[\eeta](\xx) \approx \DD^{N}[\eeta_{N+1}](\xx) +
+  \DD^{N}[\eeta^{N+1}](\xx),
+\end{align*}
 
 
 
