@@ -621,7 +621,7 @@ of the repulsion force. The direction comes from the response of the
 contact volume to changes in the velocity. To solve for $\lambda$
 requires the solution of a nonlinear complementary problem (NCP). This
 NCP can be linearized, leading to a sequence of linear complementary
-problems that must be solved at each time step.
+problems (LCPs) that must be solved at each time step.
 
 
 
@@ -1135,6 +1135,9 @@ given a net force that balances all other particles in the
 cluster. Whenever a the force on a particle is scaled the torque on that
 particle is scaled by the same amount.
 
+\subsection{Temporal Adaptivity}
+
+The NCP solver is quite sensititive to the initial configuration. Occasionally it may take an unfeasible amount of LCP iterations to converge. To avoid this we adopt a heuristic adaptive time stepping scheme. Once the number of LCP iterations crosses a threshold, if we find the STIV volume is not decreasing fast enough we abort the time step and restart with a smaller $\Delta t$. If, conversely, the NCP converges in a small number of LCP iterations we increase $\Delta t$ slightly.
 
 \begin{comment}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -1469,6 +1472,7 @@ interactions between the particles, or the effect of the solid walls.
 \begin{tabular}{c |c |c |c}
 volume fraction, $\phi$ & aspect ratio, $\psi$ & computed $ \langle S \rangle$ & theoretical
 $\langle S \rangle$ (single fiber)\\
+\hline
 5\% &3& 0.5243 & 0.5\\
 10\% &3 & 0.6043 & 0.5\\
 5\% & 6 & 0.9115 & 0.7143\\
