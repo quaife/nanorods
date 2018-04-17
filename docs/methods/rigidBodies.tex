@@ -1382,7 +1382,7 @@ to measure the alignment is using the order parameter, $S$ defined as,
 where $d$ is the dimension of the problem (2 in this case),
 $\tilde{\theta}$ is the deviation from the expected angle, and $\langle
 \cdot\rangle$ denotes the average over all particles. If a particle is
-centered at $(x,y)$ its expected angle is $\tan^{-1}(y/x) + \pi/2$. If $S=1$, all particles are perfectly aligned with the shear direction, $S=0$ corresponds to a random suspension (no alignment), and $S=-1$ means that all particles are perfectly aligned perpendicular to the shear direction. The initial configurations in figure \ref{fig:couette_setup} all have $S\approx 0$. As the outer cylinder rotates, we see in Figure \ref{fig:angles} that $S$ increases quite quickly. The area fraction $\phi$ does not look to have much of an impact on $S$, however the higher aspect ratio fibers align better.
+centered at $(x,y)$ its expected angle is $\tan^{-1}(y/x) + \pi/2$. If $S=1$, all particles are perfectly aligned with the shear direction, $S=0$ corresponds to a random suspension (no alignment), and $S=-1$ means that all particles are perfectly aligned perpendicular to the shear direction. The initial configurations in Figure \ref{fig:couette_setup} all have $S\approx 0$. As the outer cylinder rotates, we see in Figure \ref{fig:angles} that $S$ increases quite quickly. The area fraction $\phi$ does not look to have much of an impact on $S$, however the higher aspect ratio fibers align better.
 \begin{figure}[!h]
 \begin{center}
 \includegraphics{figures/order_parameter.pdf}\\
@@ -1434,7 +1434,7 @@ $\langle S \rangle$ (single fiber)\\
 10\% & 6 & 0.8884 & 0.7143
 \end{tabular}
 \end{center}
-\caption{The time averaged order parameter during the second revolution of the Couette apparatus.
+\caption{The time averaged order parameter during the second revolution of the Couette apparatus. The higher aspect ratio fibers align better on average. The alignment is in all cases higher than predicted for a single Jeffery orbit.
 }\label{tab:order}
 \end{table} 
 
@@ -1454,7 +1454,7 @@ when a repulsion force is added to the system. Similar spikes were observed nume
 cylinder is fixed, while the outer one rotates at a constant angular velocity. Top: 5\% area fraction. Bottom: 10\% area fraction.}\label{fig:torque}
 \end{figure} 
 
-Instead of an instantaneous effective viscosity, experimentally we are often most interested in the time averaged effective viscosity of a suspension. By averaging the instantaneous effective viscosity over the second revolution of the outer cylinder, we can determine the time averaged viscosity for the suspension. These values are given in table \ref{tab:viscosity}.
+Instead of an instantaneous effective viscosity, experimentally we are often most interested in the time averaged effective viscosity of a suspension. By averaging the instantaneous effective viscosity over the second revolution of the outer cylinder, we can determine the time averaged viscosity for the suspension. These values are given in Table \ref{tab:viscosity}.
 \begin{table}[!h]
 \begin{center}
 \begin{tabular}{c| c | c |  c}
@@ -1483,8 +1483,8 @@ $\lambda$ & 5\% area fraction  & 10\% area fraction  & 15\% area fraction\\
 \subsection{Fluid Driven Deformation}
 
 In \cite{MacMinn2015} an experimental setup is described to investigate the
-effects of fluid injection on the deformation of a porous material. In their
-experiment a monolayer of soft particles in placed in a circular disk. In the
+effects of fluid injection on the deformation of a porous material. In the
+experiment, a monolayer of soft particles are placed in a circular disk. In the
 center of the disk, fluid is injected and allowed to leave through the outer
 wall of the disk. At time $T$ the injection is reversed and fluid is sucked out
 through the center of the disk until time $2T$. The movement of the soft
@@ -1499,19 +1499,17 @@ particles is tracked and their displacement at time $2T$ is noted.
 black.}\label{fig:radial}
 \end{figure}
 
-A similar experiment involving rigid particles can be modeled by setting the
-considering two concentric disks and prescribing an inflow velocity $Q$ on the
+We perform a related computation. We consider two concentric circles; prescribing an inflow velocity $Q$ on the
 center disk and a corresponding outflow velocity on the outer disk, such that
-$\int_\Omega \uu\cdot\nn~\text{d}\Omega = 0$. With this setup however, we do not want the particles
+$\int_{\partial\Omega} \uu\cdot\nn~\text{d}\Omega = 0$. With this setup however, we do not want the particles
 to come into contact with the outer wall because this
-complicates the outflow profile. To get around this we place a ring of
-\textit{fixed} particles at some radius between the inner and outer disks. The
-spacing between the particles in the ring is small enough that no mobile
-particles can pass between two fixed particles. Our monolayer of rigid particles
-will be confined between the inner disk and this ring of fixed particles.
-Assuming the outer wall is far enough away from the ring of particles the
-velocity profile on the outer wall should still be radially symmetric and we can prescribe a
-constant outflow rate on the outer wall. Figure \ref{fig:radial}
+complicates the outflow profile. We instead place a ring of
+\textit{fixed} particles between the inner and outer disks. The
+spacing between the particles in the ring is sufficiently small that mobile
+particles cannot pass between two fixed particles. Our monolayer of rigid particles
+is confined between the inner disk and this ring of fixed particles.
+Assuming the outer wall is far enough  from the ring of fixed particles the
+velocity profile on the outer wall will be approximately uniform. Figure \ref{fig:radial}
 shows this setup.
 
 \begin{figure}[h!]
@@ -1526,9 +1524,8 @@ shows this setup.
 \caption{Snapshots of simulation of the experiment setup described in \cite{MacMinn2015} with rigid
 particles. Fluid is injected at a constant rate
 starting at $t=0$. At $t=4$ the flow direction is reversed. Fixed particles are
-filled in red, while particles subject to a repulsion force are filled in
-green.The initial configuration has been superimposed on the final configuration at $t=8$. We can
-see the repulsion forces break reversibility.}
+colored in red, while particles subject to a repulsion force are colored in
+green. The initial configuration has been superimposed on the final configuration at $t=8$ to show the effect of the repulsion forces on reversibility.}
 \label{fig:macminn}
 \end{figure}
 
