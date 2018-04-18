@@ -395,38 +395,34 @@ $j=1,\ldots,M_p$, satisfy
 \end{split}
 \label{eqn:centersAngles}
 \end{align}
-Equations~\eqref{modelEquations} and~\eqref{eqn:centersAngles} govern
+Equations~\eqref{eqn:modelEquations} and~\eqref{eqn:centersAngles} govern
 the dynamics of the rigid body suspensions, and their numerical solution
 is a focus on this paper.
 
 We have assumed that the rigid bodies are force- and torque-free.
-However, numerical errors can easily cause the rigid bodies to
+However, as when two rigid bodies are brought sufficiently close
+together, numerical errors can easily cause the rigid bodies to
 unphysically intersect.  To avoid contact,  we will later relax the
 force- and torque-free conditions to guarantee that numerical errors do
 not cause rigid bodies do not come into unphysical contact.  This idea
 is first described for vesicle suspensions by Lu et al.~\cite{Lu2017}
 and we summarize the method in Section~\ref{sec:repulsion}.  
 
-There exist many numerical methods for simulating the suspensions of
-interfaces in a fluid by solving~\eqref{eqn:modelEquations} such as
-level set methods, immersed boundary methods, or lattice Boltzmann
-methods.  However, given that the fluid equations are linear and the
-geometry mobile, we use a boundary integral equation (BIE)
-formulation~\cite{Pozrikidis1992}.  BIEs have several advantages
-including that only the interface has to be tracked, resulting in a
-dimension reduction and simplification of complex geometries.  In the
-next section we reformulate the governing
-equations~\eqref{eqn:modelEquations} as a BIE.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{Boundary Integral Equation Representation}
-Since the fluid equations are linear and homogeneous, a BIE formulation
-is possible.  In addition to the beneficial dimension reduction, BIEs
-achieve high-order accuracy, automatically satisfy the incompressibility
-constraint, and can be solved with $\bigO(N)$ operations where $N$ is
-the total number of points used to discretize $\bd\Omega$.  A more
-detailed discussion of the BIE formulation for the incompressible Stokes
-equations is discussed by Karrila and Kim~\cite{Karrila1989}.
+There exist many numerical methods for simulating the suspensions of
+interfaces in a fluid by solving~\eqref{eqn:modelEquations} such as
+level set methods~\ref{}, immersed boundary methods~\ref{}
+\todo{inline}{Peskin, Chris Rycroft (Harvard)}, or lattice Boltzmann
+methods~\ref{} \todo[inline]{Georgia Tech guy from BIRS},
+\todo[inline]{igor pivkin,  Li-shi luo}.  However, given that the fluid
+equations are linear and the geometry mobile, we use a boundary integral
+equation (BIE) formulation~\cite{Pozrikidis1992}.  BIEs have several
+advantages including that only the interface has to be tracked, which
+simplifies the representation of complex geometries, and high-order
+discretizations are straightforward.  We now reformulate
+equations~\eqref{eqn:modelEquations} as a BIE.
 
 We start by formulating the incompressible Stokes equations in the
 absence of rigid bodies.  The {\em double-layer potential} is the
@@ -441,14 +437,15 @@ function~\cite{Ladyzhenskaya1963, Pozrikidis1992},
 where $\rr = \xx - \yy$, $\rho=|\rr|$, and $\eeta$ is an unknown density
 function defined on $\bd\Omega$.  The double-layer
 potential~\eqref{eqn:dlp} satisfies the incompressible Stokes equations,
-and a Dirichlet boundary condition $\UU$ is imposed by solving
-\begin{align*}
-  \lim_{\substack{\xx \rightarrow \xx_0 \\ \xx \in \Omega}}
-    \DD[\eeta](\xx) = \UU(\xx_0), \quad \xx_0 \in \Gamma,
-\end{align*}
-for $\eeta$.  When taking the limit, the
-singularity of the stresslet results in a jump~\cite{Pozrikidis1992},
-and the density function must satisfy  
+and the Dirichlet boundary condition $\UU$ is also satisfied if
+$\eeta$ satisfies~\cite{Pozrikidis1992}
+%\begin{align*}
+%  \lim_{\substack{\xx \rightarrow \xx_0 \\ \xx \in \Omega}}
+%    \DD[\eeta](\xx) = \UU(\xx_0), \quad \xx_0 \in \Gamma,
+%\end{align*}
+%for $\eeta$.  When taking the limit, the singularity of the stresslet
+%results in a jump~\cite{Pozrikidis1992}, and the density function must
+%satisfy  
 \begin{align}
   -\frac{1}{2} \eeta(\xx_0) + \DD[\eeta](\xx_0) = \UU(\xx_0), 
     \quad \xx_0 \in \Gamma.
@@ -459,9 +456,9 @@ equations, it cannot represent all solutions of the incompressible
 Stokes equations; in particular, it cannot represent rigid body motion.
 This is rectified by introducing point forces and torques due to each
 interior component of the geometry $\Gamma_j$~\cite{Power1987,
-Power1993}.  To accomplish this we introduce the velocity fields due to a
-point force $\mathbf{S}(\xx,\cc)$ (Stokeslet) and due to a 
-point torque $\mathbf{R}(\xx,\cc)$ (rotlet) both centered at $\cc$,
+Power1993}, and the strengths of these forces and torques are related to
+the density function.  By introducing the velocity fields due to a point
+force (Stokeslet) and a point torque (rotlet), both centered at $\cc$,
 \begin{align*}
   \mathbf{S}(\xx,\cc) = \frac{1}{4\pi}\left(-\log\rho\mathbf{I} + 
   \frac{\rr \otimes \rr}{\rho^2}\right), \quad \text{and} \quad
@@ -483,17 +480,14 @@ completed second-kind BIE
       L^\Gamma_j, &&j=1,\ldots,M_w.
   \end{split}
 \end{equation}
-The closure formula relating the strength of the Stokeslets and rotlets
-guarantees the existence of a density function, Stokeslets, and rotlets
-given an admissible boundary condition $\UU$.  This is the method of
-Power and Miranda~\cite{Power1987} and Power~\cite{Power1993} to
-relate the density function on the rigid bodies to the corresponding
-force and torque.
 
 We now introduce a suspension of rigid bodies $\gamma_j$,
-$j=1,\ldots,M_p$.  Imposing the no-slip boundary condition on the rigid
-bodies, the BIE formulation of the suspension of rigid bodies governed
-by equation~\eqref{eqn:modelEquations} is
+$j=1,\ldots,M_p$.  Since the fluid boundary consists of both the solid
+walls and rigid bodies, the limits of the integral of the double-layer
+potential includes the rigid bodies and the solid walls.  Imposing the
+no-slip boundary condition on the rigid bodies, a BIE formulation of the
+suspension of rigid bodies governed by
+equation~\eqref{eqn:modelEquations} is
 \begin{subequations}
   \label{eqn:BIEformulation}
   \begin{align}
@@ -521,12 +515,13 @@ by equation~\eqref{eqn:modelEquations} is
 \end{align}
 \end{subequations}
 Again, we have used the methodology of Power and
-Miranda~\cite{Power1987, Power1993} to relate the strength of the Stokeslets and
-rotlets of each rigid body to its density function. The reformulation
-of the governing equations in Equation~\eqref{eqn:BIEformulation}
-constitutes eight equations for eight unknowns: the density function,
-net force, and net torque on the solid walls and rigid bodies, and the
-translational and rotational velocities.  
+Miranda~\cite{Power1987, Power1993} to relate the strength of the
+Stokeslets and rotlets of each rigid body to its density function.  The
+BIE formulation~\eqref{eqn:BIEformulation} of the governing
+equations~\eqref{eqn:modelEquations} consists of eight equations for
+eight unknowns: the density function, net force, and net torque on the
+solid walls and rigid bodies, and the translational and rotational
+velocities.
 
 While~\eqref{eqn:BIEformulation1} and~\eqref{eqn:BIEformulation2} are
 both numerically desirable second-kind Fredholm integral equations
