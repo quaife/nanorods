@@ -220,148 +220,143 @@ space-time interference volume that requires integrating a
 four-dimensional domain ($3$ space dimensions and $1$ time dimension).
 
 
-\paragraph{Related work} Particulate suspensions in viscous fluid is a
-well-studied field.  Rather than giving an exhaustive list of all the
-related work, we focus on related work that focuses on using BIEs to
-simulate rigid body suspensions, and the related algorithms.  A more
-general overview of BIEs for particulate suspensions can be found in the
-texts of Pozrikidis~\cite{Pozrikidis1992, Guazzelli2011, Karrila1991}.
-This work draws heavily from methods developed for simulating two
-dimensional vesicle suspensions~\cite{Quaife2014, Quaife2015,
-qua-bir2016, Rahimian2010, Lu2017}.  We represent the velocity as a completed double-layer potential representation~\cite{Power1987,
-Power1993, Karrila1989} that is discretized with a Nystr\"om method
-using the trapezoid rule~\cite{Trefethan2014} and solved iteratively with
+\paragraph{Related work} Rather than giving an exhaustive list of work
+related to particulate suspensions in viscous fluids, we focus on
+literature that is related to BIEs and time stepping to simulate rigid
+body suspensions.  A more general overview of BIEs for particulate
+suspensions can be found in the texts of
+Pozrikidis~\cite{Pozrikidis1992, Guazzelli2011, Karrila1991}.  This work
+draws heavily from methods developed for simulating two dimensional
+vesicle suspensions~\cite{Quaife2014, Quaife2015, qua-bir2016,
+Rahimian2010, Lu2017}.  We represent the velocity as a completed
+double-layer potential representation~\cite{Power1987, Power1993,
+Karrila1989} that is discretized with a Nystr\"om method using the
+trapezoid rule~\cite{Trefethan2014} and solved iteratively with
 GMRES~\cite{Saad1986}.  Alternatively, a Galerkin discretization is
 possible~\cite{Mammoli1999, Mammoli2002, Mammoli2006}.
 
-Particular challenges with the BIE formulation, especially for dense suspensions, are large numbers of required GMRES iterations, expensive matrix-vector multiplication, and weakly-singular and nearly-singular
-integrands.  We develop a second-kind boundary integral equation, so the
-number of required GMRES iterations is
-mesh-independent~\cite{Campbell1996}, but the number of iterations is
-not geometry-independent.  We are able to use an exact block-diagonal
-preconditioner since the number of unknowns per particle is moderate in
-two dimensions.  However, to extend our work to three dimensions, other
-preconditioners such as the IFMM~\cite{qua-cou-dar2018, cou-pou-dar2017}
-multigrid~\cite{Quaife2015, bra-lub1990, hem-sch1981}, or sparse
-approximate inverses~\cite{che2000} will have to be developed.  While
-the required number of GMRES iterations is important, the cost is
-dominated by the cost of applying dense matrix-vector multiplication.
-We use the fast multipole method~\cite{Greengard1987, gre-gre-may1992},
-but other fast summation methods are possible~\cite{bar-hut1986,
-kli-tor2014}.  As an alternative to using an iterative solver, direct
-solvers can be used to solve BIEs~\cite{mar-bar-gil-vee2016}, but these
-solvers would have to be updated at each time step since the geometry is
-moving.  Finally, we avoid weakly-singular integrands by using a
-double-layer potential, but nearly-singular integrands are unavoidable
-in dense suspensions.  We apply a interpolation-based quadrature
-method~\cite{Ying2006, Quaife2014} since it is efficient and extends to
-three dimensions, but other near-singular integration schemes are
-possible~\cite{Klockner2013, Barnett2015, Beale2016, Helsing2008,
-Kropinski1999, Mammoli2006}.
+Particular algorithmic challenges with BIE formulations, especially for
+dense suspensions, are resolving hydrodynamic interactions between
+nearly-touching bodies, reducing the cost of the matrix-vector
+multiplication required at each GMRES iteration, and reducing the total
+number of required iterations, and 
 
+We avoid weakly-singular integrands by using a double-layer potential,
+but nearly-singular integrands are unavoidable in dense suspensions.  We
+apply a interpolation-based quadrature method~\cite{Ying2006,
+Quaife2014} since it is efficient and extends to three dimensions, but
+other near-singular integration schemes are possible~\cite{Klockner2013,
+Barnett2015, Beale2016, Helsing2008, Kropinski1999, Mammoli2006}.  
+\todo[inline]{Work of A-K and Mike Siegel}
 
-%Particle suspensions in a viscous fluid is a
-%well studied discipline.  The texts~\cite{Pozrikidis1992, Guazzelli2011}
-%provide an excellent overview of the theoretical formulation and
-%applications of microhydrodynamics, while~\cite{Karrila1991} places the
-%theory in the context of linear operators and provides some details on
-%the numerical methods needed. This paper draws largely on work done for
-%2D vesicle suspensions~\cite{Quaife2014, Quaife2015, Quaife2015a,
-%Rahimian2010, Lu2017}. In particular we adopt the completed double layer
-%potential formulation~\cite{Power1987, Power1993, Karrila1989} that
-%leads to a well conditioned linear system. The resulting equations can
-%be discretized using the Galkerkin based boundary element
-%method~\cite{Mammoli1999, Mammoli2002, Mammoli2006} however we will the
-%spectrally accurate collocation Nystr\"{o}m method.  
-%The kernels arising
-%from the integral formulation are are weakly singular as target points
-%approach the boundary, so specialized integration techniques are needed.
-%Upsampling~\cite{Kropinski1999, Mammoli2006} is one possible avenue,
-%however for dense suspensions particles can become arbitrarily close and
-%the memory requirements needed to accurately evaluate such closely
-%touching particles can become prohibitively expensive. Quadrature by
-%expansion~\cite{Klockner2013} uses local expansions to evaluate the
-%kernels to high accuracy near the particle surface and has been used to
-%solve the resistance problem in Stokes flow~\cite{kli-tor2016}.An
-%interpolation and limited upsampling based approach~\cite{Ying2006,
-%Quaife2014} is simpler to implement and gives high-order accuracy even
-%near the boundary. 
+The greatest opportunity of acceleration is reducing the cost of the
+matrix-vector multiplication required at each GMRES iteration.  We use
+the fast multipole method (FMM)~\cite{Greengard1987, gre-gre-may1992},
+but other fast summation methods, which also extend to three dimensions,
+are possible~\cite{bar-hut1986, kli-tor2014}.  As an alternative,
+iterations can be entirely avoided by applying a direct solver for
+BIEs~\cite{mar-bar-gil-vee2016}, but these solvers would have to be
+updated at each time step since the geometry is dynamic.
 
-When discretizing in time, we adopt a Lagrangian approach and advect
-each particle according to its surface velocity. This provides a set of
-ODEs that must be solved, with the right hand side that depends on the
-spatial configuration. For deformable particles, conserved metrics such
-as particle area and boundary length can be used to estimate the
-trunction error associated with a time stepping algorithm and design
-high-order adaptive methods~\cite{Quaife2015, Quaife2015a}. For rigid
-particles such quantities are conserved exactly by definition, so this
-approach will not work. Embedded time stepping
+Once the BIE formulation of the appropriate fluid equations are solved
+for the translational and rotational velocities, a time step must be
+taken.  We adopt a Lagrangian approach, and since the bodies are rigid,
+we only need to track each particle's center and inclination angle.
+Therefore, for a suspension of $M_p$ bodies, a system of $3M_p$ ordinary
+differential equations must be solved---these equations are coupled
+through the fluid solver.  Embedded time stepping
 methods~\cite{kli-tor2014} work well for dilute suspensions, but can
 force the time step to become unreasonably small for moderately dense
 suspensions. Artificial repulsion forces~\cite{Flormann2017, Liu2006,
-Malhotra2018, Lu2017} are a possible avenue to take large time steps
-while avoiding collisions. Forces based on Morse or Lennard-Jones
-potentials that grow as high-order polynomials as particles approach
-each other~\cite{Flormann2017, Liu2006} can introduce stiffness,
-necessitating a very small time step size. Furthermore, if the time step
-size is too large the forces may not activate at all. An alternative
-repulsion force based on the concept of space-time interference volumes
-(STIVs)~\cite{Harmon2011, Lu2017} is designed to explicitly prevent
-collisions between particles. This approach has been used for vesicle
-suspensions 
+Malhotra2018, Lu2017, Kabacogulu2017} minimize, but do not eliminate,
+the chance of a collision. Moreover, these potentials often have sharp
+gradients which lead to stiffness and necessitate a small time step
+size. Alternatively, a repulsion force based on the concept of
+space-time interference volumes (STIVs)~\cite{Harmon2011, Lu2017}
+explicitly prevent collisions between particles.  Using current STIV
+implementations, the minimum separation distance between bodies can not
+be too small; otherwise, the associated optimization algorithm stalls.
+This is a result of treating interactions between different bodies
+explicitly.  Therefore, in this work, we extend the STIV contact
+algorithm to implicit interactions so that bodies are able to come much
+closer---a physical characteristic of dense suspensions of rigid bodies.
+
+In addition to coupling all the bodies implicitly, adaptive time
+stepping is also necessary.  There are techniques for adaptive time
+stepping, but we consider two general rationales: first, the local
+truncation error can be estimated and the time step size is adjusted
+according to this error~\cite{Quaife2015, Quaife2015a, Sorgentone2018};
+second, a measure of computational effort, such as the number of
+required time steps, can be used to choose a new time step
+size~\cite{Kropinski1999}.  The local truncation error for rigid body
+suspensions is expensive because multiple numerical solutions must be
+formed.  Therefore, we apply the second option where the time step size
+is decreased when the STIV optimization routine requires a large number
+of iterations.
 
 \paragraph{Outline of the paper}
+In Section~\ref{s:formulation} we describe the physical problem and the
+governing equations.  In Section~\ref{s:method}, we describe the
+numerical methods used to form numerical solutions.
+The results are described in Section~\ref{s:results}, and conclusions
+are drawn in Section~\ref{s:conclusions}.
+
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Formulation\label{s:formulation}} 
-\subsection{Problem Formulation}
-
 We consider a collection of rigid particles suspended in a
 two-dimensional bounded or unbounded domain, $\Omega$, with boundary
 $\partial\Omega$ (Figure~\ref{fig:geomSchematic}).  The boundary of the
 fluid geometry is denoted by $\Gamma$ with $\Gamma_0$ being the
 outermost boundary if the domain is bounded, and $\Gamma_i$, $1\leq i
 \leq M_w$ are the other components of $\Gamma$.  The boundaries of rigid
-particles are $\gamma_j$, $1\leq j\leq M_p$, and their union is denoted by
-$\gamma$. Therefore, the boundary of the fluid domain is $ \partial\Omega
-=\Gamma \cup \gamma$.
- 
-For each interior solid wall, we choose an interior point
-$\cc^\Gamma_i$, and each rigid particle has an interior point
-$\cc^\gamma_i$ and a corresponding orientation angle $\theta^\gamma_i$.
-We also define the outward pointing unit normal of all these interfaces
-to point out of the fluid. Finally, each solid wall has a net force and
-torque, $\FF^\Gamma_i$ and $L^\Gamma_i$, respectively, that it applies
-to the fluid, and similar forces and torques are defined for each rigid
-body.  A schematic of the geometry is in Figure~\ref{fig:geomSchematic}.
+particles are $\gamma_j$, $1\leq j\leq M_p$, and their union is denoted
+by $\gamma$. Therefore, the boundary of the fluid domain is $
+\partial\Omega =\Gamma \cup \gamma$.  For each interior solid wall, we
+require a fixed interior point $\cc^\Gamma_i$, and for each rigid
+particle, we require an interior point $\cc^\gamma_i$ and a
+corresponding orientation angle $\theta_i$.  We also define the outward
+pointing unit normal of all these interfaces to point out of the fluid.
+A schematic of the geometry is in Figure~\ref{fig:geomSchematic}.
 
 \begin{figure}[!h]
 \begin{center}
 \includegraphics{figures/multiply_connected.pdf}
 \end{center}
-\caption{\label{fig:geomSchematic}Sketch of a fluid domain $\Omega$.
-$\gamma_1$ and $\gamma_2$ enclose rigid particles, while $\Gamma_1$ is a solid
-wall. The outer boundary $\Gamma_0$ may or may not be present.  The vector
-$\nn$ is the unit normal vector pointing out of the fluid domain.}
+\todo[inline]{need normal in picture for the rigid bodies}
+\caption{\label{fig:geomSchematic}A sketch of a bounded fluid domain
+$\Omega$.  $\gamma_1$ and $\gamma_2$ enclose rigid particles, while
+$\Gamma_1$ is a solid wall.  If $\Omega$ is unbounded,  $\Gamma_0$  is
+not present.  The vector $\nn$ is the unit normal vector pointing out of
+the fluid domain.}
 \end{figure}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{Governing Equations}\label{sec:governing}
-We start by assuming that the fluid is governed by the incompressible
-Navier-Stokes equations 
-\begin{align*}
-  \rho\left(\pderiv{\uu}{t} + (\uu \cdot \grad) \uu \right) &= 
-    -\grad p + \mu \Delta \uu \qquad \xx\in\Omega,\\
-    \grad \cdot \uu &= 0 \qquad \xx\in\Omega,
-\end{align*}
-where $\uu$ is the velocity, $p$ is the pressure, $\rho$ is the fluid
-density, and $\mu$ is the fluid viscosity.  The equations are
-nondimensionalized in the standard method which results in the
-dimensionless Reynolds number.  We are interested in small particles and
-slow velocities which renders the Reynolds number small $\Re \ll 1$, and
-the fluid is governed by the incompressible Stokes equations.  A
-Dirichlet boundary condition $\UU$ is imposed on the solid walls
-$\Gamma$, a no-slip boundary condition is assumed for the rigid bodies
-$\gamma$, and the rigid bodies are assumed to be force and torque free.
+
+%We start by assuming that the fluid is governed by the incompressible
+%Navier-Stokes equations 
+%\begin{align*}
+%  \rho\left(\pderiv{\uu}{t} + (\uu \cdot \grad) \uu \right) &= 
+%    -\grad p + \mu \Delta \uu \qquad \xx\in\Omega,\\
+%    \grad \cdot \uu &= 0 \qquad \xx\in\Omega,
+%\end{align*}
+%where $\uu$ is the velocity, $p$ is the pressure, $\rho$ is the fluid
+%density, and $\mu$ is the fluid viscosity.  The equations are
+%nondimensionalized in the standard method which results in the
+%dimensionless Reynolds number.  
+
+We are interested in small particles and slow velocities which renders
+the Reynolds number small $\Re \ll 1$, and the fluid is governed by the
+incompressible Stokes equations.  A Dirichlet boundary condition $\UU$
+is imposed on the solid walls $\Gamma$, a no-slip boundary condition is
+assumed for the rigid bodies $\gamma$, and the rigid bodies are assumed
+to be force and torque free.  On each solid wall, there is a net force
+and torque, $\FF^\Gamma_i$ and $L^\Gamma_i$, respectively, that it
+applies to the fluid, and similar forces and torques are defined for
+each rigid body, but these, for the time being, are assumed to be 0.
+Therefore, the governing equations for $M_p$ particles suspended in a
+bounded $M_w$-connected domain is
 \begin{equation}
   \label{eqn:modelEquations}
   \begin{split}
@@ -379,14 +374,14 @@ $\gamma$, and the rigid bodies are assumed to be force and torque free.
     &&\mbox{\em torque-free particles.}
   \end{split}
 \end{equation}
-Here, $\uu^\tau_j$ and $\omega_j$ are the translational and rotational
-velocities of rigid body $j$, respectively, and $\FF_j^\gamma$ and
-$L_j^\gamma$ are the net force and torque of rigid body $j$.  For the
-suspension of rigid bodies, the fluid viscosity sets the time scale, and
-we assume it is one throughout the paper.  In the case of a bounded
-domain, the boundary condition $\UU$ must satisfy the standard flux-free
-condition, and in the case that the fluid domain is unbounded, the wall
-velocity equation is replaced with a far-field condition
+Here, $\uu$ is the velocity, $p$ is the pressure, $\mu$ is the fluid
+viscosity, $\uu^\tau_j$ and $\omega_j$ are the translational and
+rotational velocities of rigid body $j$, respectively, and
+$\FF_j^\gamma$ and $L_j^\gamma$ are the net force and torque of rigid
+body $j$.  For the suspension of rigid bodies, the fluid viscosity sets
+the time scale, and we assume it is one throughout the paper.  In the
+case that the fluid domain is unbounded, the wall velocity equation is
+replaced with the far-field condition
 \begin{align*}
   \uu(\xx) = \uu_\infty(\xx), \quad |\xx| \rightarrow \infty.
 \end{align*}
@@ -400,13 +395,17 @@ $j=1,\ldots,M_p$, satisfy
 \end{split}
 \label{eqn:centersAngles}
 \end{align}
+Equations~\eqref{modelEquations} and~\eqref{eqn:centersAngles} govern
+the dynamics of the rigid body suspensions, and their numerical solution
+is a focus on this paper.
 
-While we are assuming that the rigid bodies are force-free and
-torque-free, we will eventually relax this condition by allowing for a
-small force and torque to guarantee that rigid bodies do not come into
-unphysical contact.  This idea is first described for vesicle
-suspensions by Lu et al.~\cite{Lu2017} and we summarize the method in
-Section~\ref{sec:repulsion}.  
+We have assumed that the rigid bodies are force- and torque-free.
+However, numerical errors can easily cause the rigid bodies to
+unphysically intersect.  To avoid contact,  we will later relax the
+force- and torque-free conditions to guarantee that numerical errors do
+not cause rigid bodies do not come into unphysical contact.  This idea
+is first described for vesicle suspensions by Lu et al.~\cite{Lu2017}
+and we summarize the method in Section~\ref{sec:repulsion}.  
 
 There exist many numerical methods for simulating the suspensions of
 interfaces in a fluid by solving~\eqref{eqn:modelEquations} such as
@@ -937,15 +936,15 @@ quadrature~\cite{Helsing2008}.  In this work, we use an interpolation
 based scheme~\cite{Ying2006} which has been used for other
 two-dimensional suspensions.  To compute the pressure and stress, odd-even integration with singularity subtraction is used.~\cite{Quaife2014}.
 
-Once all of the
-equations in \eqref{eqn:BIEformulation} are discretized using the above
-described
-quadrature rules, the result is a dense $N \times N$ linear system.
-Since this linear system is the discretization of a second-kind integral
-equation, GMRES~\cite{Saad1986} converges in a mesh-independent number of
-iterations~\cite{Campbell1996}.  Since GMRES only requires
-matrix-vector multiplications, the algorithmic cost per time step is
-proportional to the cost of doing a single matrix-vector multiply.
+Once all of the equations in~\eqref{eqn:BIEformulation} are discretized
+using the above described quadrature rules, the result is a dense $N
+\times N$ linear system.  Since this linear system is the discretization
+of a second-kind integral equation, GMRES~\cite{Saad1986} converges in a
+mesh-independent number of iterations~\cite{Campbell1996}.  Since GMRES
+only requires matrix-vector multiplications, the algorithmic cost per
+time step is proportional to the cost of doing a single matrix-vector
+multiply.
+\todo[inline]{Discuss our preconditioner here?}
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
