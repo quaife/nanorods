@@ -1429,6 +1429,7 @@ $\langle S \rangle$ (single fiber)\\
 \hline
 5\% &3& 0.5243 & 0.5\\
 10\% &3 & 0.6043 & 0.5\\
+15\% & 3 & 0.6452 & 0.5\\
 5\% & 6 & 0.9115 & 0.7143\\
 10\% & 6 & 0.8884 & 0.7143
 \end{tabular}
@@ -1439,8 +1440,8 @@ $\langle S \rangle$ (single fiber)\\
 
 Another quantity of interest in rheology is the effective viscosity of a suspension. The shear viscosity $\mu$ relates the bulk shear stress $\sigma_{xy}$ of a Newtonian fluid to the bulk shear rate $\dot{\gamma}$,
 \[ \sigma_{xy} = \mu\dot{\gamma}.\]
- Adding particles will increase the bulk shear stress of a suspension. The proportionality constant relating the increases $\sigma_{xy}$ to the shear rate is the \textit{apparent viscosity}. The ratio between the apparent viscosity and the bulk viscosity is the effective viscosity $\mu_{\text{eff}}$. Experimentally, one way to determine the bulk shear stress is by measuring the torque on the inner cylinder \cite{Koos2012}. Numerically, this is just the strength of the rotlet centered in the inner cylinder. By computing the ratio of the torque on the inner cylinder with particles to the torque without particles we can determine the effective viscosity of a suspension.  As can be seen in Figure
-\ref{fig:torque}, the effective viscosity stress increases with $\phi$, but is
+ Adding particles will increase the bulk shear stress of a suspension. The proportionality constant relating the increased $\sigma_{xy}$ to the shear rate is the \textit{apparent viscosity}. The ratio between the apparent viscosity and the bulk viscosity is the effective viscosity $\mu_{\text{eff}}$. Experimentally, one way to determine the bulk shear stress is by measuring the torque on the inner cylinder \cite{Koos2012}. Numerically, this is just the strength of the rotlet centered in the inner cylinder. By computing the ratio of the torque on the inner cylinder with particles to the torque without particles we can determine the effective viscosity of a suspension.  As can be seen in Figure
+\ref{fig:torque}, the effective viscosity increases with $\phi$, but is
 generally lower with the 6 to 1 shaped particles. This is because higher aspect ratio particles align themselves better, and thus contribute less to the bulk shear stress. The spikes in Figure 6 occur
 when a repulsion force is added to the system. Similar spikes were observed numerically in
 \cite{Lu2017}.
@@ -1448,9 +1449,10 @@ when a repulsion force is added to the system. Similar spikes were observed nume
 \begin{center}
 \includegraphics{figures/couette_torque_smooth_005.pdf}\\
 \includegraphics{figures/couette_torque_smooth_010.pdf}\\
+\includegraphics{figures/couette_torque_smooth_015.pdf}
 \end{center}
-\caption{Instantaneous bulk effective viscosity. The inner
-cylinder is fixed, while the outer one rotates at a constant angular velocity. Top: 5\% area fraction. Bottom: 10\% area fraction. The transparent lines represent the raw data, while the solid lines have been smoothed using a multiscale local polynomial transform. }\label{fig:torque}
+\caption{Instantaneous bulk effective viscosity for various volume fractions and particle aspect ratios. The inner
+cylinder is fixed, while the outer one rotates at a constant angular velocity. The transparent lines represent the raw data, while the solid lines have been smoothed using a multiscale local polynomial transform. }\label{fig:torque}
 \end{figure} 
 
 Instead of an instantaneous effective viscosity, experimentally we are often most interested in the time averaged effective viscosity of a suspension. By averaging the instantaneous effective viscosity over the second revolution of the outer cylinder, we can determine the time averaged viscosity for the suspension. These values are given in Table \ref{tab:viscosity}.
