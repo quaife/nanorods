@@ -545,18 +545,18 @@ $\uu_\infty(\xx)$ added to the right hand side.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{A contact based repulsion force}
 \label{sec:repulsion}
-Exact solutions of the Stokes equations prohibit contact between
-force- and torque-free particles in finite time.  Therefore, any
-contact between rigid bodies is caused by numerical errors.  The two main sources of error are
-the quadrature error---especially for nearly touching rigid bodies---and
-time stepping error.  Issues with quadrature have been addressed using
-near-singular integration techniques~\cite{Ying2006, Klockner2013,
-Quaife2014, Barnett2015, Beale2001, Cortez2001},
-and high-order or even spectral accuracy in space can be achieved.
-Errors due to time stepping have recently received more attention, and
-methods that control stiffness~\cite{Quaife2014}, and use adaptive time step
-sizes~\cite{Kropinski1999,
-Quaife2015, Sorgentone2018}.
+Exact solutions of the Stokes equations prohibit contact between force-
+and torque-free particles in finite time.  Therefore, any contact
+between rigid bodies is caused by numerical errors.  The two main
+sources of error are the quadrature error---especially for nearly
+touching rigid bodies---and time stepping error.  We address the
+quadrature error using a combination of upsampling and
+interpolation, and details of the method are described
+in~\cite{Quaife2014}.  Time stepping have recently received more
+attention, and methods that control stiffness~\cite{Quaife2014}, and use
+adaptive time step sizes~\cite{Kropinski1999, Quaife2015,
+Sorgentone2018}.  We describe time stepping methods in
+Section~\ref{sec:temporal}.
 
 %When evaluating a target point close to the boundary (as is
 %necessary when two particles come close together) the kernel in the
@@ -576,20 +576,19 @@ Quaife2015, Sorgentone2018}.
 %\caption{Sketch of potential collisions.}
 %\end{figure}
 
- Alternatively, repulsion forces can be added~\cite{Malhotra2018}, or
-the analytic solutions of the flow due to lubrication forces can be
-added to the dynamics~\cite{Mammoli2006}.  Unfortunately, repulsion
-forces often introduce non-linear stiffness that restricts the time step
-size, and using lubrication theory is difficult for particles of arbitrary
-geometry due to the complicated asymptotics needed.
+%Alternatively, repulsion forces can be added~\cite{Malhotra2018}, or
+%the analytic solutions of the flow due to lubrication forces can be
+%added to the dynamics~\cite{Mammoli2006}.  Unfortunately, repulsion
+%forces often introduce non-linear stiffness that restricts the time step
+%size, and using lubrication theory is difficult for particles of
+%arbitrary geometry due to the complicated asymptotics needed.
 
 We adopt the method of introducing an artificial force to avoid
-collision. There are many possible choices for the type of force. One
-possibility is a repulsion force based on a Morse or Lennard-Jones type
-potential that grows as a high order polynomial as two particles become
-close together~\cite{Flormann2017, Liu2006}. This has been shown to work
-for dense suspensions, however the resulting ODEs become very stiff as
-the separation between particles decreases, thus requiring smaller time
+collision.  There are many possible choices for the type of force. One
+possibility is a Morse or Lennard-Jones potential that grows as a high
+order polynomial as two particles approach~\cite{Flormann2017, Liu2006}. This has been shown to work for
+dense suspensions, however the resulting ODEs become very stiff as the
+separation between particles decreases, thus requiring smaller time
 steps. Spring based models~\cite{Tsubota2006, Zhao2013, Kabacogulu2017}
 have also been used to generate artificial repulsion forces, although
 these models also introduce stiffness. One further disadvantage of these
@@ -597,27 +596,43 @@ methods is that neither approach explicitly guarantees no contact
 between particles. If too large a time step is chosen collisions can
 still occur. 
 
-
-Our approach mirrors~\cite{Lu2017} where the choice of forces and
-torques guarantee that each time step is collision-free.
-It is well known that the Stokes equations are the Euler-Lagrange
-for a variational problem,
-\begin{align*}
+Instead, we apply a modification of the contact-aware method of Lu et
+al.~\cite{Lu2017} where the choice of forces and torques guarantee that
+each time step is collision-free.  We only summarize the method, but a
+in-depth description is in~\cite{Lu2017}.  The method is based on the
+variational form of the Stokes equations,
+\begin{align}
   \min \int_{\Omega} \nabla\uu:\nabla\uu~\text{d}\Omega,
-  \quad\text{ such that }\quad \nabla\cdot\uu = 0 \text{ in }\Omega.
-\end{align*} 
-In the Euler-Lagrange equations, the pressure $p$ is the Lagrange
-multiplier associated with the incompressibility constraint. In \cite{Lu2017}, an
-additional constraint that requires the configuration of rigid particles
-to be contact-free is imposed. This constraint necessitates an
-additional Lagrange multiplier $\lambda$ which determines the magnitude
-of the repulsion force. The direction comes from the response of the
-contact volume to changes in the velocity. To solve for $\lambda$
-requires the solution of a nonlinear complementary problem (NCP). This
-NCP can be linearized, leading to a sequence of linear complementary
-problems (LCPs) that must be solved at each time step.
+  \quad\text{ such that }\quad \nabla\cdot\uu = 0, 
+  \quad \xx \in \Omega.
+  \label{eqn:stokesEL}
+\end{align} 
+First, the space-time interference volume (STIV) is defined to be the
+area in space-time swept out by the trajectory of two particles.  Then,
+equation~\eqref{eqn:stokesEL} are supplemented with an additional
+constraint that the STIV is negative (no contact).  By introducing
+an additional Lagrange multiplier, $\lambda$, (the pressure is the other
+Lagrange multiplier), the result is a body force that is restricted to
+the rigid body boundaries.   Solving for $\lambda$ requires solving a
+nonlinear complementary problem (NCP) which is solved iteratively using
+a  sequence of linear complementary problem (LCP) solves.
 
 
+%an
+%additional constraint that requires the configuration of rigid particles
+%to be contact-free is imposed. This constraint necessitates an
+%additional Lagrange multiplier $\lambda$ which determines the magnitude
+%of the repulsion force. The direction comes from the response of the
+%contact volume to changes in the velocity. To solve for $\lambda$
+%requires the solution of a nonlinear complementary problem (NCP). This
+%NCP can be linearized, leading to a sequence of linear complementary
+%problems (LCPs) that must be solved at each time step.
+
+The NCP explicitly requires that the STIV is zero, meaning that there is
+no contact.  Therefore, unlike most repulsion-based methods, the
+contact-aware method guarantees that there is no collision.  However, it
+is possible that the sequence of LCPs is not able to converge to a
+solution of the NCP.   This stalling 
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
