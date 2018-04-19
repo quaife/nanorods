@@ -1268,8 +1268,10 @@ contact, so the collision algorithm is required.
 \todo[inline]{If we shrink the time step size, does the local implicit
 method reach the time horizon?  If so, for what $\Delta t$?  If not, how
 small of $\Delta t$ have you tried?}
-
-\todo[inline]{Need a paragraph discussing results in
+In Figure~\ref{fig:shear_experiment}, we investigate the effect of the
+minimum separation distance on the position of the rigid bodies.  The
+results are qualitatively similar to those reported in~\cite{Lu2017}.
+\todo[inline]{Need more discussing results in
 Figure~\ref{fig:shear_experiment}}
 
 \begin{figure}[!h]
@@ -1295,10 +1297,23 @@ Table~\ref{tab:reverse}. We achieve identical first-order accuracy in
 the reversibility of the flow for $\delta = 0$ (no contact constraint)
 and $\delta=h$.  This is expected since we have applied a first-order
 Euler method, and the contact algorithm is not required for $\delta =
-h$.  For $\delta \geq 2h$, reversibility is broken because the contact
-force shifts the particles onto contact-free streamlines. When we
-reverse the direction of the flow the particles traverse these
-contact-free streamlines. 
+h$.  For $\delta \geq 2h$, when the particles first come into contact,
+they are deflected onto contact-free streamlines.  When the flow is
+reversed, the particles again pass one another, but they are now on
+contact-free streamlines, so the initial deflection is not reversed.
+The error in the reversibility is the sum of the time stepping error and
+the error from deflecting the bodies in the contact algorithm.  This is
+demonstrated in Table~\ref{tab:reverse} since a smaller time step size
+does not decrease the error in reversibility, indicating that error
+caused by the contact algorithm dominates.
+
+This break in reversibility is further demonstrated by examining
+individual streamlines.  In Figure~\ref{fig:shear_cross}, we compute the
+streamline of the left particle for three different initial placements.
+Before the particles approach, the streamlines behave as expected---they
+do not cross.  However, the contact algorithm is applied to the blue
+streamline, and this has the effect of allowing the streamlines to
+cross.
 
 The effect of the contact force on the streamlines is shown in Figure
 \ref{fig:shear_cross}. Keeping the minimum separation fixed at $\delta =
@@ -1312,8 +1327,14 @@ streamline.
 \begin{center}
 \includegraphics{figures/shear_streamlines_cross.pdf}
 \end{center}
-\caption{Repulsion forces causes streamlines to cross. Keeping the minimum separation fixed at $\delta=3h$, we vary
-the starting $y$ location of the left particle. The teal and red lines do not require a repulsion force to enforce the minimum separation between the particles. The blue line does and it can be seen crossing the other streamlines in the middle inset. This crossing of the streamlines breaks the reversibility of the simulation.}\label{fig:shear_cross}
+\caption{Repulsion forces causes streamlines to cross. Keeping the
+minimum separation fixed at $\delta=3h$, we vary the starting $y$
+location of the left particle. The teal and red streamlines do not
+require a repulsion force to enforce the minimum separation between the
+particles, but the blue streamline does. Once the contact algorithm is
+applied, the blue streamline crosses the other streamlines (middle
+inset). This crossing of the streamlines breaks the reversibility of the
+simulation.}\label{fig:shear_cross}
 \end{figure}
 
 \begin{table}[!h]
@@ -1336,46 +1357,67 @@ $3.00h$ & $4.12\e{-1}$ & $3.88\e{-1}$ & $3.72\e{-1}$ & $3.67\e{-1}$ &
 $3.63\e{-1}$
 \end{tabular}
 \end{center}
-\caption{A study of time reversibility of the shear flow example. At $t=10$, the flow direction is reversed and we
-calculate the relative error in the initial and final positions. When the collision constraint is active and force is needed to keep the
-particles apart the error in the reversibility is dominated by the contact
+\caption{A study of time reversibility of the shear flow example. At
+$t=10$, the flow direction is reversed and we calculate the relative
+error in the initial and final positions. When the collision constraint
+is active and force is needed to keep the particles apart the error in
+the reversibility is dominated by the contact
 algorithm.}\label{tab:reverse}
 \end{table}
 
 \subsection{Taylor-Green}
 
- For planar flows, we can separate suspensions into dilute and concentrated regimes by comparing the number of particles per unit area, $\nu$, to the average particle length $\ell$. If $\nu < 1/\ell^2$, then we are in the dilute regime, otherwise we are in the concentrated regime (in 2D planar suspensions, unlike 3D suspensions, there is no concept of semi-dilute regimes).
+For planar flows, we can separate suspensions into dilute and
+concentrated regimes by comparing the number of particles per unit area,
+$\nu$, to the average particle length $\ell$. If $\nu < 1/\ell^2$, then
+we are in the dilute regime, otherwise we are in the concentrated regime
+(in 2D planar suspensions, unlike 3D suspensions, there is no concept of
+semi-dilute regimes).  We next consider the suspension of 75 rigid
+particles in the Taylor-Green flow $\mathbf{u}^\infty = (\cos(x)\sin(y),
+-\sin(x)\cos(y))$.  The number of particles per unit area is $\nu
+\approx 3.1$ which is greater than $1/\ell^2=1.108$.  Therefore, this
+suspension is well within the concentrated regime. 
 
-In concentrated suspensions, particles come in near-contact much more frequently and treating the
-inter-particle interactions explicitly leads to stiffness \cite{Quaife2014}. Our time stepper controls this stiffness by treating these interactions implicitly. We
-consider a concentrated suspension of 75 rigid particles in unbounded Taylor-Green
-flow, $\mathbf{u}^\infty =
-(\cos(x)\sin(y), -\sin(x)\cos(y))$. 
-
-In this case the number of particles per unit area, $\nu \approx 3.1$, which is greater than $1/\ell^2=1.108$, so this suspension is well within the concentrated regime. The particles are discretized with $N=32$ points and we enforce a minimum separation distance of $\delta=0.05h$. Snapshots of the simulation are shown in
-Figure \ref{fig:taylor_green}.
+We discretize the particles with $N=32$ points and select the minimum
+separation distance $\delta=0.05h$. Snapshots of the simulation are
+shown in Figure \ref{fig:taylor_green}.  In this concentrated
+suspension, the particles come into contact much more frequently.  If
+the interactions between these nearly touching bodies are treated
+explicitly, this leads to stiffness.  Our time stepper controls this
+stiffness by treating these interactions implicitly, and the simulation
+successfully reaches the time horizon.  We performed the same
+simulation, but with the locally implicit time stepping
+method~\cite{Lu2017}.  Because of the near-contact, smaller time step
+sizes must be taken.  We took time step sizes as small as $10^{-8}$, and
+the method was not able to successfully reach the time horizon.  This
+exact behavior has also been observed for vesicle
+suspensions~\cite{Quaife2014}.
 
 \begin{figure}[!h]
-\begin{center}
-\begin{tabular}{c c }
-\includegraphics[width=4cm]{figures/taylor_green0.pdf} &
-\includegraphics[width=4cm]{figures/taylor_green1.pdf}\\
-\includegraphics[width=4cm]{figures/taylor_green2.pdf} &
- \includegraphics[width=4cm]{figures/taylor_green_tracks_new.pdf}
-\end{tabular}
-\end{center}
-\caption{A dense suspension in an unbounded Taylor-Green flow. Particles are
-discretized with 32 points and the minimum separation $\delta=0.05h$.
-Snapshots of the simulation at $t=0$, $t=15$ and $t=30$ are shown. The bottom
-right plot shows the track of the center of the particle shaded in magenta for
-different time step sizes. Each line in that plot is marked where a repulsion
-force is used to enforce the minimum separation. Here the number of particles per unit area $\nu$ is approximately 3.1. This is greater than $1/\ell^2 = 1.108$, which puts the simulation well within the concentrated regime. }\label{fig:taylor_green}
+  \begin{center}
+    \begin{tabular}{c c }
+      \includegraphics[width=4cm]{figures/taylor_green0.pdf} &
+      \includegraphics[width=4cm]{figures/taylor_green1.pdf}\\
+      \includegraphics[width=4cm]{figures/taylor_green2.pdf} &
+      \includegraphics[width=4cm]{figures/taylor_green_tracks_new.pdf}
+    \end{tabular}
+  \end{center}
+  \caption{\label{fig:taylor_green} A dense suspension in an unbounded
+  Taylor-Green flow.  Particles are discretized with 32 points and the
+  minimum separation is $\delta=0.05h$.  Snapshots of the simulation at
+  $t=0$, $t=15$ and $t=30$ are shown. The bottom right plot shows the
+  track of the center of the particle shaded in magenta for different
+  time step sizes. Each line in that plot is marked where a repulsion
+  force is used to enforce the minimum separation. Here the number of
+  particles per unit area $\nu$ is approximately 3.1. This is greater
+  than $1/\ell^2 = 1.108$, which puts the simulation well within the
+  concentrated regime.}
 \end{figure}
 
-Using the globally implicit discretization\eqref{eqn:SemiImplicit} our
-solver remains stable with a time step size of $\Delta t=0.05$. However
-if we use the locally implicit discretization \eqref{eqn:BlockImplicit}
-the solver is unstable for $\Delta t$ as small as $10^{-8}$.
+%Using the globally implicit discretization\eqref{eqn:SemiImplicit} our
+%solver remains stable with a time step size of $\Delta t=0.05$. However
+%if we use the locally implicit discretization \eqref{eqn:BlockImplicit}
+%the solver is unstable for $\Delta t$ as small as $10^{-8}$.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \FloatBarrier
