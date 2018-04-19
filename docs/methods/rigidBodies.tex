@@ -1396,10 +1396,10 @@ suspensions~\cite{Quaife2014}.
 \begin{figure}[!h]
   \begin{center}
     \begin{tabular}{c c }
-      \includegraphics[width=4cm]{figures/taylor_green0.pdf} &
-      \includegraphics[width=4cm]{figures/taylor_green1.pdf}\\
-      \includegraphics[width=4cm]{figures/taylor_green2.pdf} &
-      \includegraphics[width=4cm]{figures/taylor_green_tracks_new.pdf}
+      \includegraphics[width=6cm]{figures/taylor_green0.pdf} &
+      \includegraphics[width=6cm]{figures/taylor_green1.pdf}\\
+      \includegraphics[width=6cm]{figures/taylor_green2.pdf} &
+      \includegraphics[width=6cm]{figures/taylor_green_tracks_new.pdf}
     \end{tabular}
   \end{center}
   \caption{\label{fig:taylor_green} A dense suspension in an unbounded
@@ -1422,14 +1422,25 @@ suspensions~\cite{Quaife2014}.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \FloatBarrier
 \subsection{Fluid Driven Deformation}
+A recent experiment considers a dense monolayer packing of soft
+particles~\cite{MacMinn2015}.  Motivated by this experiment, we perform
+numerical simulations of rigid bodies in a similar device.  We pack
+rigid bodies in a Couette device, but with a very small inner boundary.
+The boundary conditions are either an inflow of rate $Q$ at the inner
+boundary with an appropriate outflow at the outer cylinder, or an
+outflow of rate $-Q$ at the inner cylinder with an appropriate inflow at
+the inner cylinder.  This boundary condition corresponds to injection
+and suction of fluid from the center of the experimental microfluidic
+device.
 
-In \cite{MacMinn2015} an experimental setup is described to investigate the
-effects of fluid injection on the deformation of a porous material. In the
-experiment, a monolayer of soft particles are placed in a circular disk. In the
-center of the disk, fluid is injected and allowed to leave through the outer
-wall of the disk. At time $T$ the injection is reversed and fluid is sucked out
-through the center of the disk until time $2T$. The movement of the soft
-particles is tracked and their displacement at time $2T$ is noted.
+We assume that the flow at the outer boundary is uniform, and this is
+not valid if there are bodies close to this body.  Therefore, we place a
+ring of {\em fixed} rigid bodies halfway between the inner and outer
+cylinders.  The spacing between these fixed bodies is sufficiently small
+that the mobile bodies are not able to pass.  Since the outer boundary is
+well-separated from these fixed bodies, the flow can be approximated
+with a uniform flow.  A schematic of the geometry is in
+Figure~\ref{fig:radial}
 
 \begin{figure}[h!]
 \begin{center}
@@ -1440,70 +1451,89 @@ particles is tracked and their displacement at time $2T$ is noted.
 black.}\label{fig:radial}
 \end{figure}
 
-We perform a related computation. We consider two concentric circles; prescribing an inflow velocity $Q$ on the
-center disk and a corresponding outflow velocity on the outer disk, such that
-$\int_{\partial\Omega} \uu\cdot\nn~\text{d}\Omega = 0$. With this setup however, we do not want the particles
-to come into contact with the outer wall because this
-complicates the outflow profile. We instead place a ring of
-\textit{fixed} particles between the inner and outer disks. The
-spacing between the particles in the ring is sufficiently small that mobile
-particles cannot pass between two fixed particles. Our monolayer of rigid particles
-is confined between the inner disk and this ring of fixed particles.
-Assuming the outer wall is far enough  from the ring of fixed particles the
-velocity profile on the outer wall will be approximately uniform. Figure \ref{fig:radial}
-shows this setup.
+We start by looking at the effect that the contact algorithm has on the
+reversibility of the flow.  Unlike the shear example, the contacts are
+much more complex, so reversibility is much more challenging to
+maintain.  We again reverse the flow at time $T$ and run the simulation
+until time $2T$.  In Figure~\ref{fig:macminn}, we show several snapshots
+of the simulation.  In the bottom right plot, we superimpose the initial
+and final configurations, and we observe only a minor violation of
+reversibility, and this is focused at points that were initially near
+the fixed bodies---the contact algorithm is applied to these particles
+most frequently.
+
+%We perform a related computation. We consider two concentric circles; prescribing an inflow velocity $Q$ on the
+%center disk and a corresponding outflow velocity on the outer disk, such that
+%$\int_{\partial\Omega} \uu\cdot\nn~\text{d}\Omega = 0$. With this setup however, we do not want the particles
+%to come into contact with the outer wall because this
+%complicates the outflow profile. We instead place a ring of
+%\textit{fixed} particles between the inner and outer disks. The
+%spacing between the particles in the ring is sufficiently small that mobile
+%particles cannot pass between two fixed particles. Our monolayer of rigid particles
+%is confined between the inner disk and this ring of fixed particles.
+%Assuming the outer wall is far enough  from the ring of fixed particles the
+%velocity profile on the outer wall will be approximately uniform. Figure \ref{fig:radial}
+%shows this setup.
 
 \begin{figure}[h!]
-\begin{tabular}{c c c}
-\includegraphics{figures/injection_plate0.pdf}&
-\includegraphics{figures/injection_plate2.pdf}&
-\includegraphics{figures/injection_plate4.pdf}\\
-\includegraphics{figures/injection_plate6.pdf}&
-\includegraphics{figures/injection_plate8.pdf}&
-\includegraphics{figures/injection_plate8_overlay.pdf}\\
-\end{tabular}
-\caption{Snapshots of simulation of the experiment setup described in \cite{MacMinn2015} with rigid
-particles. Fluid is injected at a constant rate
-starting at $t=0$. At $t=4$ the flow direction is reversed. Fixed particles are
-colored in red, while particles subject to a repulsion force are colored in
-green. The initial configuration has been superimposed on the final configuration at $t=8$ to show the effect of the repulsion forces on reversibility.}
-\label{fig:macminn}
+  \begin{tabular}{c c c}
+    \includegraphics{figures/injection_plate0.pdf}&
+    \includegraphics{figures/injection_plate2.pdf}&
+    \includegraphics{figures/injection_plate4.pdf}\\
+    \includegraphics{figures/injection_plate6.pdf}&
+    \includegraphics{figures/injection_plate8.pdf}&
+    \includegraphics{figures/injection_plate8_overlay.pdf}\\
+  \end{tabular}
+  \caption{\label{fig:macminn} Snapshots of simulation of the experiment
+  setup described in~\cite{MacMinn2015} with rigid particles. Fluid is
+  injected at a constant rate starting at $t=0$. At $t=4$ the flow
+  direction is reversed. Fixed particles are colored in red, while
+  particles subject to a repulsion force are colored in green. The initial
+  configuration has been superimposed on the final configuration at $t=8$
+  to show the effect of the repulsion forces on reversibility.}
 \end{figure}
 
+In~\cite{MacMinn2015}, the strain shear rate is also measured to better
+understand the flow.  We numerically compute the shear strain rate for
+the simulation in Figure~\ref{fig:macminn}.  A qualitative comparison of
+the numerical and experimental results are in good agreement.  In
+particular, the petal-like patterns in Figure~\ref{fig:macminn_stress}
+was also observed in the experimental results.
 
 \begin{figure}[h!]
-\begin{tabular}{c c c}
-\includegraphics{figures/shear_stress1.pdf}&
-\includegraphics{figures/shear_stress2.pdf}&
-\includegraphics{figures/shear_stress3.pdf}\\
-\includegraphics{figures/shear_stress6.pdf}&
-\includegraphics{figures/shear_stress5.pdf}&
-\includegraphics{figures/shear_stress4.pdf}
-\end{tabular}
-\begin{center}
-\includegraphics{figures/colorbar.pdf}
-\end{center}
-\caption{Snapshots of $\text{log}_{10}(|\sigma_{xy}|)$ for the simulation of the experiment setup
-described in
-\cite{MacMinn2015} with rigid particles. We can see the formation of the petal-like patterns
-described in literature.}
-\label{fig:macminn_stress}
+  \begin{tabular}{c c c}
+    \includegraphics{figures/shear_stress1.pdf}&
+    \includegraphics{figures/shear_stress2.pdf}&
+    \includegraphics{figures/shear_stress3.pdf}\\
+    \includegraphics{figures/shear_stress6.pdf}&
+    \includegraphics{figures/shear_stress5.pdf}&
+    \includegraphics{figures/shear_stress4.pdf}
+  \end{tabular}
+  \begin{center}
+    \includegraphics{figures/colorbar.pdf}
+  \end{center}
+  \caption{\label{fig:macminn_stress} Snapshots of
+  $\text{log}_{10}(|\sigma_{xy}|)$ for the simulation of the experiment
+  setup described in~\cite{MacMinn2015} with rigid particles. We can see
+  the formation of the petal-like patterns described in literature.}
 \end{figure}
 
-For the case of soft particles their deformation breaks the time reversibility
-of the experiment. For rigid particles the contact algorithm described above
-breaks reversibility. This can be seen in Figure \ref{fig:macminn}.
-
-
+%For the case of soft particles their deformation breaks the time reversibility
+%of the experiment. For rigid particles the contact algorithm described above
+%breaks reversibility. This can be seen in Figure~\ref{fig:macminn}.
 
 
 \FloatBarrier
 \subsection{Taylor-Couette}
+As a final example, we investigate rheological and statistical
+properties of confined suspensions.  We consider suspensions of varying
+area fraction and particle aspect ratio; specifically we will look at 5,
+10, and 15 percent area fractions and ellipse shaped particles of aspect
+ratio, $\lambda$, 1, 3, and 6. The particles initial locations are
+random, but non-overlapping (Figure \ref{fig:couette_setup}).  The flow
+is driven by rotating the outer cylinder at a constant angular velocity
+while the inner cylinder remains fixed. 
 
-We use our model to investigate rheological and statistical properties of suspensions. We consider suspensions of varying area
-fraction and particle aspect ratio; specifically we will look at 5 and 10
-percent area fractions and ellipse shaped particles of aspect ratio, $\lambda$, 1, 3 and 6. The particles are initially distributed randomly
-inside the device (Figure \ref{fig:couette_setup}) The flow is driven by rotating the outer cylinder at a constant angular velocity while the inner cylinder remains fixed. 
 
 \begin{figure}[!h]
 \begin{center}
@@ -1520,38 +1550,61 @@ aspect ratio $\psi$. From left to right: 1) $\phi=5\%$, $\psi=
 $\psi=6$.}\label{fig:couette_setup}
 \end{figure}
 
-One quantity of interest is the alignment of the particles. On average the particles will align in the direction of the shear, which in this case is perpendicular to the radial direction. One way
-to measure the alignment is using the order parameter, $S$ defined as,
+Before measuring any rheological properties, we complete one full
+revolution of the outer wall so that the particles are well-mixed and
+hopefully close to a statistical equilibrium.  We start by considering
+the alignment of the particles. The alignment is particularly insightful
+since many industrial processes involve fibers suspended in a flow, and
+the alignment affects the material properties~\cite{} \todo[inline]{feel
+free to motivate this entirely differently}.  One way to measure the
+alignment is using the order parameter, $S$ defined as,
 \begin{align*}
   S = \left\langle \frac{d \cos^2\tilde{\theta} - 1}{d - 1} \right\rangle,
 \end{align*}
-where $d$ is the dimension of the problem (2 in this case),
+where $d$ is the dimension of the problem ($2$ in our case),
 $\tilde{\theta}$ is the deviation from the expected angle, and $\langle
-\cdot\rangle$ denotes the average over all particles. If a particle is
-centered at $(x,y)$ its expected angle is $\tan^{-1}(y/x) + \pi/2$. If $S=1$, all particles are perfectly aligned with the shear direction, $S=0$ corresponds to a random suspension (no alignment), and $S=-1$ means that all particles are perfectly aligned perpendicular to the shear direction. The initial configurations in Figure \ref{fig:couette_setup} all have $S\approx 0$. As the outer cylinder rotates, we see in Figure \ref{fig:angles} that $S$ increases quite quickly. The area fraction $\phi$ does not look to have much of an impact on $S$, however the higher aspect ratio fibers align better.
+\cdot\rangle$ averages over all particles.  If a particle is
+centered at $(x,y)$ its expected angle is $\tan^{-1}(y/x) + \pi/2$. If
+$S=1$, all particles are perfectly aligned with the shear direction,
+$S=0$ corresponds to a random suspension (no alignment), and $S=-1$
+means that all particles are perfectly aligned perpendicular to the
+shear direction.  In our geometric setup, the average alignment of the
+particles will be in the direction of the shear, which in this case is
+perpendicular to the radial direction.
+
+Since the initial condition is random, the initial configurations in
+Figure~\ref{fig:couette_setup} all have $S\approx 0$. As the outer
+cylinder rotates, we see in Figure \ref{fig:angles} that $S$ increases
+quite quickly. The area fractions $\phi$ that we have considered have
+only a minor effect on $S$; however, the aspect ratios have a large
+effect.  In particular, suspensions with slender bodies align much
+better with the flow \todo[inline]{need to explain why this happens and
+include a reference}.
 \begin{figure}[!h]
 \begin{center}
 \includegraphics{figures/order_parameter.pdf}\\
 \end{center}
-\caption{The order parameter as a function of time for different fiber concentrations and aspect
-ratios. We see that the 6:1 fibers align better. This is because as in simple shear flow, the fibers
-still rotate through all the orientations and align with the shear direction only on average.The 6:1
-fibers rotate rotate through the angle perpendicular to the shear direction more quickly than the
-3:1 fibers and thus spend more time approximately aligned with the shear direction.
-}\label{fig:angles}
+\caption{\label{fig:angles} The order parameter of different fiber
+concentrations and aspect ratios. We see that the 6:1 fibers align
+better. This is because as in simple shear flow, the fibers still rotate
+through all the orientations and align with the shear direction only on
+average.  The 6:1 fibers rotate rotate through the angle perpendicular to
+the shear direction more quickly than the 3:1 fibers and thus spend more
+time approximately aligned with the shear direction. \todo[inline]{lots
+in this cpation that isn't in the body}}
 \end{figure} 
 
 
-In shear flow particles align with the shear direction
-\emph{on average}, however at any point in time they will in general not
-be aligned with the shear direction. Particles with a higher aspect
-ratio rotate more quickly when then they are perpendicular to the shear
+In shear flow particles align with the shear direction \emph{on
+average}, however at any point in time they will in general not be
+aligned with the shear direction. Particles with a higher aspect ratio
+rotate more quickly when then they are perpendicular to the shear
 direction and thus spend more time nearly aligned with the shear
 direction. We can compare this to the time averaged order parameter for
 a single ellipse shaped fiber in an unbounded shear flow. A single
-ellipse in an unbounded shear flow with shear rate $\dot{\gamma}$ rotates with
-period $\tau = \pi/(2| \dot{\gamma}|)(\lambda + \lambda^{-1})$ \cite{Jeffery1922}
-according to 
+ellipse in an unbounded shear flow with shear rate $\dot{\gamma}$
+rotates with period $\tau = \pi/(2| \dot{\gamma}|)(\lambda +
+\lambda^{-1})$~\cite{Jeffery1922} according to 
 \begin{align*}
   \varphi(t) ~=~ \tan^{-1}\left(\frac{1}{\lambda}\tan\left(
     \frac{\lambda \dot{\gamma}t}{\lambda^2 + 1}\right)\right).
@@ -1561,11 +1614,13 @@ The time average order parameter is then,
   \langle S\rangle ~=~ \frac{1}{\tau}\int_0^\tau\left( 
     2\cos^2(\varphi(t)) - 1\right)~\text{d}t ~=~ \frac{\lambda -1}{\lambda+1}.
 \end{align*}
-The time average order parameter is 1/2 for $\lambda= 3$ and 5/7$\approx 0.7143$ for $\lambda=6$
-(independent of shear rate). Table \ref{tab:order} shows the time and space averaged order parameter
-for the Couette apparatus. We have arbitrarily decided to time average over only the second
-revolution of the outer cylinder. We see that in all cases our computed time averaged order
-parameter is higher than the theoretical single fiber case. This could be due to the hydrodynamic
+The time average order parameter is 1/2 for $\lambda= 3$ and 5/7$\approx
+0.7143$ for $\lambda=6$ (independent of shear rate). Table
+\ref{tab:order} shows the time and space averaged order parameter for
+the Couette apparatus. We have arbitrarily decided to time average over
+only the second revolution of the outer cylinder. We see that in all
+cases our computed time averaged order parameter is higher than the
+theoretical single fiber case. This could be due to the hydrodynamic
 interactions between the particles, or the effect of the solid walls.
 
 \begin{table}[!h]
@@ -1585,13 +1640,30 @@ $\langle S \rangle$ (single fiber)\\
 }\label{tab:order}
 \end{table} 
 
-Another quantity of interest in rheology is the effective viscosity of a suspension. The shear viscosity $\mu$ relates the bulk shear stress $\sigma_{xy}$ of a Newtonian fluid to the bulk shear rate $\dot{\gamma}$,
-\[ \sigma_{xy} = \mu\dot{\gamma}.\]
- Adding particles will increase the bulk shear stress of a suspension. The proportionality constant relating the increased $\sigma_{xy}$ to the shear rate is the \textit{apparent viscosity}. The ratio between the apparent viscosity and the bulk viscosity is the effective viscosity $\mu_{\text{eff}}$. Experimentally, one way to determine the bulk shear stress is by measuring the torque on the inner cylinder \cite{Koos2012}. Numerically, this is just the strength of the rotlet centered in the inner cylinder. By computing the ratio of the torque on the inner cylinder with particles to the torque without particles we can determine the effective viscosity of a suspension.  As can be seen in Figure
-\ref{fig:torque}, the effective viscosity increases with $\phi$, but is
-generally lower with the 6 to 1 shaped particles. This is because higher aspect ratio particles align themselves better, and thus contribute less to the bulk shear stress. The spikes in Figure 6 occur
-when a repulsion force is added to the system. Similar spikes were observed numerically in
-\cite{Lu2017}.
+Another quantity of interest in rheology is the effective viscosity of a
+suspension. The shear viscosity $\mu$ relates the bulk shear stress
+$\sigma_{xy}$ of a Newtonian fluid to the bulk shear rate
+$\dot{\gamma}$, 
+\begin{align*}
+  \sigma_{xy} = \mu\dot{\gamma}.
+\end{align*}
+Adding particles will increase the bulk shear stress of a suspension.
+The proportionality constant relating the increased $\sigma_{xy}$ to the
+shear rate is the {\em apparent viscosity}. The ratio between the
+apparent viscosity and the bulk viscosity is the effective viscosity
+$\mu_{\text{eff}}$.  Experimentally, one way to determine the bulk shear
+stress is by measuring the torque on the inner cylinder~\cite{Koos2012}.
+Numerically, this is just the strength of the rotlet centered in the
+inner cylinder.  By computing the ratio of the torque on the inner
+cylinder with particles to the torque without particles we can determine
+the effective viscosity of a suspension.  As can be seen in
+Figure~\ref{fig:torque}, the effective viscosity increases with $\phi$,
+but is generally lower with the 6 to 1 shaped particles. This is because
+higher aspect ratio particles align themselves better, and thus
+contribute less to the bulk shear stress. The spikes in Figure 6
+\todo[inline]{Need to use label and ref (not Figure 6)} occur when
+a repulsion force is added to the system. Similar spikes were observed
+numerically in~\cite{Lu2017}.
 \begin{figure}[!h]
 \begin{center}
 \includegraphics{figures/couette_torque_smooth_005.pdf}\\
