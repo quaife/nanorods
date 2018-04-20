@@ -246,8 +246,7 @@ but nearly-singular integrands are unavoidable in dense suspensions.  We
 apply a interpolation-based quadrature method~\cite{Ying2006,
 Quaife2014} since it is efficient and extends to three dimensions, but
 other near-singular integration schemes are possible~\cite{Klockner2013,
-Barnett2015, Beale2016, Helsing2008, Kropinski1999, Mammoli2006}.  
-\todo[inline]{Work of A-K and Mike Siegel}
+Barnett2015, Beale2016, Helsing2008, Kropinski1999, Mammoli2006, Siegel2018}.  
 
 The greatest opportunity of acceleration is reducing the cost of the
 matrix-vector multiplication required at each GMRES iteration.  We use
@@ -413,8 +412,8 @@ and we summarize the method in Section~\ref{sec:repulsion}.
 \subsection{Boundary Integral Equation Representation}
 There exist many numerical methods for simulating the suspensions of
 interfaces in a fluid by solving~\eqref{eqn:modelEquations} such as
-level set methods~\ref{}, immersed boundary methods~\ref{}
-\todo{inline}{Peskin, Chris Rycroft (Harvard)}, or lattice Boltzmann
+level set methods~\cite{Dou2007}, immersed boundary methods~\ref{}
+\todo{inline}{Peskin, Chris Rycroft (Harvard)}, smoothed particle hydrodynamics~\cite{Polfer2016} or lattice Boltzmann
 methods~\ref{} \todo[inline]{Georgia Tech guy from BIRS},
 \todo[inline]{igor pivkin,  Li-shi luo}.  However, given that the fluid
 equations are linear and the geometry mobile, we use a boundary integral
