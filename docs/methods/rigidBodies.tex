@@ -322,7 +322,6 @@ A schematic of the geometry is in Figure~\ref{fig:geomSchematic}.
 \begin{center}
 \includegraphics{figures/multiply_connected.pdf}
 \end{center}
-\todo[inline]{need normal in picture for the rigid bodies}
 \caption{\label{fig:geomSchematic}A sketch of a bounded fluid domain
 $\Omega$.  $\gamma_1$ and $\gamma_2$ enclose rigid particles, while
 $\Gamma_1$ is a solid wall.  If $\Omega$ is unbounded,  $\Gamma_0$  is
@@ -1139,16 +1138,15 @@ particle is scaled by the same amount.
 
 \subsection{Temporal Adaptivity}
 
-The NCP solver is quite sensititive to the initial configuration.
+The NCP solver is quite sensitive to the initial configuration.
 Occasionally it may take an unfeasible amount of LCP iterations to
 converge. To avoid this we adopt a heuristic adaptive time stepping
 scheme. Once the number of LCP iterations crosses a threshold, if we
 find the STIV volume is not decreasing fast enough we abort the time
-step and restart with a smaller $\Delta t$. If, conversely, the NCP
+step and restart it with a time step size of $\Delta t/2$. If, conversely, the NCP
 converges in a small number of LCP iterations, we increase $\Delta t$
-slightly.
-\todo[inline]{put in numbers.  How much do we increase/decrease $\Delta
-t$ by?}
+by a factor of $1.5$.
+
 
 \begin{comment}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -1260,16 +1258,11 @@ points and the arc length spacing $h = 2\pi/32 \approx 0.196$.
 
 As a first experiment, we set $\Delta t = 0.4$ and $\delta = 0$.  Then,
 the new method globally implicit method successfully reaches the time
-horizon.  However, the local explicit time stepping results in a
-contact, so the collision algorithm is required.  
-\todo[inline]{If we shrink the time step size, does the local implicit
-method reach the time horizon?  If so, for what $\Delta t$?  If not, how
-small of $\Delta t$ have you tried?}
+horizon without requiring a repulsion force.  However, with the same $\Delta t$, the local explicit time stepping results in a
+collision between the particles, so the collision algorithm is required to reach the time horizon.  
+\todo[inline]{By halving the time step size the locally implicit solver can also reach the time horizon without any repulsion forces. Is it worth mentioning this?}
 In Figure~\ref{fig:shear_experiment}, we investigate the effect of the
-minimum separation distance on the position of the rigid bodies.  The
-results are qualitatively similar to those reported in~\cite{Lu2017}.
-\todo[inline]{Need more discussing results in
-Figure~\ref{fig:shear_experiment}}
+minimum separation distance on the position of the rigid bodies.  As reported in \cite{Lu2017}, as the minimum separation  distance  $\delta$ between particles decreases the excess vertical displacement goes to zero. Once $\delta$ is large enough for the constraint to be active, the excess displacement looks to scale linearly with $\delta$.
 
 \begin{figure}[!h]
   \begin{center}
@@ -1542,7 +1535,7 @@ while the inner cylinder remains fixed.
 \end{tabular}
 \end{center}
 \caption{Four initial configurations for Taylor-Couette flow with varying volume fraction $\phi$ and
-aspect ratio $\psi$. From left to right: 1) $\phi=5\%$, $\psi=
+aspect ratio $\psi$. From left to right: 1) $\phi=5\%$, $\lambda=
 3$, 2) $\phi=5\%$, $\psi=6$, 3) $\phi=10\%$, $\psi=3$, 4) $\phi=10\%$,
 $\psi=6$.}\label{fig:couette_setup}
 \end{figure}
@@ -1552,8 +1545,7 @@ revolution of the outer wall so that the particles are well-mixed and
 hopefully close to a statistical equilibrium.  We start by considering
 the alignment of the particles. The alignment is particularly insightful
 since many industrial processes involve fibers suspended in a flow, and
-the alignment affects the material properties~\cite{} \todo[inline]{feel
-free to motivate this entirely differently}.  One way to measure the
+the alignment affects the material properties~\cite{larsoncf}.  One way to measure the
 alignment is using the order parameter, $S$ defined as,
 \begin{align*}
   S = \left\langle \frac{d \cos^2\tilde{\theta} - 1}{d - 1} \right\rangle,
@@ -1575,31 +1567,27 @@ cylinder rotates, we see in Figure \ref{fig:angles} that $S$ increases
 quite quickly. The area fractions $\phi$ that we have considered have
 only a minor effect on $S$; however, the aspect ratios have a large
 effect.  In particular, suspensions with slender bodies align much
-better with the flow \todo[inline]{need to explain why this happens and
-include a reference}.
+better with the flow. 
+
 \begin{figure}[!h]
 \begin{center}
 \includegraphics{figures/order_parameter.pdf}\\
 \end{center}
 \caption{\label{fig:angles} The order parameter of different fiber
 concentrations and aspect ratios. We see that the 6:1 fibers align
-better. This is because as in simple shear flow, the fibers still rotate
-through all the orientations and align with the shear direction only on
-average.  The 6:1 fibers rotate rotate through the angle perpendicular to
+better. The 6:1 fibers rotate rotate through the angle perpendicular to
 the shear direction more quickly than the 3:1 fibers and thus spend more
-time approximately aligned with the shear direction. \todo[inline]{lots
-in this cpation that isn't in the body}}
+time approximately aligned with the shear direction. }
 \end{figure} 
 
 
-In shear flow particles align with the shear direction \emph{on
-average}, however at any point in time they will in general not be
+This matches what we would expect from a single particle in an unbounded shear flow, where the particle will align with the shear direction \emph{on
+average}. However, at any point in time it will in general not be
 aligned with the shear direction. Particles with a higher aspect ratio
 rotate more quickly when then they are perpendicular to the shear
 direction and thus spend more time nearly aligned with the shear
-direction. We can compare this to the time averaged order parameter for
-a single ellipse shaped fiber in an unbounded shear flow. A single
-ellipse in an unbounded shear flow with shear rate $\dot{\gamma}$
+direction. We can compare our results to the time averaged order parameter for
+a single ellipse shaped fiber in an unbounded shear flow. Such a particle in an unbounded shear flow with shear rate $\dot{\gamma}$
 rotates with period $\tau = \pi/(2| \dot{\gamma}|)(\lambda +
 \lambda^{-1})$~\cite{Jeffery1922} according to 
 \begin{align*}
@@ -1611,14 +1599,17 @@ The time average order parameter is then,
   \langle S\rangle ~=~ \frac{1}{\tau}\int_0^\tau\left( 
     2\cos^2(\varphi(t)) - 1\right)~\text{d}t ~=~ \frac{\lambda -1}{\lambda+1}.
 \end{align*}
-The time average order parameter is 1/2 for $\lambda= 3$ and 5/7$\approx
-0.7143$ for $\lambda=6$ (independent of shear rate). Table
+Independent of shear rate, for $\lambda= 3$ the theoretical $\langle S\rangle$ is 1/2 and for $\lambda=6$ it is  5/7$\approx
+0.7143$. Table
 \ref{tab:order} shows the time and space averaged order parameter for
-the Couette apparatus. We have arbitrarily decided to time average over
-only the second revolution of the outer cylinder. We see that in all
+the Couette apparatus.We see that in all
 cases our computed time averaged order parameter is higher than the
 theoretical single fiber case. This could be due to the hydrodynamic
 interactions between the particles, or the effect of the solid walls.
+
+
+
+
 
 \begin{table}[!h]
 \begin{center}
@@ -1657,8 +1648,7 @@ the effective viscosity of a suspension.  As can be seen in
 Figure~\ref{fig:torque}, the effective viscosity increases with $\phi$,
 but is generally lower with the 6 to 1 shaped particles. This is because
 higher aspect ratio particles align themselves better, and thus
-contribute less to the bulk shear stress. The spikes in Figure 6
-\todo[inline]{Need to use label and ref (not Figure 6)} occur when
+contribute less to the bulk shear stress. The spikes in \ref{fig:torque} occur when
 a repulsion force is added to the system. Similar spikes were observed
 numerically in~\cite{Lu2017}.
 \begin{figure}[!h]
