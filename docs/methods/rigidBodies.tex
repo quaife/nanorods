@@ -544,18 +544,18 @@ $\uu_\infty(\xx)$ added to the right hand side.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{A contact based repulsion force}
 \label{sec:repulsion}
-Exact solutions of the Stokes equations prohibit contact between
-force- and torque-free particles in finite time.  Therefore, any
-contact between rigid bodies is caused by numerical errors.  The two main sources of error are
-the quadrature error---especially for nearly touching rigid bodies---and
-time stepping error.  Issues with quadrature have been addressed using
-near-singular integration techniques~\cite{Ying2006, Klockner2013,
-Quaife2014, Barnett2015, Beale2001, Cortez2001},
-and high-order or even spectral accuracy in space can be achieved.
-Errors due to time stepping have recently received more attention, and
-methods that control stiffness~\cite{Quaife2014}, and use adaptive time step
-sizes~\cite{Kropinski1999,
-Quaife2015, Sorgentone2018}.
+Exact solutions of the Stokes equations prohibit contact between force-
+and torque-free particles in finite time.  Therefore, any contact
+between rigid bodies is caused by numerical errors.  The two main
+sources of error are the quadrature error---especially for nearly
+touching rigid bodies---and time stepping error.  We address the
+quadrature error using a combination of upsampling and
+interpolation, and details of the method are described
+in~\cite{Quaife2014}.  Time stepping have recently received more
+attention, and methods that control stiffness~\cite{Quaife2014}, and use
+adaptive time step sizes~\cite{Kropinski1999, Quaife2015,
+Sorgentone2018}.  We describe time stepping methods in
+Section~\ref{sec:temporal}.
 
 %When evaluating a target point close to the boundary (as is
 %necessary when two particles come close together) the kernel in the
@@ -575,20 +575,19 @@ Quaife2015, Sorgentone2018}.
 %\caption{Sketch of potential collisions.}
 %\end{figure}
 
- Alternatively, repulsion forces can be added~\cite{Malhotra2018}, or
-the analytic solutions of the flow due to lubrication forces can be
-added to the dynamics~\cite{Mammoli2006}.  Unfortunately, repulsion
-forces often introduce non-linear stiffness that restricts the time step
-size, and using lubrication theory is difficult for particles of arbitrary
-geometry due to the complicated asymptotics needed.
+%Alternatively, repulsion forces can be added~\cite{Malhotra2018}, or
+%the analytic solutions of the flow due to lubrication forces can be
+%added to the dynamics~\cite{Mammoli2006}.  Unfortunately, repulsion
+%forces often introduce non-linear stiffness that restricts the time step
+%size, and using lubrication theory is difficult for particles of
+%arbitrary geometry due to the complicated asymptotics needed.
 
 We adopt the method of introducing an artificial force to avoid
-collision. There are many possible choices for the type of force. One
-possibility is a repulsion force based on a Morse or Lennard-Jones type
-potential that grows as a high order polynomial as two particles become
-close together~\cite{Flormann2017, Liu2006}. This has been shown to work
-for dense suspensions, however the resulting ODEs become very stiff as
-the separation between particles decreases, thus requiring smaller time
+collision.  There are many possible choices for the type of force. One
+possibility is a Morse or Lennard-Jones potential that grows as a high
+order polynomial as two particles approach~\cite{Flormann2017, Liu2006}. This has been shown to work for
+dense suspensions, however the resulting ODEs become very stiff as the
+separation between particles decreases, thus requiring smaller time
 steps. Spring based models~\cite{Tsubota2006, Zhao2013, Kabacogulu2017}
 have also been used to generate artificial repulsion forces, although
 these models also introduce stiffness. One further disadvantage of these
@@ -596,28 +595,36 @@ methods is that neither approach explicitly guarantees no contact
 between particles. If too large a time step is chosen collisions can
 still occur. 
 
-
-Our approach mirrors~\cite{Lu2017} where the choice of forces and
-torques guarantee that each time step is collision-free.
-It is well known that the Stokes equations are the Euler-Lagrange
-for a variational problem,
-\begin{align*}
+Instead, we apply a modification of the contact-aware method of Lu et
+al.~\cite{Lu2017} where the choice of forces and torques guarantee that
+each time step is collision-free.  We only summarize the method, but a
+in-depth description is in~\cite{Lu2017}.  The method is based on the
+variational form of the Stokes equations,
+\begin{align}
   \min \int_{\Omega} \nabla\uu:\nabla\uu~\text{d}\Omega,
-  \quad\text{ such that }\quad \nabla\cdot\uu = 0 \text{ in }\Omega.
-\end{align*} 
-In the Euler-Lagrange equations, the pressure $p$ is the Lagrange
-multiplier associated with the incompressibility constraint. In \cite{Lu2017}, an
-additional constraint that requires the configuration of rigid particles
-to be contact-free is imposed. This constraint necessitates an
-additional Lagrange multiplier $\lambda$ which determines the magnitude
-of the repulsion force. The direction comes from the response of the
-contact volume to changes in the velocity. To solve for $\lambda$
-requires the solution of a nonlinear complementary problem (NCP). This
-NCP can be linearized, leading to a sequence of linear complementary
-problems (LCPs) that must be solved at each time step.
+  \quad\text{ such that }\quad \nabla\cdot\uu = 0, 
+  \quad \xx \in \Omega.
+  \label{eqn:stokesEL}
+\end{align} 
+First, the space-time interference volume (STIV) is defined to be the
+area in space-time swept out by the trajectory of two particles.  Then,
+equation~\eqref{eqn:stokesEL} are supplemented with an additional
+constraint that the STIV is negative (no contact).  By introducing
+an additional Lagrange multiplier, $\lambda$, (the pressure is the other
+Lagrange multiplier), the result is a body force that is restricted to
+the rigid body boundaries.   Solving for $\lambda$ requires solving a
+nonlinear complementary problem (NCP) which is solved iteratively using
+a sequence of linear complementary problem (LCP) solves.
 
-
-
+The NCP explicitly requires that the STIV is zero, meaning that there is
+no contact.  Therefore, unlike most repulsion-based methods, the
+contact-aware method guarantees that there is no collision.  However, it
+is possible that the sequence of LCPs is not able to converge to a
+solution of the NCP.  This stalling typically occurs if the interaction
+between two bodies in close proximity is treated explicitly.  Therefore,
+in Section~\ref{sec:temporal} we describe a new time stepping method
+that allows for much closer contact without the contact algorithm
+stalling.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %\begin{comment}
@@ -1134,7 +1141,16 @@ particle is scaled by the same amount.
 
 \subsection{Temporal Adaptivity}
 
-The NCP solver is quite sensititive to the initial configuration. Occasionally it may take an unfeasible amount of LCP iterations to converge. To avoid this we adopt a heuristic adaptive time stepping scheme. Once the number of LCP iterations crosses a threshold, if we find the STIV volume is not decreasing fast enough we abort the time step and restart with a smaller $\Delta t$. If, conversely, the NCP converges in a small number of LCP iterations we increase $\Delta t$ slightly.
+The NCP solver is quite sensititive to the initial configuration.
+Occasionally it may take an unfeasible amount of LCP iterations to
+converge. To avoid this we adopt a heuristic adaptive time stepping
+scheme. Once the number of LCP iterations crosses a threshold, if we
+find the STIV volume is not decreasing fast enough we abort the time
+step and restart with a smaller $\Delta t$. If, conversely, the NCP
+converges in a small number of LCP iterations, we increase $\Delta t$
+slightly.
+\todo[inline]{put in numbers.  How much do we increase/decrease $\Delta
+t$ by?}
 
 \begin{comment}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -1187,101 +1203,137 @@ $L_k \gets \int_{\Gamma_k}
 	}
 \end{algorithm}
 \end{comment}
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Results\label{s:results}} 
-We use our new time integrator to simulate suspensions of two-dimensional
-rigid bodies in a Stokesian fluid in several bounded and unbounded
-geometries.  In addition to the initial condition and minimum separation
-distance $\delta,$ the main parameters are the number of discretization
-points $N$ and the time step size $\Delta t$. We perform convergence
+We use our new time stepping method to simulate bounded and unbounded
+suspensions of two-dimensional rigid bodies in a viscous fluid.  The
+main parameters are the minimum separation distance $\delta$, the number
+of discretization points of each body, $N_p$, and each solid wall,
+$N_w$, and the initial time step size $\Delta t$. We perform convergence
 studies and investigate the effect loss of reversibility caused by the
 STIV algorithm.  To further demonstrate the consequence of STIV, we
-include plots of streamlines that cross whenever the
-collision detection algorithm is applied.  The particular experiments we
-perform are now summarized.
+include plots of streamlines that cross whenever the collision detection
+algorithm is applied.  The particular experiments we perform are now
+summarized.
 \begin{itemize}
-  \item {\bf Shear Flow}: We consider the classic problem of two
+  \item {\bf Shear Flow}: We consider the standard problem of two
   identical rigid circles in the shear flow $\uu = (y,0)$ with the left
   body slightly elevated from the right body.  We report similar results
-  to those presented in~\cite{Lu2017}, but with a smaller
-  displacement.  The simulations are performed with different minimum
-  separations $\delta$ and the result of this
-  parameter on the reversibility of the flow is examined for $\delta >
-  0$.  Furthermore, we form streamlines by simulating the trajectory
-  with several different initial configurations and show that the
-  streamlines physically cross.
+  to those presented in~\cite{Lu2017}, but we are able to take smaller
+  initial displacements and minimum separation distances.  The contact
+  algorithm breaks the reversibility of the flow, and this effect is
+  illustrated and quantified.
 
-  \item {\bf Taylor-Green Flow}: We simulate a concentrated suspension of 48 rigid ellipses in an unbounded Taylor-Green
-  flow. At the prescribed separation distance, our new time stepping
-  method is able to stably reach the time horizon, while the locally
-  semi-implicit time integrator proposed by Lu et al.~\cite{Lu2017}
-  results in the STIV algorithm stalling, even with $\Delta t = 10^{-8}$.
+  \item {\bf Taylor-Green Flow}: We simulate a concentrated suspension
+  of 48 rigid ellipses in an unbounded Taylor-Green flow. At the
+  prescribed separation distance, our new time stepping method is able
+  to stably reach the time horizon, while the locally semi-implicit time
+  integrator proposed by Lu et al.~\cite{Lu2017} results in the STIV
+  algorithm stalling, even with $\Delta t = 10^{-8}$.
 
-  \item {\bf Taylor-Couette Flow}: With the ability to do high area fraction suspensions
- without imposing a large non-physical minimum separation
-  distance, we simulate rigid bodies of varying aspect ratios inside a
-  Taylor-Couette device.  We examine rheological properties of the flow
-  by estimating the effective viscosity and analyzing the alignment
-  angles.  Results are presented at several area fractions
+  \item {\bf Porous Monolayer Injection}: We consider a suspension of
+  confined rigid circular bodies motivated by an experiment by MacMinn
+  et al.~\cite{MacMinn2015}.  The geometry is an annulus with an inflow
+  at the inner boundary and an outflow at the outer boundary.  We again
+  examine the effect STIV on the reversibility of the flow, and compute
+  the shear strain rate and make qualitative comparisons to results for
+  deformable bodies~\cite{MacMinn2015}.
 
-  \item {\bf Porous Monolayer Injection}: Motivated by an experiment by
-  MacMinn et al.~\cite{MacMinn2015}, we consider a suspension of
-  confined rigid circular bodies.  The flow is driven by an inflow 
-  at the center of the device and an outflow at a distance that is well
-  separated from the rigid bodies.  We again examine the effect STIV on
-  the reversibility of the flow, and compute the shear strain rate and
-  make qualitative comparisons to results for deformable
-  bodies~\cite{MacMinn2015}.
+  \item {\bf Taylor-Couette Flow}: With the ability to do high area
+  fraction suspensions without imposing a large non-physical minimum
+  separation distance, we simulate rigid bodies of varying aspect ratios
+  inside a Taylor-Couette device.  We examine the effect of the rigid
+  body shape and area fraction on the effective viscosity and the
+  alignment angles.
 \end{itemize}
 
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{Shear Flow}
+We start by repeating an experiment~\cite{Lu2017} to compare our new
+globally implicit time integrator with the locally implicit version.
+The initial condition is two rigid circles arranged placed symmetrically
+about the origin, but with the left body slightly elevated.  In the
+shear flow ${\uu}(\xx) = (y,0)$, the bodies approach, come into near
+contact, and then separate.  Each particle is discretized with $N=32$
+points and the arc length spacing $h = 2\pi/32 \approx 0.196$.  
 
-We repeat an experiment from \cite{Lu2017} with our new globally
-implicit time integrator. Rigid circles are arranged initially so that they
-approach one another, deflect off one another, and then separate.  The
-particles are discretized with $N=32$ points, so that the arc length spacing
-$h = 2\pi/32 \approx 0.196$. Given the particles initial placement, the
-separation distance is always greater than $h$, so that if we take the
-desired separation distance $\delta$ to be less than $h$ the collision
-constraint is never necessary with a time step $\Delta t=0.4$ using the globally implicit time stepper. With the same time step size, a locally implicit time stepper requires a repulsion force to maintain separation between the particles.
+As a first experiment, we set $\Delta t = 0.4$ and $\delta = 0$.  Then,
+the new method globally implicit method successfully reaches the time
+horizon.  However, the local explicit time stepping results in a
+contact, so the collision algorithm is required.  
+\todo[inline]{If we shrink the time step size, does the local implicit
+method reach the time horizon?  If so, for what $\Delta t$?  If not, how
+small of $\Delta t$ have you tried?}
+In Figure~\ref{fig:shear_experiment}, we investigate the effect of the
+minimum separation distance on the position of the rigid bodies.  The
+results are qualitatively similar to those reported in~\cite{Lu2017}.
+\todo[inline]{Need more discussing results in
+Figure~\ref{fig:shear_experiment}}
+
 \begin{figure}[!h]
-\begin{center}
-\includegraphics{figures/shear_setup1.pdf}
-\begin{tabular}{c c}
-\includegraphics{figures/shear_displacement1.pdf} &
-\includegraphics{figures/separation_displacement1.pdf}
-\end{tabular}
-\end{center}
-\caption{Shear experiment. Top: initial setup and trajectories of the centers of both rigid bodies.
-Bottom left: the $y$ coordinate of the center of the particle initially on the left as a function of
-its horizontal displacement. Bottom
-right: the final vertical displacement of the particle initially on the left as a function of
-separation distance.}\label{fig:shear_experiment}
+  \begin{center}
+    \includegraphics{figures/shear_setup1.pdf}
+    \begin{tabular}{c c}
+      \includegraphics{figures/shear_displacement1.pdf} &
+      \includegraphics{figures/separation_displacement1.pdf}
+    \end{tabular}
+  \end{center}
+\caption{\label{fig:shear_experiment} Shear experiment. Top: The initial
+setup and trajectories of the left body.   Bottom left: The trajectory
+of the left particle for varying minimum separation distances.  Bottom
+right: The effect of the minimum separation distance $\delta$ on the
+final vertical displacement of the left particle initially on the left.}
 \end{figure}
 
-We use this experiment to investigate the effect of the collision algorithm on the time
+We next investigate the effect of the collision algorithm on the time
 reversibility of the flow. We reverse the shear direction at $t=10$ and
-measure the relative error between the particle's center at $t=0$ and $t=20$. The results for various values of $\delta$ are in Table
-\ref{tab:reverse}. For $\delta = 0$ (no contact constraint) we achieve first-order accuracy in the
-reversibility of the flow since we are
-using a first order Euler method to advance in time. For $\delta \geq 2h$, reversibility is broken because the
-contact force shifts the particles onto contact-free streamlines. When
-we reverse the direction of the flow the particles traverse these contact-free
-streamlines. 
+measure the error between the particle's center at $t=0$ and $t=20$.
+The results for various values of $\delta$ are in
+Table~\ref{tab:reverse}. We achieve identical first-order accuracy in
+the reversibility of the flow for $\delta = 0$ (no contact constraint)
+and $\delta=h$.  This is expected since we have applied a first-order
+Euler method, and the contact algorithm is not required for $\delta =
+h$.  For $\delta \geq 2h$, when the particles first come into contact,
+they are deflected onto contact-free streamlines.  When the flow is
+reversed, the particles again pass one another, but they are now on
+contact-free streamlines, so the initial deflection is not reversed.
+The error in the reversibility is the sum of the time stepping error and
+the error from deflecting the bodies in the contact algorithm.  This is
+demonstrated in Table~\ref{tab:reverse} since a smaller time step size
+does not decrease the error in reversibility, indicating that error
+caused by the contact algorithm dominates.
+
+This break in reversibility is further demonstrated by examining
+individual streamlines.  In Figure~\ref{fig:shear_cross}, we compute the
+streamline of the left particle for three different initial placements.
+Before the particles approach, the streamlines behave as expected---they
+do not cross.  However, the contact algorithm is applied to the blue
+streamline, and this has the effect of allowing the streamlines to
+cross.
 
 The effect of the contact force on the streamlines is shown in Figure
-\ref{fig:shear_cross}. Keeping the minimum separation fixed at $\delta = 3h$, we vary the initial
-$y$ coordinate of the left particle. If the initial $y$ coordinate is high enough, no repulsion force is needed to prevent the particles coming within $\delta$ of each other. Once a repulsion force is added however, the particle jumps to a different streamline.
+\ref{fig:shear_cross}. Keeping the minimum separation fixed at $\delta =
+3h$, we vary the initial $y$ coordinate of the left particle. If the
+initial $y$ coordinate is high enough, no repulsion force is needed to
+prevent the particles coming within $\delta$ of each other. Once a
+repulsion force is added however, the particle jumps to a different
+streamline.
 
 \begin{figure}[!h]
 \begin{center}
 \includegraphics{figures/shear_streamlines_cross.pdf}
 \end{center}
-\caption{Repulsion forces causes streamlines to cross. Keeping the minimum separation fixed at $\delta=3h$, we vary
-the starting $y$ location of the left particle. The teal and red lines do not require a repulsion force to enforce the minimum separation between the particles. The blue line does and it can be seen crossing the other streamlines in the middle inset. This crossing of the streamlines breaks the reversibility of the simulation.}\label{fig:shear_cross}
+\caption{Repulsion forces causes streamlines to cross. Keeping the
+minimum separation fixed at $\delta=3h$, we vary the starting $y$
+location of the left particle. The teal and red streamlines do not
+require a repulsion force to enforce the minimum separation between the
+particles, but the blue streamline does. Once the contact algorithm is
+applied, the blue streamline crosses the other streamlines (middle
+inset). This crossing of the streamlines breaks the reversibility of the
+simulation.}\label{fig:shear_cross}
 \end{figure}
 
 \begin{table}[!h]
@@ -1304,53 +1356,183 @@ $3.00h$ & $4.12\e{-1}$ & $3.88\e{-1}$ & $3.72\e{-1}$ & $3.67\e{-1}$ &
 $3.63\e{-1}$
 \end{tabular}
 \end{center}
-\caption{A study of time reversibility of the shear flow example. At $t=10$, the flow direction is reversed and we
-calculate the relative error in the initial and final positions. When the collision constraint is active and force is needed to keep the
-particles apart the error in the reversibility is dominated by the contact
+\caption{A study of time reversibility of the shear flow example. At
+$t=10$, the flow direction is reversed and we calculate the relative
+error in the initial and final positions. When the collision constraint
+is active and force is needed to keep the particles apart the error in
+the reversibility is dominated by the contact
 algorithm.}\label{tab:reverse}
 \end{table}
 
 \subsection{Taylor-Green}
 
- For planar flows, we can separate suspensions into dilute and concentrated regimes by comparing the number of particles per unit area, $\nu$, to the average particle length $\ell$. If $\nu < 1/\ell^2$, then we are in the dilute regime, otherwise we are in the concentrated regime (in 2D planar suspensions, unlike 3D suspensions, there is no concept of semi-dilute regimes).
+For planar flows, we can separate suspensions into dilute and
+concentrated regimes by comparing the number of particles per unit area,
+$\nu$, to the average particle length $\ell$. If $\nu < 1/\ell^2$, then
+we are in the dilute regime, otherwise we are in the concentrated regime
+(in 2D planar suspensions, unlike 3D suspensions, there is no concept of
+semi-dilute regimes).  We next consider the suspension of 75 rigid
+particles in the Taylor-Green flow $\mathbf{u}^\infty = (\cos(x)\sin(y),
+-\sin(x)\cos(y))$.  The number of particles per unit area is $\nu
+\approx 3.1$ which is greater than $1/\ell^2=1.108$.  Therefore, this
+suspension is well within the concentrated regime. 
 
-In concentrated suspensions, particles come in near-contact much more frequently and treating the
-inter-particle interactions explicitly leads to stiffness \cite{Quaife2014}. Our time stepper controls this stiffness by treating these interactions implicitly. We
-consider a concentrated suspension of 75 rigid particles in unbounded Taylor-Green
-flow, $\mathbf{u}^\infty =
-(\cos(x)\sin(y), -\sin(x)\cos(y))$. 
-
-In this case the number of particles per unit area, $\nu \approx 3.1$, which is greater than $1/\ell^2=1.108$, so this suspension is well within the concentrated regime. The particles are discretized with $N=32$ points and we enforce a minimum separation distance of $\delta=0.05h$. Snapshots of the simulation are shown in
-Figure \ref{fig:taylor_green}.
+We discretize the particles with $N=32$ points and select the minimum
+separation distance $\delta=0.05h$. Snapshots of the simulation are
+shown in Figure \ref{fig:taylor_green}.  In this concentrated
+suspension, the particles come into contact much more frequently.  If
+the interactions between these nearly touching bodies are treated
+explicitly, this leads to stiffness.  Our time stepper controls this
+stiffness by treating these interactions implicitly, and the simulation
+successfully reaches the time horizon.  We performed the same
+simulation, but with the locally implicit time stepping
+method~\cite{Lu2017}.  Because of the near-contact, smaller time step
+sizes must be taken.  We took time step sizes as small as $10^{-8}$, and
+the method was not able to successfully reach the time horizon.  This
+exact behavior has also been observed for vesicle
+suspensions~\cite{Quaife2014}.
 
 \begin{figure}[!h]
-\begin{center}
-\begin{tabular}{c c }
-\includegraphics[width=4cm]{figures/taylor_green0.pdf} &
-\includegraphics[width=4cm]{figures/taylor_green1.pdf}\\
-\includegraphics[width=4cm]{figures/taylor_green2.pdf} &
- \includegraphics[width=4cm]{figures/taylor_green_tracks_new.pdf}
-\end{tabular}
-\end{center}
-\caption{A dense suspension in an unbounded Taylor-Green flow. Particles are
-discretized with 32 points and the minimum separation $\delta=0.05h$.
-Snapshots of the simulation at $t=0$, $t=15$ and $t=30$ are shown. The bottom
-right plot shows the track of the center of the particle shaded in magenta for
-different time step sizes. Each line in that plot is marked where a repulsion
-force is used to enforce the minimum separation. Here the number of particles per unit area $\nu$ is approximately 3.1. This is greater than $1/\ell^2 = 1.108$, which puts the simulation well within the concentrated regime. }\label{fig:taylor_green}
+  \begin{center}
+    \begin{tabular}{c c }
+      \includegraphics[width=6cm]{figures/taylor_green0.pdf} &
+      \includegraphics[width=6cm]{figures/taylor_green1.pdf}\\
+      \includegraphics[width=6cm]{figures/taylor_green2.pdf} &
+      \includegraphics[width=6cm]{figures/taylor_green_tracks_new.pdf}
+    \end{tabular}
+  \end{center}
+  \caption{\label{fig:taylor_green} A dense suspension in an unbounded
+  Taylor-Green flow.  Particles are discretized with 32 points and the
+  minimum separation is $\delta=0.05h$.  Snapshots of the simulation at
+  $t=0$, $t=15$ and $t=30$ are shown. The bottom right plot shows the
+  track of the center of the particle shaded in magenta for different
+  time step sizes. Each line in that plot is marked where a repulsion
+  force is used to enforce the minimum separation. Here the number of
+  particles per unit area $\nu$ is approximately 3.1. This is greater
+  than $1/\ell^2 = 1.108$, which puts the simulation well within the
+  concentrated regime.}
 \end{figure}
 
-Using the globally implicit discretization\eqref{eqn:SemiImplicit} our solver remains stable with a
-time step size of $\Delta t=0.05$. However if we use the locally implicit discretization
-\eqref{eqn:BlockImplicit} the solver is unstable for $\Delta t$ as small as $10\e{-8}$.
+%Using the globally implicit discretization\eqref{eqn:SemiImplicit} our
+%solver remains stable with a time step size of $\Delta t=0.05$. However
+%if we use the locally implicit discretization \eqref{eqn:BlockImplicit}
+%the solver is unstable for $\Delta t$ as small as $10^{-8}$.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\FloatBarrier
+\subsection{Fluid Driven Deformation}
+A recent experiment considers a dense monolayer packing of soft
+particles~\cite{MacMinn2015}.  Motivated by this experiment, we perform
+numerical simulations of rigid bodies in a similar device.  We pack
+rigid bodies in a Couette device, but with a very small inner boundary.
+The boundary conditions are either an inflow of rate $Q$ at the inner
+boundary with an appropriate outflow at the outer cylinder, or an
+outflow of rate $-Q$ at the inner cylinder with an appropriate inflow at
+the inner cylinder.  This boundary condition corresponds to injection
+and suction of fluid from the center of the experimental microfluidic
+device.
+
+We assume that the flow at the outer boundary is uniform, and this is
+not valid if there are bodies close to this body.  Therefore, we place a
+ring of {\em fixed} rigid bodies halfway between the inner and outer
+cylinders.  The spacing between these fixed bodies is sufficiently small
+that the mobile bodies are not able to pass.  Since the outer boundary is
+well-separated from these fixed bodies, the flow can be approximated
+with a uniform flow.  A schematic of the geometry is in
+Figure~\ref{fig:radial}
+
+\begin{figure}[h!]
+\begin{center}
+\includegraphics{figures/injection_plate_setup.pdf}
+\end{center}
+\caption{Experimental model setup to simulate the experiment described in
+\cite{MacMinn2015}. Fixed solid particles are shaded in
+black.}\label{fig:radial}
+\end{figure}
+
+We start by looking at the effect that the contact algorithm has on the
+reversibility of the flow.  Unlike the shear example, the contacts are
+much more complex, so reversibility is much more challenging to
+maintain.  We again reverse the flow at time $T$ and run the simulation
+until time $2T$.  In Figure~\ref{fig:macminn}, we show several snapshots
+of the simulation.  In the bottom right plot, we superimpose the initial
+and final configurations, and we observe only a minor violation of
+reversibility, and this is focused at points that were initially near
+the fixed bodies---the contact algorithm is applied to these particles
+most frequently.
+
+%We perform a related computation. We consider two concentric circles; prescribing an inflow velocity $Q$ on the
+%center disk and a corresponding outflow velocity on the outer disk, such that
+%$\int_{\partial\Omega} \uu\cdot\nn~\text{d}\Omega = 0$. With this setup however, we do not want the particles
+%to come into contact with the outer wall because this
+%complicates the outflow profile. We instead place a ring of
+%\textit{fixed} particles between the inner and outer disks. The
+%spacing between the particles in the ring is sufficiently small that mobile
+%particles cannot pass between two fixed particles. Our monolayer of rigid particles
+%is confined between the inner disk and this ring of fixed particles.
+%Assuming the outer wall is far enough  from the ring of fixed particles the
+%velocity profile on the outer wall will be approximately uniform. Figure \ref{fig:radial}
+%shows this setup.
+
+\begin{figure}[h!]
+  \begin{tabular}{c c c}
+    \includegraphics{figures/injection_plate0.pdf}&
+    \includegraphics{figures/injection_plate2.pdf}&
+    \includegraphics{figures/injection_plate4.pdf}\\
+    \includegraphics{figures/injection_plate6.pdf}&
+    \includegraphics{figures/injection_plate8.pdf}&
+    \includegraphics{figures/injection_plate8_overlay.pdf}\\
+  \end{tabular}
+  \caption{\label{fig:macminn} Snapshots of simulation of the experiment
+  setup described in~\cite{MacMinn2015} with rigid particles. Fluid is
+  injected at a constant rate starting at $t=0$. At $t=4$ the flow
+  direction is reversed. Fixed particles are colored in red, while
+  particles subject to a repulsion force are colored in green. The initial
+  configuration has been superimposed on the final configuration at $t=8$
+  to show the effect of the repulsion forces on reversibility.}
+\end{figure}
+
+In~\cite{MacMinn2015}, the strain shear rate is also measured to better
+understand the flow.  We numerically compute the shear strain rate for
+the simulation in Figure~\ref{fig:macminn}.  A qualitative comparison of
+the numerical and experimental results are in good agreement.  In
+particular, the petal-like patterns in Figure~\ref{fig:macminn_stress}
+was also observed in the experimental results.
+
+\begin{figure}[h!]
+  \begin{tabular}{c c c}
+    \includegraphics{figures/shear_stress1.pdf}&
+    \includegraphics{figures/shear_stress2.pdf}&
+    \includegraphics{figures/shear_stress3.pdf}\\
+    \includegraphics{figures/shear_stress6.pdf}&
+    \includegraphics{figures/shear_stress5.pdf}&
+    \includegraphics{figures/shear_stress4.pdf}
+  \end{tabular}
+  \begin{center}
+    \includegraphics{figures/colorbar.pdf}
+  \end{center}
+  \caption{\label{fig:macminn_stress} Snapshots of
+  $\text{log}_{10}(|\sigma_{xy}|)$ for the simulation of the experiment
+  setup described in~\cite{MacMinn2015} with rigid particles. We can see
+  the formation of the petal-like patterns described in literature.}
+\end{figure}
+
+%For the case of soft particles their deformation breaks the time reversibility
+%of the experiment. For rigid particles the contact algorithm described above
+%breaks reversibility. This can be seen in Figure~\ref{fig:macminn}.
+
 
 \FloatBarrier
 \subsection{Taylor-Couette}
+As a final example, we investigate rheological and statistical
+properties of confined suspensions.  We consider suspensions of varying
+area fraction and particle aspect ratio; specifically we will look at 5,
+10, and 15 percent area fractions and ellipse shaped particles of aspect
+ratio, $\lambda$, 1, 3, and 6. The particles initial locations are
+random, but non-overlapping (Figure \ref{fig:couette_setup}).  The flow
+is driven by rotating the outer cylinder at a constant angular velocity
+while the inner cylinder remains fixed. 
 
-We use our model to investigate rheological and statistical properties of suspensions. We consider suspensions of varying area
-fraction and particle aspect ratio; specifically we will look at 5 and 10
-percent area fractions and ellipse shaped particles of aspect ratio, $\lambda$, 1, 3 and 6. The particles are initially distributed randomly
-inside the device (Figure \ref{fig:couette_setup}) The flow is driven by rotating the outer cylinder at a constant angular velocity while the inner cylinder remains fixed. 
 
 \begin{figure}[!h]
 \begin{center}
@@ -1367,38 +1549,61 @@ aspect ratio $\psi$. From left to right: 1) $\phi=5\%$, $\psi=
 $\psi=6$.}\label{fig:couette_setup}
 \end{figure}
 
-One quantity of interest is the alignment of the particles. On average the particles will align in the direction of the shear, which in this case is perpendicular to the radial direction. One way
-to measure the alignment is using the order parameter, $S$ defined as,
+Before measuring any rheological properties, we complete one full
+revolution of the outer wall so that the particles are well-mixed and
+hopefully close to a statistical equilibrium.  We start by considering
+the alignment of the particles. The alignment is particularly insightful
+since many industrial processes involve fibers suspended in a flow, and
+the alignment affects the material properties~\cite{} \todo[inline]{feel
+free to motivate this entirely differently}.  One way to measure the
+alignment is using the order parameter, $S$ defined as,
 \begin{align*}
   S = \left\langle \frac{d \cos^2\tilde{\theta} - 1}{d - 1} \right\rangle,
 \end{align*}
-where $d$ is the dimension of the problem (2 in this case),
+where $d$ is the dimension of the problem ($2$ in our case),
 $\tilde{\theta}$ is the deviation from the expected angle, and $\langle
-\cdot\rangle$ denotes the average over all particles. If a particle is
-centered at $(x,y)$ its expected angle is $\tan^{-1}(y/x) + \pi/2$. If $S=1$, all particles are perfectly aligned with the shear direction, $S=0$ corresponds to a random suspension (no alignment), and $S=-1$ means that all particles are perfectly aligned perpendicular to the shear direction. The initial configurations in Figure \ref{fig:couette_setup} all have $S\approx 0$. As the outer cylinder rotates, we see in Figure \ref{fig:angles} that $S$ increases quite quickly. The area fraction $\phi$ does not look to have much of an impact on $S$, however the higher aspect ratio fibers align better.
+\cdot\rangle$ averages over all particles.  If a particle is
+centered at $(x,y)$ its expected angle is $\tan^{-1}(y/x) + \pi/2$. If
+$S=1$, all particles are perfectly aligned with the shear direction,
+$S=0$ corresponds to a random suspension (no alignment), and $S=-1$
+means that all particles are perfectly aligned perpendicular to the
+shear direction.  In our geometric setup, the average alignment of the
+particles will be in the direction of the shear, which in this case is
+perpendicular to the radial direction.
+
+Since the initial condition is random, the initial configurations in
+Figure~\ref{fig:couette_setup} all have $S\approx 0$. As the outer
+cylinder rotates, we see in Figure \ref{fig:angles} that $S$ increases
+quite quickly. The area fractions $\phi$ that we have considered have
+only a minor effect on $S$; however, the aspect ratios have a large
+effect.  In particular, suspensions with slender bodies align much
+better with the flow \todo[inline]{need to explain why this happens and
+include a reference}.
 \begin{figure}[!h]
 \begin{center}
 \includegraphics{figures/order_parameter.pdf}\\
 \end{center}
-\caption{The order parameter as a function of time for different fiber concentrations and aspect
-ratios. We see that the 6:1 fibers align better. This is because as in simple shear flow, the fibers
-still rotate through all the orientations and align with the shear direction only on average.The 6:1
-fibers rotate rotate through the angle perpendicular to the shear direction more quickly than the
-3:1 fibers and thus spend more time approximately aligned with the shear direction.
-}\label{fig:angles}
+\caption{\label{fig:angles} The order parameter of different fiber
+concentrations and aspect ratios. We see that the 6:1 fibers align
+better. This is because as in simple shear flow, the fibers still rotate
+through all the orientations and align with the shear direction only on
+average.  The 6:1 fibers rotate rotate through the angle perpendicular to
+the shear direction more quickly than the 3:1 fibers and thus spend more
+time approximately aligned with the shear direction. \todo[inline]{lots
+in this cpation that isn't in the body}}
 \end{figure} 
 
 
-In shear flow particles align with the shear direction
-\emph{on average}, however at any point in time they will in general not
-be aligned with the shear direction. Particles with a higher aspect
-ratio rotate more quickly when then they are perpendicular to the shear
+In shear flow particles align with the shear direction \emph{on
+average}, however at any point in time they will in general not be
+aligned with the shear direction. Particles with a higher aspect ratio
+rotate more quickly when then they are perpendicular to the shear
 direction and thus spend more time nearly aligned with the shear
 direction. We can compare this to the time averaged order parameter for
 a single ellipse shaped fiber in an unbounded shear flow. A single
-ellipse in an unbounded shear flow with shear rate $\dot{\gamma}$ rotates with
-period $\tau = \pi/(2| \dot{\gamma}|)(\lambda + \lambda^{-1})$ \cite{Jeffery1922}
-according to 
+ellipse in an unbounded shear flow with shear rate $\dot{\gamma}$
+rotates with period $\tau = \pi/(2| \dot{\gamma}|)(\lambda +
+\lambda^{-1})$~\cite{Jeffery1922} according to 
 \begin{align*}
   \varphi(t) ~=~ \tan^{-1}\left(\frac{1}{\lambda}\tan\left(
     \frac{\lambda \dot{\gamma}t}{\lambda^2 + 1}\right)\right).
@@ -1408,11 +1613,13 @@ The time average order parameter is then,
   \langle S\rangle ~=~ \frac{1}{\tau}\int_0^\tau\left( 
     2\cos^2(\varphi(t)) - 1\right)~\text{d}t ~=~ \frac{\lambda -1}{\lambda+1}.
 \end{align*}
-The time average order parameter is 1/2 for $\lambda= 3$ and 5/7$\approx 0.7143$ for $\lambda=6$
-(independent of shear rate). Table \ref{tab:order} shows the time and space averaged order parameter
-for the Couette apparatus. We have arbitrarily decided to time average over only the second
-revolution of the outer cylinder. We see that in all cases our computed time averaged order
-parameter is higher than the theoretical single fiber case. This could be due to the hydrodynamic
+The time average order parameter is 1/2 for $\lambda= 3$ and 5/7$\approx
+0.7143$ for $\lambda=6$ (independent of shear rate). Table
+\ref{tab:order} shows the time and space averaged order parameter for
+the Couette apparatus. We have arbitrarily decided to time average over
+only the second revolution of the outer cylinder. We see that in all
+cases our computed time averaged order parameter is higher than the
+theoretical single fiber case. This could be due to the hydrodynamic
 interactions between the particles, or the effect of the solid walls.
 
 \begin{table}[!h]
@@ -1432,13 +1639,30 @@ $\langle S \rangle$ (single fiber)\\
 }\label{tab:order}
 \end{table} 
 
-Another quantity of interest in rheology is the effective viscosity of a suspension. The shear viscosity $\mu$ relates the bulk shear stress $\sigma_{xy}$ of a Newtonian fluid to the bulk shear rate $\dot{\gamma}$,
-\[ \sigma_{xy} = \mu\dot{\gamma}.\]
- Adding particles will increase the bulk shear stress of a suspension. The proportionality constant relating the increased $\sigma_{xy}$ to the shear rate is the \textit{apparent viscosity}. The ratio between the apparent viscosity and the bulk viscosity is the effective viscosity $\mu_{\text{eff}}$. Experimentally, one way to determine the bulk shear stress is by measuring the torque on the inner cylinder \cite{Koos2012}. Numerically, this is just the strength of the rotlet centered in the inner cylinder. By computing the ratio of the torque on the inner cylinder with particles to the torque without particles we can determine the effective viscosity of a suspension.  As can be seen in Figure
-\ref{fig:torque}, the effective viscosity increases with $\phi$, but is
-generally lower with the 6 to 1 shaped particles. This is because higher aspect ratio particles align themselves better, and thus contribute less to the bulk shear stress. The spikes in Figure 6 occur
-when a repulsion force is added to the system. Similar spikes were observed numerically in
-\cite{Lu2017}.
+Another quantity of interest in rheology is the effective viscosity of a
+suspension. The shear viscosity $\mu$ relates the bulk shear stress
+$\sigma_{xy}$ of a Newtonian fluid to the bulk shear rate
+$\dot{\gamma}$, 
+\begin{align*}
+  \sigma_{xy} = \mu\dot{\gamma}.
+\end{align*}
+Adding particles will increase the bulk shear stress of a suspension.
+The proportionality constant relating the increased $\sigma_{xy}$ to the
+shear rate is the {\em apparent viscosity}. The ratio between the
+apparent viscosity and the bulk viscosity is the effective viscosity
+$\mu_{\text{eff}}$.  Experimentally, one way to determine the bulk shear
+stress is by measuring the torque on the inner cylinder~\cite{Koos2012}.
+Numerically, this is just the strength of the rotlet centered in the
+inner cylinder.  By computing the ratio of the torque on the inner
+cylinder with particles to the torque without particles we can determine
+the effective viscosity of a suspension.  As can be seen in
+Figure~\ref{fig:torque}, the effective viscosity increases with $\phi$,
+but is generally lower with the 6 to 1 shaped particles. This is because
+higher aspect ratio particles align themselves better, and thus
+contribute less to the bulk shear stress. The spikes in Figure 6
+\todo[inline]{Need to use label and ref (not Figure 6)} occur when
+a repulsion force is added to the system. Similar spikes were observed
+numerically in~\cite{Lu2017}.
 \begin{figure}[!h]
 \begin{center}
 \includegraphics{figures/couette_torque_smooth_005.pdf}\\
@@ -1473,80 +1697,6 @@ $\lambda$ & 5\% area fraction  & 10\% area fraction  & 15\% area fraction\\
 %\end{figure}
 
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\FloatBarrier
-\subsection{Fluid Driven Deformation}
-
-In \cite{MacMinn2015} an experimental setup is described to investigate the
-effects of fluid injection on the deformation of a porous material. In the
-experiment, a monolayer of soft particles are placed in a circular disk. In the
-center of the disk, fluid is injected and allowed to leave through the outer
-wall of the disk. At time $T$ the injection is reversed and fluid is sucked out
-through the center of the disk until time $2T$. The movement of the soft
-particles is tracked and their displacement at time $2T$ is noted.
-
-\begin{figure}[h!]
-\begin{center}
-\includegraphics{figures/injection_plate_setup.pdf}
-\end{center}
-\caption{Experimental model setup to simulate the experiment described in
-\cite{MacMinn2015}. Fixed solid particles are shaded in
-black.}\label{fig:radial}
-\end{figure}
-
-We perform a related computation. We consider two concentric circles; prescribing an inflow velocity $Q$ on the
-center disk and a corresponding outflow velocity on the outer disk, such that
-$\int_{\partial\Omega} \uu\cdot\nn~\text{d}\Omega = 0$. With this setup however, we do not want the particles
-to come into contact with the outer wall because this
-complicates the outflow profile. We instead place a ring of
-\textit{fixed} particles between the inner and outer disks. The
-spacing between the particles in the ring is sufficiently small that mobile
-particles cannot pass between two fixed particles. Our monolayer of rigid particles
-is confined between the inner disk and this ring of fixed particles.
-Assuming the outer wall is far enough  from the ring of fixed particles the
-velocity profile on the outer wall will be approximately uniform. Figure \ref{fig:radial}
-shows this setup.
-
-\begin{figure}[h!]
-\begin{tabular}{c c c}
-\includegraphics{figures/injection_plate0.pdf}&
-\includegraphics{figures/injection_plate2.pdf}&
-\includegraphics{figures/injection_plate4.pdf}\\
-\includegraphics{figures/injection_plate6.pdf}&
-\includegraphics{figures/injection_plate8.pdf}&
-\includegraphics{figures/injection_plate8_overlay.pdf}\\
-\end{tabular}
-\caption{Snapshots of simulation of the experiment setup described in \cite{MacMinn2015} with rigid
-particles. Fluid is injected at a constant rate
-starting at $t=0$. At $t=4$ the flow direction is reversed. Fixed particles are
-colored in red, while particles subject to a repulsion force are colored in
-green. The initial configuration has been superimposed on the final configuration at $t=8$ to show the effect of the repulsion forces on reversibility.}
-\label{fig:macminn}
-\end{figure}
-
-
-\begin{figure}[h!]
-\begin{tabular}{c c c}
-\includegraphics{figures/shear_stress1.pdf}&
-\includegraphics{figures/shear_stress2.pdf}&
-\includegraphics{figures/shear_stress3.pdf}\\
-\includegraphics{figures/shear_stress6.pdf}&
-\includegraphics{figures/shear_stress5.pdf}&
-\includegraphics{figures/shear_stress4.pdf}
-\end{tabular}
-\begin{center}
-\includegraphics{figures/colorbar.pdf}
-\end{center}
-\caption{Snapshots of $\text{log}_{10}(|\sigma_{xy}|)$ for the simulation of the experiment setup
-described in
-\cite{MacMinn2015} with rigid particles. We can see the formation of the petal-like patterns
-described in literature.}
-\label{fig:macminn_stress}
-\end{figure}
-
-For the case of soft particles their deformation breaks the time reversibility
-of the experiment. For rigid particles the contact algorithm described above
-breaks reversibility. This can be seen in Figure \ref{fig:macminn}.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \FloatBarrier
 \section{Conclusions\label{s:conclusions}}
