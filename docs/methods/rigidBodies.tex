@@ -1258,9 +1258,13 @@ points and the arc length spacing $h = 2\pi/32 \approx 0.196$.
 
 As a first experiment, we set $\Delta t = 0.4$ and $\delta = 0$.  Then,
 the new method globally implicit method successfully reaches the time
-horizon without requiring a repulsion force.  However, with the same $\Delta t$, the local explicit time stepping results in a
-collision between the particles, so the collision algorithm is required to reach the time horizon.  
-\todo[inline]{By halving the time step size the locally implicit solver can also reach the time horizon without any repulsion forces. Is it worth mentioning this?}
+horizon without requiring a repulsion force.  However, with the same
+$\Delta t$, the local explicit time stepping results in a collision
+between the particles, so the collision algorithm is required to reach
+the time horizon.  Alternatively, the time step size can be reduced,
+but, as we will see, for sufficiently dense suspensions, even an
+excessively small time step size results in collisions.
+
 In Figure~\ref{fig:shear_experiment}, we investigate the effect of the
 minimum separation distance on the position of the rigid bodies.  As reported in \cite{Lu2017}, as the minimum separation  distance  $\delta$ between particles decreases the excess vertical displacement goes to zero. Once $\delta$ is large enough for the constraint to be active, the excess displacement looks to scale linearly with $\delta$.
 
@@ -1519,7 +1523,7 @@ As a final example, we investigate rheological and statistical
 properties of confined suspensions.  We consider suspensions of varying
 area fraction and particle aspect ratio; specifically we will look at 5,
 10, and 15 percent area fractions and ellipse shaped particles of aspect
-ratio, $\lambda$, 1, 3, and 6. The particles initial locations are
+ratio, $\lambda$ of 1, 3, and 6. The particles initial locations are
 random, but non-overlapping (Figure \ref{fig:couette_setup}).  The flow
 is driven by rotating the outer cylinder at a constant angular velocity
 while the inner cylinder remains fixed. 
