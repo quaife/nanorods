@@ -225,8 +225,7 @@ four-dimensional domain ($3$ space dimensions and $1$ time dimension).
 related to particulate suspensions in viscous fluids, we focus on
 literature that is related to BIEs and time stepping to simulate rigid
 body suspensions.  A more general overview of BIEs for particulate
-suspensions can be found in the texts of
-Pozrikidis~\cite{Pozrikidis1992, Guazzelli2011, Karrila1991}.  This work
+suspensions can be found in the texts~\cite{Pozrikidis1992, Guazzelli2011, Karrila1991}.  This work
 draws heavily from methods developed for simulating two dimensional
 vesicle suspensions~\cite{Quaife2014, Quaife2015, qua-bir2016,
 Rahimian2010, Lu2017}.  We represent the velocity as a completed
@@ -240,7 +239,7 @@ Particular algorithmic challenges with BIE formulations, especially for
 dense suspensions, are resolving hydrodynamic interactions between
 nearly-touching bodies, reducing the cost of the matrix-vector
 multiplication required at each GMRES iteration, and reducing the total
-number of required iterations, and 
+number of required iterations.
 
 We avoid weakly-singular integrands by using a double-layer potential,
 but nearly-singular integrands are unavoidable in dense suspensions.  We
@@ -783,14 +782,13 @@ these quantities is a post-processing step, and they are
 computed with high-order accuracy using methods described in
 Section~\ref{s:method}.
 
- By
-integrating $\Delta \uu$, the pressure of the double-layer potential is \cite{Power1993}
+The pressure of the two-dimensional double-layer potential is given by\cite{Power1993}
 \begin{align*}
   p(\xx) = \frac{1}{\pi}\int_{\partial\Omega}\frac{1}{\rho^2}\left(
 \mathbf{I} - 2\frac{\rr \otimes \rr)\nn}{\rho^2}\right)\cdot\eeta~\text{d}s,
 \qquad\xx\in\Omega.
 \end{align*}
-The pressure due to the Stokeslets and rotlets can be easily computed,
+The pressure of a Stokeslet and rotlet can be easily computed,
 and the pressure resulting from the completed double-layer potential
 formulation for the velocity~\eqref{eqn:completed_DLP} is
 \begin{align}
@@ -806,11 +804,11 @@ formulation for the velocity~\eqref{eqn:completed_DLP} is
 To compute the stress tensor
 \begin{align*} 
 \ssigma = -p \mathbf{I} + \left(\nabla \uu + (\nabla\uu)^\intercal\right), \qquad
-\xx\in\Omega
+\xx\in\Omega,
 \end{align*}
 we start by using the layer potential representation of the
 pressure~\eqref{eqn:pressure}.  Then, the viscous stress tensor is
-computed by computing the Jacobian of the double-layer
+determined by computing the Jacobian of the double-layer
 potential~\eqref{eqn:dlp} and the Stokeslets and rotlets to form
 \begin{align}
   \label{eqn:stress}
@@ -831,7 +829,7 @@ where
     \frac{\FF_i^\gamma\cdot(\xx - \cc_i^\gamma)}{\pi|\xx-\cc_i^\gamma|^2}
         (\xx-\cc_i^\gamma )\otimes(\xx-\cc_i^\gamma),\\
 \ssigma_R(\xx) &= -\sum_{i=1}^{M_w} \frac{L_i^\Gamma}{2\pi|\xx-\cc_i^\Gamma|^2}
-((\xx-\cc_i^\gamma)\otimes(\xx-\cc_i^\gamma)^\perp +
+((\xx-\cc_i^\Gamma)\otimes(\xx-\cc_i^\Gamma)^\perp +
     (\xx-\cc_i^\gamma)^\perp\otimes(\xx-\cc_i^\gamma))  \\
 \qquad&-\sum_{i=1}^{M_p}
 \frac{L_i^\gamma}{2\pi|\xx-\cc_i^\gamma|^2}
@@ -839,17 +837,17 @@ where
     (\xx-\cc_i^\gamma)^\perp\otimes(\xx-\cc_i^\gamma)).
 \end{align*}
 
-These expressions hold inside $\Omega$. On the boundary theres is a jump in the pressure and stress, as reported in \cite{Quaife2014}.
+These expressions hold inside $\Omega$. On the boundary there is a jump in the pressure and stress, as reported in \cite{Quaife2014}.
 Using the divergence theorem we can compute quantities like the volume average stress by computing only boundary integrals~\cite{Pozrikidis1992}. 
 		
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Numerical Methods\label{s:method}} 
 
-With the goal of performing long-time accurate simulations of dense
+To compute rheological statistics, simulations must be run to a long horizon. With the goal of performing such long-time simulations of dense
 suspensions, appropriate numerical methods must be employed.  To achieve
 high-order accuracy, the spatial grid is resolved with spectral accuracy
 (Section~\ref{sec:spatial}), and stability is achieved by using implicit
-interactions in the time integrator (Section~\ref{sec:temporal}). The computational cost is managed
+interactions in the time integrator and adaptive time stepping (Section~\ref{sec:temporal}). The computational cost is managed
 with the fast multipole method
 \cite{Greenbaum1992} and a
 block-diagonal preconditioner.
@@ -879,26 +877,25 @@ with this Fourier series so that spectral accuracy is achieved.
 
 The double-layer potentials in~\eqref{eqn:BIEformulation} are
 discretized with a Nystr\"om method.  Because the kernels are smooth,
-the trapezoid rule guarantees spectral accuracy~\cite{Trefethan2014}.  For
-Equation~\eqref{eqn:BIEformulation1} is discretized as
+the trapezoid rule guarantees spectral accuracy~\cite{Trefethan2014}.
+Equations~\eqref{eqn:BIEformulation}  are discretized as
 \begin{equation*}
   \begin{aligned}
   \UU(\xx_i) = -\frac{1}{2}\eeta(\xx_i) + 
   \sum_{k=1}^{N} K(\xx_i,\xx_k) \eeta(\xx_k) \Delta s_k
-    &+ \sum_{j=1}^{M_w} \left(\mathbf{S}(\xx_i,\cc^\gamma_j)\FF_j +
+    &+ \sum_{j=1}^{M_p} \left(\mathbf{S}(\xx_i,\cc^\gamma_j)\FF_j +
     \mathbf{R}(\xx_i,\dd_j)L_j\right)  \\
-    &+ \sum_{j=1}^{N} \left(\mathbf{S}(\xx_i,\cc^\Gamma_j)\FF_j +
+    &+ \sum_{j=1}^{M_w} \left(\mathbf{S}(\xx_i,\cc^\Gamma_j)\FF_j +
     \mathbf{R}(\xx_i,\cc^\Gamma_j)\L_j\right),
   \end{aligned}
 \end{equation*}
-and ~\eqref{eqn:BIEformulation2} is discretized as
 \begin{equation*}
   \begin{aligned}
 \uu^\tau_j + \omega_j(\xx_i - \cc^\gamma_j)^\perp = -\frac{1}{2}\eeta(\xx_i) +
 \sum_{k=1}^{N} K(\xx_i,\xx_k) \eeta(\xx_k) \Delta s_k
-    &+ \sum_{j=1}^{M_w} \left(\mathbf{S}(\xx_i,\cc^\gamma_j)\FF_j +
+    &+ \sum_{j=1}^{M_p} \left(\mathbf{S}(\xx_i,\cc^\gamma_j)\FF_j +
     \mathbf{R}(\xx_i,\dd_j)L_j\right)  \\
-    &+ \sum_{j=1}^{N} \left(\mathbf{S}(\xx_i,\cc^\Gamma_j)\FF_j +
+    &+ \sum_{j=1}^{M_w} \left(\mathbf{S}(\xx_i,\cc^\Gamma_j)\FF_j +
     \mathbf{R}(\xx_i,\cc^\Gamma_j)\L_j\right),
   \end{aligned}
 \end{equation*}
@@ -909,12 +906,11 @@ points and
                \frac{\rr \otimes \rr}{\rho^2}
 \end{align*}
 is the kernel of the double-layer potential.
-Equation~\eqref{eqn:BIEformulation2} is discretized in a similar
-fashion.  For the diagonal entries, we use the limiting value of $K$
+ For the diagonal entries, we use the limiting value of $K$
 \begin{align*}
   \lim_{\substack{\yy \rightarrow \xx \\ \yy \in \bd\Omega}} 
     K(\xx,\yy) = \frac{\kappa}{2\pi}\tt\otimes\tt,
-    \quad \xx \in \bd\Omega
+    \quad \xx \in \bd\Omega,
 \end{align*}
 where $\kappa(\xx)$ is the curvature and $\tt(\xx)$ is the tangent
 vector of $\bd\Omega$ at $\xx$.
