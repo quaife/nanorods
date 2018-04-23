@@ -7,7 +7,7 @@
 
 \begin{document}
 
-\title{Methods paper for rigid bodies}
+\title{A stable, contact-free, time stepping method for rigid particle suspensions}
 
 \author[Lukas]{Lukas Bystricky}
 \author[Lukas]{Sachin Shanbhag}
@@ -18,7 +18,8 @@ Tallahassee, FL, 32306.}
 Dynamics Institute, Florida State University, Tallahassee, FL, 32306.}
 
 \begin{abstract} 
-We consider suspensions of rigid bodies in two dimensions \ldots
+We consider suspensions of rigid bodies in two dimensions in a viscous fluid. The governing Stokes equations prohibit contact between particles in finite time, however in practice, insufficient spatial and temporal discretization can lead to contact and overlap between particles. Repulsion forces can be used to used to avoid such collisions. By quantifying the amount of overlap between particles, the direction and magnitude of these forces can be determined in such a way as to explicitly guarantee that no collisions are possible. This paper builds on a recent work by Lu \emph{et al}. In their paper interactions between different particles are treated explicitly. This can lead to stiffness, in particular for dense suspensions. Instead, we treat the interactions between all particles implicitly, thereby reducing the stiffness of the time stepper and allowing us to model more concentrated suspensions while maintaining a reasonably large time step size. We demonstrate this method on various unbounded and bounded flows and use it to compute rheological properties. 
+
 \end{abstract}
 
 \begin{keyword}
