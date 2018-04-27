@@ -46,23 +46,16 @@ resulting suspensions are computed.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Introduction\label{s:intro}}
-\todo[inline]{We use fiber in the introduction which I am fine with
-since that's the application.  After that, we need to be careful. Are we
-simulating rigid bodies, bodies, particles, or rigid particles?  For
-now, I've changed everything to bodies and rigid bodies.  I am open to
-discussion, though}
-
-\todo[inline]{That's fine with me. -LB}
 Dispersions of particulate rods or fibers are used in composite
 materials to tune mechanical, thermal, and electrical properties.
 Typically, these materials are processed in the melt or liquid
-suspension state via operations like injection molding, extrusion,
-or casting. It is important to model fiber suspensions for two
-reasons: (i) the distribution and orientation of the fibers, which
-determines the properties of the composite material, are governed by the
-flow history during processing, and (ii) the rheological properties of
-the suspension, which influence the flow behavior, in turn, depend on
-the size, shape, distribution, and orientation of the
+suspension state via operations like injection molding, extrusion, or
+casting. It is important to model fiber suspensions for two reasons: (i)
+the distribution and orientation of the fibers, which determines the
+properties of the composite material, are governed by the flow history
+during processing, and (ii) the rheological properties of the
+suspension, which influence the flow behavior, in turn, depend on the
+size, shape, distribution, and orientation of the
 fibers~\cite{larsoncf}.
 
 The theory of rigid fibers in flowing fluids was pioneered by
@@ -121,25 +114,25 @@ mechanical contact, and frictional forces~\cite{Sundararajakumar1997,
 Lindstroem2008}.
 
 In the semi-dilute regime, $1/\ell^3 \ll \nu \ll 1/d\ell^2$, fiber
-rotation is hindered; however, it is found that the statistical properties
-are not significantly altered from the dilute regime~\cite{larsoncf}.
-Hydrodynamic interactions between particles dominate the response, and
-contacts between fibers are rare. Batchelor's theory, suitably modified
-for multibody hydrodynamic interactions~\cite{Shaqfeh1990,
-Mackaplow1996}, describes the empirically observed increase in shear
-viscosity as a function of $\nu$ reasonably well~\cite{Stover1992,
-Bibbo1987, Petrich2000}. The contribution of the fibers to the steady
-shear viscosity is relatively modest in non-Brownian suspensions. This
-is especially true for high aspect ratio fibers which rotate and align
-along the flow direction, and contribute to the viscosity only during
-the occasional tumble~\cite{larsoncf}.  Thus, one ought to be careful
-not to interpret the success of theory and computer models in predicting
-the viscosity change in the semi-dilute regime as validation of the
-underlying fiber interaction model. Indeed fiber-fiber interactions are
-more sensitively reflected in other viscometric functions such as first
-normal stress difference, and distribution of orientations as reflected
-in, for example, the dispersion of Jeffery's
-orbits~\cite{Lindstroem2009}.
+rotation is hindered; however, it is found that the statistical
+properties are not significantly altered from the dilute
+regime~\cite{larsoncf}.  Hydrodynamic interactions between particles
+dominate the response, and contacts between fibers are rare. Batchelor's
+theory, suitably modified for multibody hydrodynamic
+interactions~\cite{Shaqfeh1990, Mackaplow1996}, describes the
+empirically observed increase in shear viscosity as a function of $\nu$
+reasonably well~\cite{Stover1992, Bibbo1987, Petrich2000}. The
+contribution of the fibers to the steady shear viscosity is relatively
+modest in non-Brownian suspensions. This is especially true for high
+aspect ratio fibers which rotate and align along the flow direction, and
+contribute to the viscosity only during the occasional
+tumble~\cite{larsoncf}.  Thus, one ought to be careful not to interpret
+the success of theory and computer models in predicting the viscosity
+change in the semi-dilute regime as validation of the underlying fiber
+interaction model. Indeed fiber-fiber interactions are more sensitively
+reflected in other viscometric functions such as first normal stress
+difference, and distribution of orientations as reflected in, for
+example, the dispersion of Jeffery's orbits~\cite{Lindstroem2009}.
 
 Once the concentration increases beyond $\nu \approx 1/d\ell^2$, the
 suspension enters the concentrated regime. Here, excluded volume
@@ -165,13 +158,13 @@ set of unknowns to the one-dimensional closed curves that form the fluid
 boundary.  Moreover, our BIE fluid solver achieves high-order accuracy.
 The governing Stokes equations prohibit contact between particles,
 however, because of numerical errors, without additional techniques,
-rigid bodies often come into contact or even overlap. \todo[inline]{Contact is not allowed using Stokes equations, but it's not necessarily unphysical; overlap between particles is unphysical.}Therefore, we apply
-a contact algorithm that allows rigid particles to come very close to
-one another, but guarantees that contact is
-avoided without introducing significant stiffness.  In addition to
-computing fiber trajectories, we compute rheological and statistical
-properties of the fluid and particles to better understand the
-dispersion of fibers in composite materials.
+rigid bodies often come into contact or even overlap. Therefore, we
+apply a contact algorithm that allows rigid particles to come very close
+to one another, but guarantees that contact is avoided without
+introducing significant stiffness.  In addition to computing fiber
+trajectories, we compute rheological and statistical properties of the
+fluid and particles to better understand the dispersion of fibers in
+composite materials.
 
 \paragraph{Contributions} Our main contributions are extending the time
 stepping strategy introduced for vesicle suspensions~\cite{Quaife2014}
@@ -228,8 +221,8 @@ including boundary integral equation methods and fast summation
 methods~\cite{cor-gre-rac-vee2017, kli-tor2014, kli-tor2016}.  The most
 challenging algorithms to extend to three dimensions include efficient
 preconditioners and the space-time interference volume that requires
-integrating a four-dimensional domain ($3$ space dimensions and $1$ time
-dimension). \todo{I cited Dens' talk from BIRS in the conclusion where he does STIV in 3D for vesicles. It's also been done in papers (but not for suspensions)}
+efficiently integrating a four-dimensional domain ($3$ space dimensions
+and $1$ time dimension).
 
 
 \paragraph{Related work} Rather than giving an exhaustive list of work
@@ -308,12 +301,12 @@ closer---a physical characteristic of dense suspensions of rigid bodies.
 
 In addition to coupling all the bodies implicitly, we further improve
 time stepping by allowing for an adaptive time step size.  There are a
-variety of adaptive time stepping methods, and we consider two.\todo{It makes it sound like we actually implemented two methods in this paper} First,
-the local truncation error can be estimated and the time step size is
-adjusted according to this error~\cite{Quaife2015, Quaife2015a,
-Sorgentone2018}.  Second, a measure of computational effort, such as the
-number of required time steps, can be used to choose a new time step
-size~\cite{Kropinski1999}.  The local truncation error for rigid body
+variety of adaptive time stepping methods, and they typically either
+estimate the local truncation error, and the time step size is adjusted
+according to this error~\cite{Quaife2015, Quaife2015a, Sorgentone2018},
+or they quantify the computational effort, such as the number of
+required time steps, and reduce the time step size when this becomes
+large~\cite{Kropinski1999}.  The local truncation error for rigid body
 suspensions is expensive because multiple numerical solutions must be
 formed.  Therefore, we apply the second option where the time step size
 is decreased when the STIV optimization routine requires a large number
@@ -791,21 +784,27 @@ solves, and is discussed in more detail in Section~\ref{sec:contact}.
 \todo[inline]{Bryan left off here in editing}
 \subsection{Computing the Pressure and Stress}
 To understand the rheological and statistical properties of suspensions
-of rigid bodies, it is necessary to compute quantities such as the
-pressure, stress, and energy dissipation.  In the BIE setting, computing
-these quantities is a post-processing step, and they are 
-computed with high-order accuracy using methods described in
-Section~\ref{s:method}.
+of rigid bodies, it is necessary to compute the pressure, stress, and
+energy dissipation.  This expressions are standard~\cite{}
+\todo[inline]{Need a reference ... maybe Pozrikidis}, but we summarize
+them for completeness.  Computing these expressions numerically is
+described in Section~\ref{sec:spatial}.
 
-The pressure of the two-dimensional double-layer potential is given by\cite{Power1993}
+%In the BIE setting, computing these quantities is a
+%post-processing step, and they are computed with high-order accuracy
+%using methods described in Section~\ref{s:method}.
+The pressure of the two-dimensional double-layer potential
+is~cite{Power1993}
 \begin{align*}
   p(\xx) = \frac{1}{\pi}\int_{\partial\Omega}\frac{1}{\rho^2}\left(
 \mathbf{I} - 2\frac{\rr \otimes \rr)\nn}{\rho^2}\right)\cdot\eeta~\text{d}s,
 \qquad\xx\in\Omega.
 \end{align*}
-The pressure of a Stokeslet and rotlet can be easily computed,
-and the pressure resulting from the completed double-layer potential
-formulation for the velocity~\eqref{eqn:completed_DLP} is
+\todo[inline]{There's definitely something wrong with this expression.
+It doesn't make sense as is}
+The pressure of the Stokeslet and rotlet contributions are easily
+computed, and the pressure of the completed double-layer
+potential~\eqref{eqn:completed_DLP} is
 \begin{align}
   \label{eqn:pressure} 
   p(\xx) = \frac{1}{\pi}\int_{\partial\Omega}\frac{1}{\rho^2}\left(
@@ -815,16 +814,17 @@ formulation for the velocity~\eqref{eqn:completed_DLP} is
   + \sum_{i=1}^{M_p}
     \frac{\FF_i^\gamma\cdot(\xx-\cc_i^\gamma)}{2\pi|\xx-\cc_i^\gamma|^2}.
 \end{align}
+\todo[inline]{There's definitely something wrong with this expression.
+It doesn't make sense as is}
 
-To compute the stress tensor
+Starting with the pressure~\eqref{eqn:pressure}, we compute the stress
+tensor
 \begin{align*} 
 \ssigma = -p \mathbf{I} + \left(\nabla \uu + (\nabla\uu)^\intercal\right), \qquad
-\xx\in\Omega,
+\xx\in\Omega.
 \end{align*}
-we start by using the layer potential representation of the
-pressure~\eqref{eqn:pressure}.  Then, the viscous stress tensor is
-determined by computing the Jacobian of the double-layer
-potential~\eqref{eqn:dlp} and the Stokeslets and rotlets to form
+We decompose the stress into contributions from the double-layer
+potential, Stokeslets, and rotlets
 \begin{align}
   \label{eqn:stress}
   \ssigma = \ssigma_{\eeta} + \ssigma_{S} + \ssigma_{R},
@@ -852,8 +852,12 @@ where
     (\xx-\cc_i^\gamma)^\perp\otimes(\xx-\cc_i^\gamma)).
 \end{align*}
 
-These expressions hold inside $\Omega$. On the boundary there is a jump in the pressure and stress, as reported in \cite{Quaife2014}.
-Using the divergence theorem we can compute quantities like the volume average stress by computing only boundary integrals~\cite{Pozrikidis1992}. 
+These expressions hold inside $\Omega$. On the boundary there is a jump
+in the pressure and stress, as reported in~\cite{Quaife2014}.  These
+boundary terms are required for our near-singular integration scheme
+described in Section~\ref{sec:spatial}.  Finally, using the divergence
+theorem, we the volumed average stresses can be expressed in terms of
+boundary integrals~\cite{Pozrikidis1992}. 
 		
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Numerical Methods\label{s:method}} 
@@ -871,6 +875,8 @@ block-diagonal preconditioner.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{Spatial Discretization}\label{sec:spatial}
 
+\todo[inline]{Need to say a few words about computing pressure and
+stress towards end of this section}
 All the integral equations are discretized
 with a Nystr\"om  methods, and interactions between nearly touching
 interfaces is resolved with a near-singular integration scheme. By using
@@ -1736,14 +1742,23 @@ increase the viscosity less. }\label{tab:viscosity}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \FloatBarrier
 \section{Conclusions\label{s:conclusions}}
-
 We have demonstrated a stable method time stepping routine that is
 capable of simulating concentrated suspensions of rigid bodies without
 introducing stiffness. Repulsion forces between bodies are added that
 are guaranteed to be sufficiently large enough to avoid overlap between
 bodies. Using this new time stepper we are able to simulate concentrated suspensions while maintaining a reasonably large time step. This allows us to compute rheological parameters such as the orientation of rigid fibers in a shear flow and the effective shear viscosity of a suspension. 
 
-There are several outstanding issues with this method. Perhaps the most obvious is that as described, this method is only applicable to two-dimensional problems. That said, the mathematical formulation is the same for three-dimensional problems. Though numerically more complicated, three-dimensional boundary integral formulations for suspensions have been well-developed, see for example \cite{Corona2017}. The computation of the STIV in three-dimensions has also been developed \cite{Harmon2011} and applied to vesicle simulations \cite{Zorin2017}.
+There are several outstanding issues with this method. Perhaps the most
+obvious is that as described, this method is only applicable to
+two-dimensional problems. That said, the mathematical formulation is the
+same for three-dimensional problems. Though numerically more
+complicated, three-dimensional boundary integral formulations for
+suspensions have been developed, see for example~\cite{Corona2017}.  The
+computation of the STIV in three-dimensions has also been
+developed~\cite{Harmon2011} but it has not yet been applied to
+suspensions.
+%and applied to vesicle
+%simulations~\cite{Zorin2017}.
 
 Mathematically, using STIVs as the collision metric, there is to the
 author's knowledge no theory which guarantees that the LCPs that are
