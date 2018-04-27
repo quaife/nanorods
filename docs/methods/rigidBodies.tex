@@ -51,6 +51,8 @@ since that's the application.  After that, we need to be careful. Are we
 simulating rigid bodies, bodies, particles, or rigid particles?  For
 now, I've changed everything to bodies and rigid bodies.  I am open to
 discussion, though}
+
+\todo[inline]{That's fine with me. -LB}
 Dispersions of particulate rods or fibers are used in composite
 materials to tune mechanical, thermal, and electrical properties.
 Typically, these materials are processed in the melt or liquid
@@ -70,7 +72,7 @@ rate $\dot{\gamma}$, he observed that fibers of length $\ell$ and
 diameter $d$ underwent periodic motion with a period $(\pi/\dot{\gamma})
 (\lambda + 1/\lambda)$, where $\lambda = \ell/d$ is the aspect ratio.
 The period increases with $\lambda$, and when $\lambda \gg 1$, a
-particle exhibiting ``Jeffery's orbit" stays aligned with the flow
+particle exhibiting a ``Jeffery's orbit" stays aligned with the flow
 direction most of the time, before abruptly spinning through a
 half-revolution. In the dilute regime (number of rods/unit volume $\nu <
 1/\ell^3$), trajectories of elongated fibers of different shapes, such
@@ -109,7 +111,7 @@ externally~\cite{Advani1987, Advani1990, Ferec2014, Perez2017}. This is
 in contrast to direct numerical simulations where individual fibers are
 \emph{explicitly} represented. Typically, fibers are modeled as
 prolate ellipsoids~\cite{Ausias2006}, a set of connected
-beads~\cite{Yamamoto1996, Joung2001} or rods~\cite{Schmid2000,
+beads~\cite{Yamamoto1996, Joung2001}, rods~\cite{Schmid2000,
 Lindstroem2007}, or a slender body ($\ell \gg d$)~\cite{Fan1998,
 Rahnama1995, tor-she2004, tor-gus2006, gus-tor2009}, with suitable
 first-order corrections to account for finite width. Over the years, in
@@ -119,8 +121,7 @@ mechanical contact, and frictional forces~\cite{Sundararajakumar1997,
 Lindstroem2008}.
 
 In the semi-dilute regime, $1/\ell^3 \ll \nu \ll 1/d\ell^2$, fiber
-rotation is hindered; however, it is found that the static
-\todo[inline]{static or statistical} properties
+rotation is hindered; however, it is found that the statistical properties
 are not significantly altered from the dilute regime~\cite{larsoncf}.
 Hydrodynamic interactions between particles dominate the response, and
 contacts between fibers are rare. Batchelor's theory, suitably modified
@@ -162,10 +163,11 @@ fiber shape.  To perform the simulations, we use a boundary integral
 equation (BIE) since it resolves the complex geometry by reducing the
 set of unknowns to the one-dimensional closed curves that form the fluid
 boundary.  Moreover, our BIE fluid solver achieves high-order accuracy.
-However, because of numerical errors, without additional techniques,
-rigid bodies often unphysically come into contact.  Therefore, we apply
+The governing Stokes equations prohibit contact between particles,
+however, because of numerical errors, without additional techniques,
+rigid bodies often come into contact or even overlap. \todo[inline]{Contact is not allowed using Stokes equations, but it's not necessarily unphysical; overlap between particles is unphysical.}Therefore, we apply
 a contact algorithm that allows rigid particles to come very close to
-one another (this happens physically), but guarantees that contact is
+one another, but guarantees that contact is
 avoided without introducing significant stiffness.  In addition to
 computing fiber trajectories, we compute rheological and statistical
 properties of the fluid and particles to better understand the
@@ -174,12 +176,12 @@ dispersion of fibers in composite materials.
 \paragraph{Contributions} Our main contributions are extending the time
 stepping strategy introduced for vesicle suspensions~\cite{Quaife2014}
 to rigid body suspensions, and analyzing the rheological properties of
-the suspensions.  Suspensions deformable bodies, such as vesicles, have
+the suspensions.  Suspensions of deformable bodies, such as vesicles, have
 the flexibility to deform as they approach one another, and this creates
 a natural minimum separation distance.  However, for rigid body
 suspensions, the inability to deform can force bodies much closer
-together, and numerical errors can easily cause unphysical contact.  To
-avoid contact Lu et al.~\cite{Lu2017} develop a contact algorithm that
+together, and numerical errors can easily cause unphysical overlap between particles.  To
+avoid overlap Lu et al.~\cite{Lu2017} develop a contact algorithm that
 guarantees a minimum separation distance between bodies and use a {\em
 locally implicit} time stepping method that only treats inter-body
 interactions implicitly.  That is, if $\uu_{ij}$ is the velocity of body
@@ -220,15 +222,14 @@ Jeffery's orbits.
 
 \paragraph{Limitations} The main limitation is that the method is
 developed in two dimensions.  By limiting ourselves to two dimensions,
-we are able to perform simulations of denser suspensions with high-order
-accuracy than would be possible in three-dimensions.  However, many of
+we are able to perform simulations of denser suspensions  than would be possible in three-dimensions.  However, many of
 the algorithms we present have been developed in three dimensions
 including boundary integral equation methods and fast summation
 methods~\cite{cor-gre-rac-vee2017, kli-tor2014, kli-tor2016}.  The most
 challenging algorithms to extend to three dimensions include efficient
 preconditioners and the space-time interference volume that requires
 integrating a four-dimensional domain ($3$ space dimensions and $1$ time
-dimension).
+dimension). \todo{I cited Dens' talk from BIRS in the conclusion where he does STIV in 3D for vesicles. It's also been done in papers (but not for suspensions)}
 
 
 \paragraph{Related work} Rather than giving an exhaustive list of work
@@ -251,7 +252,7 @@ integrands are smooth and periodic, and the trapezoid rule is typically
 used since it guarantees spectral accuracy~\cite{Trefethan2014}.
 However, integrands with large derivatives must be computed when bodies
 are in near-contact, and this is a certainty at high concentrations.  We
-apply a interpolation-based quadrature method~\cite{Ying2006,
+apply an interpolation-based quadrature method~\cite{Ying2006,
 Quaife2014} since it is efficient and extends to three dimensions, but
 other near-singular integration schemes are possible~\cite{Klockner2013,
 Barnett2015, Beale2016, Helsing2008, Kropinski1999, Mammoli2006,
@@ -297,7 +298,7 @@ the chance of a collision. Moreover, these potentials often have sharp
 gradients which lead to stiffness and necessitate a small time step
 size. Alternatively, a repulsion force based on the concept of
 space-time interference volumes (STIVs)~\cite{Harmon2011, Lu2017}
-explicitly prevent collisions between particles.  Using current STIV
+explicitly prevents collisions between particles.  Using current STIV
 implementations, the minimum separation distance between bodies cannot
 be too small; otherwise, the associated optimization algorithm stalls.
 This is a result of treating interactions between different bodies
@@ -307,7 +308,7 @@ closer---a physical characteristic of dense suspensions of rigid bodies.
 
 In addition to coupling all the bodies implicitly, we further improve
 time stepping by allowing for an adaptive time step size.  There are a
-variety of adaptive time stepping methods, and we consider two.  First,
+variety of adaptive time stepping methods, and we consider two.\todo{It makes it sound like we actually implemented two methods in this paper} First,
 the local truncation error can be estimated and the time step size is
 adjusted according to this error~\cite{Quaife2015, Quaife2015a,
 Sorgentone2018}.  Second, a measure of computational effort, such as the
@@ -426,7 +427,7 @@ However, when two rigid bodies are brought sufficiently close together,
 numerical errors can cause the rigid bodies to unphysically intersect.
 To avoid contact,  we will later relax the force- and torque-free
 conditions to guarantee that numerical errors do not cause rigid bodies
-to come into unphysical contact.  This idea is first described for
+to come into contact.  This idea is first described for
 vesicle suspensions by Lu et al.~\cite{Lu2017} and we summarize the
 method in Section~\ref{sec:repulsion}.  
 
@@ -600,7 +601,7 @@ time stepping methods in Section~\ref{sec:temporal}.
 %size, and using lubrication theory is difficult for particles of
 %arbitrary geometry due to the complicated asymptotics needed.
 
-We adopt the method of using artificial forces to avoid collision, and
+We adopt the method of using artificial forces to avoid contact, and
 there are many choices for the force. One possibility is a Morse or
 Lennard-Jones potential that grows as a high order polynomial as two
 bodies approach~\cite{Flormann2017, Liu2006}. This has been shown to
@@ -609,7 +610,7 @@ dynamics become very stiff as the separation between bodies decreases.
 Spring models~\cite{Tsubota2006, Zhao2013, Kabacogulu2017} have also
 been used to generate artificial repulsion forces, but these models also
 introduce stiffness. A further disadvantage of many contact algorithms
-is that they do not guarantees that particles remain contact-free.
+is that they do not guarantee that particles remain contact-free.
 
 We apply a modification of the contact-aware method of Lu et
 al.~\cite{Lu2017} that explicitly requires that particles remain
@@ -628,9 +629,9 @@ collided, are flagged.  Then, the space-time interference volume (STIV),
 defined as the volume in space-time (adjusted by the minimum separation
 distance) swept out by the trajectory of two bodies, is computed.  Next,
 equation~\eqref{eqn:stokesEL} is supplemented with an additional
-constraint that the STIV is negative (no contact).  By introducing a
+constraint that the STIV is positive (no contact).  By introducing a
 Lagrange multiplier, $\lambda$, for this inequality constraint, a body
-force the rigid body boundaries is introduced.   Solving for $\lambda$
+force on the rigid body boundaries is introduced.   Solving for $\lambda$
 requires solving a nonlinear complementary problem (NCP) which is solved
 iteratively using a sequence of linear complementary problem (LCP)
 solves, and is discussed in more detail in Section~\ref{sec:contact}.
@@ -1066,7 +1067,7 @@ over several orders of magnitude.
 \subsection{Contact Resolution}
 \label{sec:contact}
 \todo[inline]{dump of text}
-The NCP explicitly requires that the STIV is zero, meaning that there is
+The NCP explicitly requires that the STIV is greater than or equal to zero, meaning that there is
 no contact.  Therefore, unlike most repulsion-based methods, the
 contact-aware method guarantees that there is no collision.  However, it
 is possible that the sequence of LCPs is not able to converge to a
