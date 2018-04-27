@@ -1404,14 +1404,14 @@ breaks the reversibility of the simulation.}
 
 For planar flows, we can separate suspensions into dilute and
 concentrated regimes by comparing the number of bodies per unit area,
-$\nu$, to the average body length $\ell$. If $\nu < 1/\ell^2$, then
-we are in the dilute regime, otherwise we are in the concentrated regime
-(in 2D planar suspensions, unlike 3D suspensions, there is no concept of
-semi-dilute regimes).  We next consider the suspension of 75 rigid
-bodies in the Taylor-Green flow $\mathbf{u}^\infty = (\cos(x)\sin(y),
--\sin(x)\cos(y))$.  The number of bodies per unit area is $\nu
-\approx 3.1$ which is greater than $1/\ell^2=1.108$.  Therefore, this
-suspension is well within the concentrated regime. 
+$\nu$, to the average body length $\ell$. If $\nu < 1/\ell^2$, then we
+are in the dilute regime, otherwise we are in the concentrated regime
+(in 2D planar suspensions, unlike 3D suspensions, there is no
+semi-dilute regimes).  We consider the suspension of 75 rigid bodies in
+the Taylor-Green flow $\mathbf{u}^\infty = (\cos(x)\sin(y),
+-\sin(x)\cos(y))$.  The number of bodies per unit area is $\nu \approx
+3.1$ which is greater than $1/\ell^2=1.1$.  Therefore, this suspension
+is well within the concentrated regime. 
 
 We discretize the bodies with $N=32$ points and select the minimum
 separation distance $\delta=0.05h$. Snapshots of the simulation are
@@ -1426,7 +1426,11 @@ method~\cite{Lu2017}.  Because of the near-contact, smaller time step
 sizes must be taken.  We took time step sizes as small as $10^{-8}$, and
 the method was not able to successfully reach the time horizon.  This
 exact behavior has also been observed for vesicle
-suspensions~\cite{Quaife2014}.
+suspensions~\cite{Quaife2014}.  In the bottom right plot of
+Figure~\ref{fig:taylor_green}, we show the trajectory of one body for
+different time step sizes.  The dots denote locations where the contact
+algorithm is applied.  For this very complex flow, the trajectories are
+in good agreement with different time step sizes.
 
 \begin{figure}[!h]
   \begin{center}
@@ -1437,22 +1441,16 @@ suspensions~\cite{Quaife2014}.
       \includegraphics[width=6cm]{figures/taylor_green_tracks_new.pdf}
     \end{tabular}
   \end{center}
-  \caption{\label{fig:taylor_green} A dense suspension in an unbounded
-  Taylor-Green flow.  Bodies are discretized with 32 points and the
-  minimum separation is $\delta=0.05h$.  Snapshots of the simulation at
-  $t=0$, $t=15$ and $t=30$ are shown. The bottom right plot shows the
-  track of the center of the body shaded in magenta for different time
-  step sizes. Each line in that plot is marked where a repulsion force
-  is used to enforce the minimum separation. Here the number of bodies
-  per unit area $\nu$ is approximately 3.1. This is greater than
-  $1/\ell^2 = 1.108$, which puts the simulation well within the
-  concentrated regime.}
+  \caption{\label{fig:taylor_green} Snapshots of a dense suspension in
+  an unbounded Taylor-Green flow.  The number of bodies per unit area
+  $\nu$ is approximately 3.1. This is greater than $1/\ell^2 = 1.1$,
+  which puts the simulation well within the concentrated regime.  Bodies
+  are discretized with 32 points and the minimum separation is
+  $\delta=0.05h$.  The bottom right plot shows the trajectory of the
+  center of the colored body for different step sizes. Each line in that
+  plot is marked where a repulsion force is used to enforce the minimum
+  separation. }
 \end{figure}
-
-%Using the globally implicit discretization\eqref{eqn:SemiImplicit} our
-%solver remains stable with a time step size of $\Delta t=0.05$. However
-%if we use the locally implicit discretization \eqref{eqn:BlockImplicit}
-%the solver is unstable for $\Delta t$ as small as $10^{-8}$.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \FloatBarrier
