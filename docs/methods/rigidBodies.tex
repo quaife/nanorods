@@ -7,7 +7,8 @@
 
 \begin{document}
 
-\title{A stable, contact-free, time stepping method for rigid particle suspensions}
+\title{Stable and contact-free time stepping for dense rigid particle
+suspensions}
 
 \author[Lukas]{Lukas Bystricky}
 \author[Lukas]{Sachin Shanbhag}
@@ -21,7 +22,8 @@ Dynamics Institute, Florida State University, Tallahassee, FL, 32306.}
 We consider suspensions of rigid bodies in a two-dimensional viscous
 fluid. Even with high-fidelity numerical methods, unphysical contact
 between particles occurs because of spatial and temporal discretization
-errors.  We apply the method of Lu et al.~where overlap is avoided by
+errors.  We apply the method of Lu et al.~[{\em Journal of Computational
+Physics}, {\bf 347}:160--182, 2017] where overlap is avoided by
 imposing a minimum separation distance.  In its original form, the
 method discretizes interactions between different particles explicitly.
 Therefore, to avoid stiffness, a large minimum separation distance is
@@ -190,8 +192,8 @@ distance is $\mathcal{O}(1)$ arclength spacings.  In line with previous
 work of one of the authors~\cite{Quaife2014}, we discretize both inter-
 and intra-fiber interactions semi-implicitly
 \begin{align*}
-  \frac{\xx_i(t + \Delta t) -  \xx_i(t)}{\Delta t} = \uu_i(t+\Delta t) +
-    \sum_{j \neq i} \uu_j(t+\Delta t).
+  \frac{\xx_i(t + \Delta t) -  \xx_i(t)}{\Delta t} = 
+    \uu_{ii}(t+\Delta t) + \sum_{j \neq i} \uu_{ij}(t+\Delta t).
 \end{align*}
 With this modification, we are able to perform simulations with much
 smaller and more physical minimum separation distances without
@@ -252,7 +254,7 @@ Siegel2018}.  Finally, by using a double-layer potential formulation we
 do not require quadrature methods for logarithmic terms.  However, when
 computing the pressure and stress, this involves hyper-singular
 integrands, and we use a combination of singularity subtraction and
-odd-even integration~\cite{sid-sir1988, Quaife2014}.
+odd-even integration~\cite{sid-isr1988, Quaife2014}.
 
 We use a double-layer potential so that the resulting integral equation
 is second-kind.  Therefore, after discretizing with accurate quadrature,
