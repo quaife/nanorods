@@ -781,14 +781,14 @@ solves, and is discussed in more detail in Section~\ref{sec:contact}.
 %\end{comment}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-\todo[inline]{Bryan left off here in editing}
 \subsection{Computing the Pressure and Stress}
 To understand the rheological and statistical properties of suspensions
 of rigid bodies, it is necessary to compute the pressure, stress, and
 energy dissipation.  This expressions are standard~\cite{}
 \todo[inline]{Need a reference ... maybe Pozrikidis}, but we summarize
-them for completeness.  Computing these expressions numerically is
-described in Section~\ref{sec:spatial}.
+them for completeness.  A numerical method for Computing the pressure,
+stress, and energy dissipation is described in
+Section~\ref{sec:spatial}.
 
 %In the BIE setting, computing these quantities is a
 %post-processing step, and they are computed with high-order accuracy
@@ -861,6 +861,7 @@ boundary integrals~\cite{Pozrikidis1992}.
 		
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Numerical Methods\label{s:method}} 
+\todo[inline]{Bryan left off here in editing}
 
 To compute rheological statistics, simulations must be run to a long horizon. With the goal of performing such long-time simulations of dense
 suspensions, appropriate numerical methods must be employed.  To achieve
@@ -1242,11 +1243,11 @@ suspensions of two-dimensional rigid bodies in a viscous fluid.  The
 main parameters are the minimum separation distance $\delta$, the number
 of discretization points of each body, $N_p$, and each solid wall,
 $N_w$, and the initial time step size $\Delta t$. We perform convergence
-studies and investigate the effect loss of reversibility caused by the
-STIV algorithm.  To further demonstrate the consequence of STIV, we
-include plots of streamlines that cross whenever the collision detection
-algorithm is applied.  The particular experiments we perform are now
-summarized.
+studies and investigate the effect of the STIV algorithm on the
+reversibility of the flow.  To further demonstrate the consequence of
+STIV, we include plots of streamlines that cross whenever the collision
+detection algorithm is applied.  The particular experiments we perform
+are now summarized.
 \begin{itemize}
   \item {\bf Shear Flow}: We consider the standard problem of two
   identical rigid circles in the shear flow $\uu = (y,0)$ with the left
@@ -1283,28 +1284,38 @@ summarized.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{Shear Flow}
-We start by repeating an experiment~\cite{Lu2017} to compare our new
-globally implicit time integrator with the locally implicit version.
-The initial condition is two rigid circles arranged placed symmetrically
-about the origin, but with the left body slightly elevated.  In the
-shear flow ${\uu}(\xx) = (y,0)$, the bodies approach, come into near
-contact, and then separate.  Each rigid body is discretized with $N=32$
-points and the arc length spacing $h = 2\pi/32 \approx 0.196$.  
+We consider two rigid circular bodies in the shear flow ${\uu}(\xx) =
+(y,0)$.  One body is centered at the origin, while the other body is
+placed to the left and slightly elevated of the origin.  With this
+initial condition, the particles come together, interact, and then
+separate.  Both bodies are discretized with $N=32$ points and the arc
+length spacing $h = 2\pi/32 \approx 0.196$.  This experiment was also
+performed by Lu et al.~\cite{Lu2017}, and we compare the two time
+stepping methods.
 
-As a first experiment, we set $\Delta t = 0.4$ and $\delta = 0$.  Then,
-the new method globally implicit method successfully reaches the time
+We start by considering the time step size $\Delta t = 0.4$ and
+minimum separation distance $\delta = 0$ (no contact algorithm). 
+Our new globally implicit method successfully reaches the time
 horizon without requiring a repulsion force.  However, with the same
 $\Delta t$, the local explicit time stepping results in a collision
-between the bodies, so the collision algorithm is required to reach
-the time horizon.  Alternatively, the time step size can be reduced,
-but, as we will see, for sufficiently dense suspensions, even an
-excessively small time step size results in collisions.
-
-In Figure~\ref{fig:shear_experiment}, we investigate the effect of the
-minimum separation distance on the position of the rigid bodies.  As
-reported in \cite{Lu2017}, as the minimum separation  distance  $\delta$
-between bodies decreases the excess vertical displacement goes to zero. Once $\delta$ is large enough for the constraint to be active, the excess displacement looks to scale linearly with $\delta$.
-
+between the bodies, so the collision algorithm is required to reach the
+time horizon.  Alternatively, the time step size can be reduced, but, as
+we will see, for sufficiently dense suspensions, even an excessively
+small time step size results in collisions.  Next, in
+Figure~\ref{fig:shear_experiment}, we investigate the effect of the
+minimum separation distance on the position of the rigid bodies.  The
+top plot shows the trajectory of the left body as it approaches,
+interacts, and finally separates from the body centered at the origin.
+In this simulation, we use our new globally implicit time integrator,
+but the STIV contact algorithm is not applied.  The bottom left plot
+shows the trajectory of the particle when the contact algorithm is
+applied with varying levels of separation.  Notice that the trajectories
+are identical until near $x=0$ when the particle separation first falls
+below the minimum separation distance.  Finally, in the bottom right
+plot, the final vertical displacement body initially on the left is
+plotted.  These results are computed for the locally implicit time
+stepping method~\cite{Lu2017}, and the general trend of the trajectories
+are similar.
 \begin{figure}[!h]
   \begin{center}
     \includegraphics{figures/shear_setup1.pdf}
@@ -1314,59 +1325,29 @@ between bodies decreases the excess vertical displacement goes to zero. Once $\d
     \end{tabular}
   \end{center}
 \caption{\label{fig:shear_experiment} Shear experiment. Top: The initial
-setup and trajectories of the left body.   Bottom left: The trajectory
-of the left body for varying minimum separation distances.  Bottom
-right: The effect of the minimum separation distance $\delta$ on the
-final vertical displacement of the left body initially on the left.}
+setup and trajectory of the left body.   Bottom left: The left body's
+trajectory for varying minimum separation distances.  Notice how
+the trajectories are identical until shortly before $x=0$ when the
+contact algorithm is first applied.  Bottom right: The final vertical
+displacement of the left particle for varying minimum separation
+distances.}
 \end{figure}
 
 We next investigate the effect of the collision algorithm on the time
 reversibility of the flow. We reverse the shear direction at $t=10$ and
-measure the error between the body's center at $t=0$ and $t=20$.
-The results for various values of $\delta$ are in
-Table~\ref{tab:reverse}. We achieve identical first-order accuracy in
-the reversibility of the flow for $\delta = 0$ (no contact constraint)
-and $\delta=h$.  This is expected since we have applied a first-order
-Euler method, and the contact algorithm is not required for $\delta =
-h$.  For $\delta \geq 2h$, when the bodies first come into contact,
-they are deflected onto contact-free streamlines.  When the flow is
-reversed, the bodies again pass one another, but they are now on
-contact-free streamlines, so the initial deflection is not reversed.
-The error in the reversibility is the sum of the time stepping error and
-the error from deflecting the bodies in the contact algorithm.  This is
-demonstrated in Table~\ref{tab:reverse} since a smaller time step size
-does not decrease the error in reversibility, indicating that error
-caused by the contact algorithm dominates.
-
-This break in reversibility is further demonstrated by examining
-individual streamlines.  In Figure~\ref{fig:shear_cross}, we compute the
-streamline of the left body for three different initial placements.
-Before the bodies approach, the streamlines behave as expected---they
-do not cross.  However, the contact algorithm is applied to the blue
-streamline, and this has the effect of allowing the streamlines to
-cross.
-
-The effect of the contact force on the streamlines is shown in Figure
-\ref{fig:shear_cross}. Keeping the minimum separation fixed at $\delta =
-3h$, we vary the initial $y$ coordinate of the left body.  If the
-initial $y$ coordinate is high enough, no repulsion force is needed to
-prevent the bodies coming within $\delta$ of each other. Once a
-repulsion force is added however, the body jumps to a different
-streamline.
-
-\begin{figure}[!h]
-\begin{center}
-\includegraphics{figures/shear_streamlines_cross.pdf}
-\end{center}
-\caption{Repulsion forces causes streamlines to cross. Keeping the
-minimum separation fixed at $\delta=3h$, we vary the starting $y$
-location of the left body. The teal and red streamlines do not
-require a repulsion force to enforce the minimum separation between the
-bodies, but the blue streamline does. Once the contact algorithm is
-applied, the blue streamline crosses the other streamlines (middle
-inset). This crossing of the streamlines breaks the reversibility of the
-simulation.}\label{fig:shear_cross}
-\end{figure}
+measure the error between the body's center at $t=0$ and $t=20$.  We
+expect an error that is the sum of a first-order error caused by time
+stepping, and a fixed constant caused by the minimum separation
+distance.  The results for various values of $\delta$ are reported in
+Table~\ref{tab:reverse}. When the contact algorithm is not applied
+when $\delta=0$ and $\delta=h$, we observe the expected
+first-order convergence.  When $\delta \geq 2h$, the bodies are
+deflected onto contact-free streamlines when their proximity reaches the
+minimum separation distance.  After the flow is reversed, the bodies
+again pass one another, but they are now on contact-free streamlines, so
+the initial deflection is not reversed.  For these larger values of
+$\delta$, we see in Table~\ref{tab:reverse} that the error eventually
+plateaus as $\Delta t$ is decreased.
 
 \begin{table}[!h]
 \begin{center}
@@ -1395,6 +1376,29 @@ is active and force is needed to keep the bodies apart the error in
 the reversibility is dominated by the contact
 algorithm.}\label{tab:reverse}
 \end{table}
+
+The break in reversibility is further demonstrated by examining
+individual streamlines.  In Figure~\ref{fig:shear_cross}, we compute the
+streamline of the left body for three different initial placements.  We
+set $\delta=3h$ for all the streamlines.  With this threshold, only the
+bottom-most streamline falls below $\delta$.  Therefore, as the bodies approach, the streamlines behave as expected---they do
+not cross.  However, when the contact algorithm is applied to the blue
+streamline, the streamlines cross.
+
+\begin{figure}[!h]
+\begin{center}
+\includegraphics{figures/shear_streamlines_cross.pdf}
+\end{center}
+\caption{\label{fig:shear_cross} The contact algorithm causes
+streamlines to cross. Keeping the minimum separation fixed at
+$\delta=3h$, we vary the starting $y$ location of the left body. The
+teal and red streamlines do not require a repulsion force to enforce the
+minimum separation between the bodies, but the blue streamline does.
+Once the contact algorithm is applied, the blue streamline crosses the
+other streamlines (middle inset). This crossing of the streamlines
+breaks the reversibility of the simulation.}
+\end{figure}
+
 
 \subsection{Taylor-Green}
 
