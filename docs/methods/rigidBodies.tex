@@ -872,19 +872,38 @@ equations~\eqref{eqn:modelEquations} for long time horizons.  To achieve
 high-order accuracy, the spatial grid is resolved with spectral accuracy
 (Section~\ref{sec:spatial}), and stability is achieved by using implicit
 interactions in the time integrator and adaptive time stepping
-(Section~\ref{sec:temporal}). Each time step requires solving a block
-diagonal preconditioned dense linear system that is solved with GMRES
-and accelerated with the fast multipole method~\cite{Greenbaum1992}
-(Section~\ref{sec:fast}).  We also discuss a numerical methods for
-related to the collision algorithm (Section~\ref{sec:contact}), and computing the
-pressure and stress (Section~\ref{sec:pressure_stres}).
+(Section~\ref{sec:temporal}).  We are much more concerned with stability
+than accuracy, so we use low-order but stable time stepping schemes.
+Each time step requires solving a block diagonal preconditioned dense
+linear system that is solved with GMRES and accelerated with the fast
+multipole method~\cite{Greenbaum1992} (Section~\ref{sec:fast}).  We also
+discuss a numerical methods for related to the collision algorithm
+(Section~\ref{sec:contact}), and computing the pressure and stress
+(Section~\ref{sec:pressure_stres}).
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{Spatial Discretization}\label{sec:spatial}
+Let $\xx(\alpha)$, $\alpha \in [0,2\pi)$ be a parameterization of a
+rigid body $\gamma_i$.  We will use a collocation method that requires
+the discretization points $\xx_k$ at $k=1,\ldots,N_p$.  Spectral
+accuracy is achieved by representing functions defined on $\gamma_i$ as
+a Fourier series
+\begin{align}
+  f(\alpha) = f(\xx_i(\alpha)) = 
+    \sum_{k = 0}^{N_p-1} \hat{f}_k e^{ik\alpha}.
+\end{align}
+The rigid walls are identically discretized at $N_2$ points and
+functions defined on the rigid walls are also represented with a Fourier
+series.  We use the FFT to compute the Fourier coefficients, and all
+derivatives are computed with spectral accuracy using by differentiating
+in Fourier space.
 
-All the integral equations are discretized
-with a Nystr\"om  methods, and interactions between nearly touching
+With collocation points defined on the rigid walls and solid bodies, we
+are now able to discretize the layer potentials.
+\todo[inline]{Bryan left off here}
+
+and interactions between nearly touching
 interfaces is resolved with a near-singular integration scheme. By using
 these methods, spectral accuracy can be achieved for long time horizons
 with optimal complexity.
@@ -892,15 +911,7 @@ with optimal complexity.
 For bodies that are in near-contact the near singular
 integration scheme described in~\cite{Quaife2014, Ying2006} is used.
 
-Let $\xx(\alpha)$ be a parameterization of a rigid body or a solid
-wall which is represented with $N_p$ or $N_w$ Fourier modes. We can represent
-smooth functions defined on this curve using a
-Fourier series as
-\begin{align}
-  f(\alpha) = f(\xx(\alpha)) = \sum_{k \in \ZZ} \hat{f}_k e^{ik\alpha}.
-\end{align}
-The FFT is used to compute $\hat{f}$, and all derivatives are computed
-with this Fourier series so that spectral accuracy is achieved.
+
 
 The double-layer potentials in~\eqref{eqn:BIEformulation} are
 discretized with a Nystr\"om method.  Because the kernels are smooth,
