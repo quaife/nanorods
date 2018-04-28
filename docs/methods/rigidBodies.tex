@@ -46,6 +46,13 @@ resulting suspensions are computed.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Introduction\label{s:intro}}
+\todo[inline]{Possible Journals (impact factor in parenthesis) are
+International Journal for Numerical Methods in Fluids (1.6),
+International Journal for Numerical Methods in Engineering (2.1),
+Journal of Scientific Computing (1.9), BIT (1.7), Numerical Mathematics
+Theory Methods and Applications (0.6).  I like International journal for
+Numerical Methods in Fluids which is a Wiley journal}
+
 Dispersions of particulate rods or fibers are used in composite
 materials to tune mechanical, thermal, and electrical properties.
 Typically, these materials are processed in the melt or liquid
@@ -861,7 +868,7 @@ boundary integrals~\cite{Pozrikidis1992}.
 		
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Numerical Methods\label{s:method}} 
-\todo[inline]{Bryan left off here in editing}
+\todo[inline]{Bryan hasn't edited section 3}
 
 To compute rheological statistics, simulations must be run to a long horizon. With the goal of performing such long-time simulations of dense
 suspensions, appropriate numerical methods must be employed.  To achieve
@@ -1543,14 +1550,19 @@ in the experimental results.
 
 \FloatBarrier
 \subsection{Taylor-Couette}
-As a final example, we investigate rheological and statistical
+Motivated by applications in \todo[inline]{something simple that can be
+tied to slender body suspensions}, we investigate rheological and statistical
 properties of confined suspensions.  We consider suspensions of varying
 area fraction and body aspect ratio; specifically we will look at 5, 10,
 and 15 percent area fractions and elliptical bodies of aspect ratio,
-$\lambda$ of 1, 3, and 6. The bodies initial locations are random, but
-non-overlapping (Figure \ref{fig:couette_setup}).  The flow is driven by
-rotating the outer cylinder at a constant angular velocity while the
-inner cylinder remains fixed. 
+$\psi$ of 1, 3, and 6.  In all the examples, $nu M 1/ell^2$, so all the
+suspensions are in the dilute regime.  The bodies initial locations are
+random, but non-overlapping (Figure \ref{fig:couette_setup}).  The flow
+is driven by rotating the outer cylinder at a constant angular velocity
+while the inner cylinder remains fixed. 
+\todo[inline]{If using $\psi$ for the aspect ratio, then some of the
+figures need fixed.  Make sure to get them all.  Sachin seems to have
+used $\lambda$. I don't care what we use, but we have to use one thing}
 
 
 \begin{figure}[!h]
@@ -1562,42 +1574,41 @@ inner cylinder remains fixed.
 \includegraphics[width=3cm]{figures/couette_010_6_1.pdf}
 \end{tabular}
 \end{center}
-\caption{Four initial configurations for Taylor-Couette flow with varying volume fraction $\phi$ and
-aspect ratio $\psi$. From left to right: 1) $\phi=5\%$, $\lambda=
-3$, 2) $\phi=5\%$, $\psi=6$, 3) $\phi=10\%$, $\psi=3$, 4) $\phi=10\%$,
+\caption{Four initial configurations for Taylor-Couette flow with
+varying volume fraction $\phi$ and aspect ratio $\psi$. From left to
+right: 1) $\phi=5\%$, $\psi= 3$, 2) $\phi=5\%$, $\psi=6$, 3)
+$\phi=10\%$, $\psi=3$, 4) $\phi=10\%$,
 $\psi=6$.}\label{fig:couette_setup}
 \end{figure}
 
 Before measuring any rheological properties, we complete one full
 revolution of the outer wall so that the bodies are well-mixed and
-hopefully close to a statistical equilibrium.  We start by considering
-the alignment of the bodies. The alignment is particularly insightful
-since many industrial processes involve fibers suspended in a flow, and
-the alignment affects the material properties~\cite{larsoncf}.  One way
-to measure the alignment is using the order parameter, $S$ defined as,
+approaching a statistical equilibrium.  We start by considering the
+alignment of the bodies. The alignment is particularly insightful since
+many industrial processes involve fibers suspended in a flow, and the
+alignment affects the material properties~\cite{larsoncf}.  One way to
+measure the alignment is the order parameter, $S$ defined as,
 \begin{align*}
   S = \left\langle \frac{d \cos^2\tilde{\theta} - 1}{d - 1} \right\rangle,
 \end{align*}
 where $d$ is the dimension of the problem ($2$ in our case),
 $\tilde{\theta}$ is the deviation from the expected angle, and $\langle
-\cdot\rangle$ averages over all bodies.  If a body is
-centered at $(x,y)$ its expected angle is $\tan^{-1}(y/x) + \pi/2$. If
-$S=1$, all bodies are perfectly aligned with the shear direction,
-$S=0$ corresponds to a random suspension (no alignment), and $S=-1$
-means that all bodies are perfectly aligned perpendicular to the
-shear direction.  In our geometric setup, the average alignment of the
-bodies will be in the direction of the shear, which in this case is
+\cdot\rangle$ averages over all bodies.  If $S=1$, all bodies are
+perfectly aligned with the shear direction, $S=0$ corresponds to a
+random suspension (no alignment), and $S=-1$ means that all bodies are
+perfectly aligned perpendicular to the shear direction.  In our
+geometric setup, a body centered at $(x,y)$ has an expected angle of
+$\tilde{\theta}\tan^{-1}(y/x) + \pi/2$, and the average alignment of the
+bodies will be in the direction of the shear, which is also
 perpendicular to the radial direction.
 
 Since the initial condition is random, the initial configurations in
-Figure~\ref{fig:couette_setup} all have $S\approx 0$. As the outer
-cylinder rotates, we see in Figure \ref{fig:angles} that $S$ increases
-quite quickly. The area fractions $\phi$ that we have considered have
-only a minor effect on $S$; however, the aspect ratios have a large
-effect.  In particular, suspensions with slender bodies align much
-better with the flow. 
-
-
+Figure~\ref{fig:couette_setup} have an order parameter $S\approx 0$. As
+the outer cylinder rotates, we see in Figure~\ref{fig:angles} that $S$
+increases quite quickly. The area fractions $\phi$ we consider have a
+minor effect on $S$; however, the aspect ratio has a large effect.  In
+particular, suspensions with slender bodies align much better with the
+flow.
 
 \begin{figure}[!h]
 \begin{center}
@@ -1613,18 +1624,17 @@ flow with bodies that do not interact hydrodynamically. The red line
 shows $\lambda=3$, while the blue line shows $\lambda=6$. }
 \end{figure} 
 
-
-This matches what we would expect from a single body in an unbounded
-shear flow, where the body will align with the shear direction \emph{on
+This matches the known dynamics of a single body in an unbounded shear
+flow, where the body will align with the shear direction \emph{on
 average}. However, at any point in time it will in general not be
-aligned with the shear direction. Bodies with a higher aspect ratio
-rotate more quickly when then they are perpendicular to the shear
-direction and thus spend more time nearly aligned with the shear
-direction. We can compare our results to the time averaged order
-parameter for a single ellipse shaped fiber in an unbounded shear flow.
-Such a body in an unbounded shear flow with shear rate $\dot{\gamma}$
-rotates with period $\tau = \pi/(2| \dot{\gamma}|)(\lambda +
-\lambda^{-1})$~\cite{Jeffery1922} according to 
+aligned with the shear direction \todo[inline]{not sure what you mean
+here}. Bodies with a high aspect ratio rotate quickly when then they are
+perpendicular to the shear direction and spend more time nearly aligned
+with the shear direction. We compare our results to the time averaged
+order parameter of a single elliptical body in an unbounded shear flow.
+If the shear rate is $\dot{\gamma}$, the body rotates with period $\tau
+= \pi/(2| \dot{\gamma}|)(\lambda + \lambda^{-1})$~\cite{Jeffery1922}
+according to 
 \begin{align*}
   \varphi(t) ~=~ \tan^{-1}\left(\frac{1}{\lambda}\tan\left(
     \frac{\lambda \dot{\gamma}t}{\lambda^2 + 1}\right)\right).
@@ -1634,13 +1644,13 @@ The time average order parameter is then,
   \langle S\rangle ~=~ \frac{1}{\tau}\int_0^\tau\left( 
     2\cos^2(\varphi(t)) - 1\right)~\text{d}t ~=~ \frac{\lambda -1}{\lambda+1}.
 \end{align*}
-Independent of shear rate, for $\lambda= 3$ the theoretical $\langle S\rangle$ is 1/2 and for $\lambda=6$ it is  5/7$\approx
-0.7143$. Table
-\ref{tab:order} shows the time and space averaged order parameter for
-the Couette apparatus.We see that in all
-cases our computed time averaged order parameter is higher than the
-theoretical single fiber case. This could be due to the hydrodynamic
-interactions between the bodies, or the effect of the solid walls.
+Independent of shear rate, for $\lambda= 3$ the theoretical $\langle
+S\rangle$ is 1/2 and for $\lambda=6$ it is  5/7. Table \ref{tab:order}
+shows the time and space averaged order parameter for the Couette
+apparatus.We see that in all cases our computed time averaged order
+parameter is higher than the theoretical single fiber case. This could
+be due to the hydrodynamic interactions between the bodies, or the
+effect of the solid walls.
 
 In the absence of solid walls and hydrodynamic interactions between
 bodies, a suspension will align and disalign. The period of the order
@@ -1658,11 +1668,11 @@ from disaligning completely.
 area fraction, $\phi$ & aspect ratio, $\lambda$ & computed $ \langle S \rangle$ & theoretical
 $\langle S \rangle$ (single fiber)\\
 \hline
-5\% &3& 0.5243 & 0.5\\
-10\% &3 & 0.6043 & 0.5\\
-15\% & 3 & 0.6452 & 0.5\\
-5\% & 6 & 0.9115 & 0.7143\\
-10\% & 6 & 0.8884 & 0.7143
+5\%  & 3 & 0.52 & 0.50 \\
+10\% & 3 & 0.60 & 0.50 \\
+15\% & 3 & 0.65 & 0.50 \\
+5\%  & 6 & 0.91 & 0.71 \\
+10\% & 6 & 0.89 & 0.71
 \end{tabular}
 \end{center}
 \caption{The time averaged order parameter during the second revolution of the Couette apparatus. The higher aspect ratio fibers align better on average. The alignment is in all cases higher than predicted for a single Jeffery orbit.
@@ -1676,22 +1686,24 @@ $\dot{\gamma}$,
 \begin{align*}
   \sigma_{xy} = \mu\dot{\gamma}.
 \end{align*}
-Adding bodies will increase the bulk shear stress of a suspension.  The
+Adding bodies increases the bulk shear stress of a suspension.  The
 proportionality constant relating the increased $\sigma_{xy}$ to the
-shear rate is the {\em apparent viscosity}. The ratio between the
+shear rate is the {\em apparent viscosity}, and the ratio between the
 apparent viscosity and the bulk viscosity is the effective viscosity
-$\mu_{\text{eff}}$.  Experimentally, one way to determine the bulk shear
-stress is by measuring the torque on the inner cylinder~\cite{Koos2012}.
-Numerically, this is just the strength of the rotlet centered in the
+$\mu_{\text{eff}}$.  Experimentally, the bulk shear stress is often
+computed by measuring the torque on the inner cylinder~\cite{Koos2012}.
+Numerically, this is simply the strength of the rotlet centered in the
 inner cylinder.  By computing the ratio of the torque on the inner
-cylinder with bodies to the torque without bodies we can determine the
-effective viscosity of a suspension.  As can be seen in
-Figure~\ref{fig:torque}, the effective viscosity increases with $\phi$,
-but is generally lower for bodies with $\psi=6$. This is because higher
-aspect ratio bodies align themselves better, and thus contribute less to
-the bulk shear stress. The spikes in \ref{fig:torque} occur when a
-repulsion force is added to the system. Similar spikes were observed
-numerically in~\cite{Lu2017}.
+cylinder with bodies to the torque without bodies we determine the
+effective viscosity of a suspension.  Figure~\ref{fig:torque} shows the
+effective viscosity increases with $\phi$, but is generally lower for
+bodies with aspect ratio $\psi=6$. This is because higher aspect ratio
+bodies align themselves better, and thus contribute less to the bulk
+shear stress. The spikes in \ref{fig:torque} occur when a repulsion
+force is added to the system. Similar spikes were observed numerically
+in~\cite{Lu2017}.
+\todo[inline]{need to say something about the smoothing you've done in
+the figure.  This isn't discussed anywhere in the body}
 \begin{figure}[!h]
 \begin{center}
 \includegraphics{figures/couette_torque_smooth_005.pdf}\\
@@ -1703,15 +1715,19 @@ fractions and body aspect ratios. The inner
 cylinder is fixed, while the outer one rotates at a constant angular velocity. The transparent lines represent the raw data, while the solid lines have been smoothed using a multiscale local polynomial transform. }\label{fig:torque}
 \end{figure} 
 
-Instead of an instantaneous effective viscosity, experimentally we are often most interested in the time averaged effective viscosity of a suspension. By averaging the instantaneous effective viscosity over the second revolution of the outer cylinder, we can determine the time averaged viscosity for the suspension. These values are given in Table \ref{tab:viscosity}.
+Finally, instead of computing the instantaneous effective viscosity,
+experimenters are interested in the time averaged effective viscosity of
+a suspension. In Table~\ref{tab:viscosity}, we report the average
+instantaneous effective viscosity over the second revolution of the
+outer cylinder
 \begin{table}[!h]
 \begin{center}
 \begin{tabular}{c| c | c |  c}
-$\lambda$ & 5\% area fraction  & 10\% area fraction  & 15\% area fraction\\
+$\psi$ & 5\% area fraction  & 10\% area fraction  & 15\% area fraction\\
 \hline
-1 & 1.1235 & 1.2180 & 1.4182 \\
-3 & 1.1036& 1.2255 &  1.3561\\
-6 & 1.0813 & 1.1772 & 
+1 & 1.12 & 1.22 & 1.42 \\
+3 & 1.10 & 1.23 & 1.36 \\
+6 & 1.08 & 1.18 & 
 \end{tabular}
 \end{center}
 \caption{Time averaged effective viscosity for various area fractions
@@ -1734,11 +1750,17 @@ increase the viscosity less. }\label{tab:viscosity}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \FloatBarrier
 \section{Conclusions\label{s:conclusions}}
-We have demonstrated a stable method time stepping routine that is
-capable of simulating concentrated suspensions of rigid bodies without
-introducing stiffness. Repulsion forces between bodies are added that
-are guaranteed to be sufficiently large enough to avoid overlap between
-bodies. Using this new time stepper we are able to simulate concentrated suspensions while maintaining a reasonably large time step. This allows us to compute rheological parameters such as the orientation of rigid fibers in a shear flow and the effective shear viscosity of a suspension. 
+\todo[inline]{The conclusions still need some work ... running out of
+steam}
+We have developed a stable time stepping method that is capable of
+simulating dense suspensions of rigid bodies without introducing
+stiffness or requiring a large minimum separation distance.  Repulsion
+forces between bodies are added that are guaranteed to be sufficiently
+large enough to avoid overlap between bodies. Using this new time
+stepper we are able to simulate concentrated suspensions while
+maintaining a reasonably large time step. This allows us to compute
+rheological parameters such as the orientation of rigid fibers in a
+shear flow and the effective shear viscosity of a suspension. 
 
 There are several outstanding issues with this method. Perhaps the most
 obvious is that as described, this method is only applicable to
@@ -1746,17 +1768,16 @@ two-dimensional problems. That said, the mathematical formulation is the
 same for three-dimensional problems. Though numerically more
 complicated, three-dimensional boundary integral formulations for
 suspensions have been developed, see for
-example~\cite{cor-gre-rac-vee2017}.  The
-computation of the STIV in three-dimensions has also been
-developed~\cite{Harmon2011} but it has not yet been applied to
-suspensions.
+example~\cite{cor-gre-rac-vee2017}.  The computation of the STIV in
+three-dimensions has also been developed~\cite{Harmon2011} but it has
+not yet been applied to suspensions.
 %and applied to vesicle
 %simulations~\cite{Zorin2017}.
 
 Mathematically, using STIVs as the collision metric, there is to the
 author's knowledge no theory which guarantees that the LCPs that are
 needed to compute the contact force have a unique solution. This can on
-occasion lead to the a non-converging sequence of LCPs. These situations
+occasion lead to a non-converging sequence of LCPs. These situations
 appear to be common in suspensions involving solid walls. We have used
 adaptive time-stepping as a way to mitigate this issue, however this is
 entirely heuristic and does not always work. In \cite{Yan2017} a similar
@@ -1765,7 +1786,8 @@ STIVs as the collision metric, a signed distance function is used. This
 method, while always convergent, is limited in the sense that it does
 not capture a collision if one body passes completely through another.
 STIVs on the other hand are designed to catch all contact the occurs
-between bodies in a single time step and may be non-zero even if the final state is contact-free. 
+between bodies in a single time step and may be non-zero even if the
+final state is contact-free. 
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
