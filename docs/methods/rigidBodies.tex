@@ -791,8 +791,7 @@ solves, and is discussed in more detail in Section~\ref{sec:contact}.
 \subsection{Computing the Pressure and Stress}
 To understand the rheological and statistical properties of suspensions
 of rigid bodies, it is necessary to compute the pressure, stress, and
-energy dissipation.  This expressions are standard~\cite{}
-\todo[inline]{Need a reference ... maybe Pozrikidis}, but we summarize
+energy dissipation.  This expressions are standard~\cite{Power1993}, but we summarize
 them for completeness.  A numerical method for Computing the pressure,
 stress, and energy dissipation is described in
 Section~\ref{sec:spatial}.
@@ -804,25 +803,21 @@ The pressure of the two-dimensional double-layer potential
 is~cite{Power1993}
 \begin{align*}
   p(\xx) = \frac{1}{\pi}\int_{\partial\Omega}\frac{1}{\rho^2}\left(
-\mathbf{I} - 2\frac{\rr \otimes \rr)\nn}{\rho^2}\right)\cdot\eeta~\text{d}s,
+\mathbf{I} - 2\frac{\rr \otimes \rr}{\rho^2}\right)\nn\cdot\eeta~\text{d}s,
 \qquad\xx\in\Omega.
 \end{align*}
-\todo[inline]{There's definitely something wrong with this expression.
-It doesn't make sense as is}
 The pressure of the Stokeslet and rotlet contributions are easily
 computed, and the pressure of the completed double-layer
 potential~\eqref{eqn:completed_DLP} is
 \begin{align}
   \label{eqn:pressure} 
   p(\xx) = \frac{1}{\pi}\int_{\partial\Omega}\frac{1}{\rho^2}\left(
-    \mathbf{I} - 2(\rr \otimes \rr)\nn\right)\cdot\eeta~\text{d}s +
+    \mathbf{I} - 2\frac{\rr \otimes \rr}{\rho^2}\right)\nn\cdot\eeta~\text{d}s +
   \sum_{i=1}^{M_w}
   \frac{\FF_i^\Gamma\cdot(\xx-\cc_i^\Gamma)}{2\pi|\xx-\cc_i^{\Gamma}|^2}
   + \sum_{i=1}^{M_p}
     \frac{\FF_i^\gamma\cdot(\xx-\cc_i^\gamma)}{2\pi|\xx-\cc_i^\gamma|^2}.
 \end{align}
-\todo[inline]{There's definitely something wrong with this expression.
-It doesn't make sense as is}
 
 Starting with the pressure~\eqref{eqn:pressure}, we compute the stress
 tensor
@@ -1550,19 +1545,15 @@ in the experimental results.
 
 \FloatBarrier
 \subsection{Taylor-Couette}
-Motivated by applications in \todo[inline]{something simple that can be
-tied to slender body suspensions}, we investigate rheological and statistical
+In many industrial applications, for example pulp and paper manufacturing, suspensions of rigid ellongated fibers are encountered. Motivated by these suspensions we investigate rheological and statistical
 properties of confined suspensions.  We consider suspensions of varying
 area fraction and body aspect ratio; specifically we will look at 5, 10,
 and 15 percent area fractions and elliptical bodies of aspect ratio,
-$\psi$ of 1, 3, and 6.  In all the examples, $nu M 1/ell^2$, so all the
+$\lambda$ of 1, 3, and 6.  In all the examples, $nu M 1/ell^2$, so all the
 suspensions are in the dilute regime.  The bodies initial locations are
 random, but non-overlapping (Figure \ref{fig:couette_setup}).  The flow
 is driven by rotating the outer cylinder at a constant angular velocity
 while the inner cylinder remains fixed. 
-\todo[inline]{If using $\psi$ for the aspect ratio, then some of the
-figures need fixed.  Make sure to get them all.  Sachin seems to have
-used $\lambda$. I don't care what we use, but we have to use one thing}
 
 
 \begin{figure}[!h]
@@ -1575,10 +1566,10 @@ used $\lambda$. I don't care what we use, but we have to use one thing}
 \end{tabular}
 \end{center}
 \caption{Four initial configurations for Taylor-Couette flow with
-varying volume fraction $\phi$ and aspect ratio $\psi$. From left to
-right: 1) $\phi=5\%$, $\psi= 3$, 2) $\phi=5\%$, $\psi=6$, 3)
-$\phi=10\%$, $\psi=3$, 4) $\phi=10\%$,
-$\psi=6$.}\label{fig:couette_setup}
+varying volume fraction $\phi$ and aspect ratio $\lambda$. From left to
+right: 1) $\phi=5\%$, $\lambda= 3$, 2) $\phi=5\%$, $\lambda=6$, 3)
+$\phi=10\%$, $\lambda=3$, 4) $\phi=10\%$,
+$\lambda=6$.}\label{fig:couette_setup}
 \end{figure}
 
 Before measuring any rheological properties, we complete one full
@@ -1625,10 +1616,8 @@ shows $\lambda=3$, while the blue line shows $\lambda=6$. }
 \end{figure} 
 
 This matches the known dynamics of a single body in an unbounded shear
-flow, where the body will align with the shear direction \emph{on
-average}. However, at any point in time it will in general not be
-aligned with the shear direction \todo[inline]{not sure what you mean
-here}. Bodies with a high aspect ratio rotate quickly when then they are
+flow, where the body will align with the shear direction on
+average. Bodies with a high aspect ratio rotate quickly when then they are
 perpendicular to the shear direction and spend more time nearly aligned
 with the shear direction. We compare our results to the time averaged
 order parameter of a single elliptical body in an unbounded shear flow.
@@ -1697,13 +1686,11 @@ inner cylinder.  By computing the ratio of the torque on the inner
 cylinder with bodies to the torque without bodies we determine the
 effective viscosity of a suspension.  Figure~\ref{fig:torque} shows the
 effective viscosity increases with $\phi$, but is generally lower for
-bodies with aspect ratio $\psi=6$. This is because higher aspect ratio
+bodies with aspect ratio $\lambda=6$. This is because higher aspect ratio
 bodies align themselves better, and thus contribute less to the bulk
 shear stress. The spikes in \ref{fig:torque} occur when a repulsion
 force is added to the system. Similar spikes were observed numerically
-in~\cite{Lu2017}.
-\todo[inline]{need to say something about the smoothing you've done in
-the figure.  This isn't discussed anywhere in the body}
+in~\cite{Lu2017}. To make the results more clear we have used a multiscale local polynomial transform to smooth the data shown in Figure \ref{fig:torque}.
 \begin{figure}[!h]
 \begin{center}
 \includegraphics{figures/couette_torque_smooth_005.pdf}\\
@@ -1723,7 +1710,7 @@ outer cylinder
 \begin{table}[!h]
 \begin{center}
 \begin{tabular}{c| c | c |  c}
-$\psi$ & 5\% area fraction  & 10\% area fraction  & 15\% area fraction\\
+$\lambda$ & 5\% area fraction  & 10\% area fraction  & 15\% area fraction\\
 \hline
 1 & 1.12 & 1.22 & 1.42 \\
 3 & 1.10 & 1.23 & 1.36 \\
