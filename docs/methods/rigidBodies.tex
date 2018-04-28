@@ -1284,6 +1284,7 @@ are now summarized.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{Shear Flow}
+\label{sec:shear}
 We consider two rigid circular bodies in the shear flow ${\uu}(\xx) =
 (y,0)$.  One body is centered at the origin, while the other body is
 placed to the left and slightly elevated of the origin.  With this
@@ -1459,54 +1460,41 @@ A recent experiment considers a dense monolayer packing of soft
 deformable bodies~\cite{MacMinn2015}.  Motivated by this experiment, we
 perform numerical simulations of rigid bodies in a similar device.  We
 pack rigid bodies in a Couette device, but with a very small inner
-boundary.  The boundary conditions are either an inflow of rate $Q$ at
-the inner boundary with an appropriate outflow at the outer cylinder, or
-an outflow of rate $-Q$ at the inner cylinder with an appropriate inflow
-at the inner cylinder.  This boundary condition corresponds to injection
-and suction of fluid from the center of the experimental microfluidic
-device.
-
-We assume that the flow at the outer boundary is uniform, and this is
-not valid if there are bodies close to this body.  Therefore, we place a
+boundary.  The boundary conditions are an inflow or outflow of rate $Q$
+at the inner boundary with an outflow or inflow at the outer cylinder.
+This boundary condition corresponds to injection and suction of fluid
+from the center of the experimental microfluidic device.  In the
+experimental setting, the soft bodies are able to reach the outer
+boundary, and the resulting boundary condition would not be uniform at
+the outer wall.  So that we can apply the much simpler uniform inflow or
+outflow at the outer boundary, we force the rigid bodies to remain
+well-separated from the outer wall.  We accomplish this by placing a
 ring of {\em fixed} rigid bodies halfway between the inner and outer
-cylinders.  The spacing between these fixed bodies is sufficiently small
-that the mobile bodies are not able to pass.  Since the outer boundary is
-well-separated from these fixed bodies, the flow can be approximated
-with a uniform flow.  A schematic of the geometry is in
-Figure~\ref{fig:radial}
+cylinders (Figure~\ref{fig:radial}).  The spacing between these fixed
+bodies is sufficiently small that the mobile bodies are not able to
+pass.  Since the outer boundary is well-separated from the fixed bodies,
+the outer boundary condition is justifiably approximated with a uniform
+flow.
 
 \begin{figure}[h!]
 \begin{center}
 \includegraphics{figures/injection_plate_setup.pdf}
 \end{center}
-\caption{Experimental model setup to simulate the experiment described
-in \cite{MacMinn2015}. Fixed solid bodies are shaded in
-black.}\label{fig:radial}
+\caption{\label{fig:radial} The geometry used in our numerical
+experiment that is motivated by the experimental setup of MacMinn et
+al.~\cite{MacMinn2015}.  The fixed solid bodies are shaded in black.}
 \end{figure}
 
-We start by looking at the effect that the contact algorithm has on the
-reversibility of the flow.  Unlike the shear example, the contacts are
-much more complex, so reversibility is much more challenging to
-maintain.  We again reverse the flow at time $T$ and run the simulation
-until time $2T$.  In Figure~\ref{fig:macminn}, we show several snapshots
-of the simulation.  In the bottom right plot, we superimpose the initial
-and final configurations, and we observe only a minor violation of
-reversibility, and this is focused at points that were initially near
-the fixed bodies---the contact algorithm is applied to these bodies
-most frequently.
-
-%We perform a related computation. We consider two concentric circles; prescribing an inflow velocity $Q$ on the
-%center disk and a corresponding outflow velocity on the outer disk, such that
-%$\int_{\partial\Omega} \uu\cdot\nn~\text{d}\Omega = 0$. With this setup however, we do not want the particles
-%to come into contact with the outer wall because this
-%complicates the outflow profile. We instead place a ring of
-%\textit{fixed} particles between the inner and outer disks. The
-%spacing between the particles in the ring is sufficiently small that mobile
-%particles cannot pass between two fixed particles. Our monolayer of rigid particles
-%is confined between the inner disk and this ring of fixed particles.
-%Assuming the outer wall is far enough  from the ring of fixed particles the
-%velocity profile on the outer wall will be approximately uniform. Figure \ref{fig:radial}
-%shows this setup.
+We start by examining the effect of the contact algorithm on the
+reversibility of the flow.  We again reverse the flow at time $T$ and
+run the simulation until time $2T$. The rigid bodies are in contact for
+much longer than the shear example in Section~\ref{sec:shear}, so
+maintaining reversibility is much more challenging.
+Figure~\ref{fig:macminn} shows several snapshots of the simulation, and
+the bottom right plot superimposes the initial and final configurations.
+We observe only a minor violation of reversibility, and it is largest
+for bodies that were initially near the fixed bodies---the contact
+algorithm is applied to these bodies most frequently.
 
 \begin{figure}[h!]
   \begin{tabular}{c c c}
@@ -1517,21 +1505,22 @@ most frequently.
     \includegraphics{figures/injection_plate8.pdf}&
     \includegraphics{figures/injection_plate8_overlay.pdf}\\
   \end{tabular}
-  \caption{\label{fig:macminn} Snapshots of simulation of the experiment
-  setup described in~\cite{MacMinn2015} with rigid bodies. Fluid is
-  injected at a constant rate starting at $t=0$. At $t=4$ the flow
-  direction is reversed. Fixed bodies are colored in red, while
+  \caption{\label{fig:macminn} Snapshots of a rigid body suspension
+  motivated by an experiment for deformable bodies~\cite{MacMinn2015}.
+  Fluid is injected at a constant rate starting at $t=0$. At $t=4$ the
+  flow direction is reversed. Fixed bodies are colored in red, while
   bodies subject to a repulsion force are colored in green. The initial
-  configuration has been superimposed on the final configuration at $t=8$
-  to show the effect of the repulsion forces on reversibility.}
+  configuration has been superimposed on the final configuration at
+  $t=8$ to show the effect of the repulsion forces on reversibility.}
 \end{figure}
 
-In~\cite{MacMinn2015}, the strain shear rate is also measured to better
-understand the flow.  We numerically compute the shear strain rate for
-the simulation in Figure~\ref{fig:macminn}.  A qualitative comparison of
-the numerical and experimental results are in good agreement.  In
-particular, the petal-like patterns in Figure~\ref{fig:macminn_stress}
-was also observed in the experimental results.
+In~\cite{MacMinn2015}, the shear strain rate is measured to better
+characterize the flow.  In Figure~\ref{fig:macminn_stress}, we compute
+and plot the shear strain rate for the simulation in
+Figure~\ref{fig:macminn}.  A qualitative comparison of the numerical and
+experimental results are in good agreement.  In particular, the
+petal-like patterns in Figure~\ref{fig:macminn_stress} are also observed
+in the experimental results.
 
 \begin{figure}[h!]
   \begin{tabular}{c c c}
@@ -1545,10 +1534,11 @@ was also observed in the experimental results.
   \begin{center}
     \includegraphics{figures/colorbar.pdf}
   \end{center}
-  \caption{\label{fig:macminn_stress} Snapshots of
-  $\text{log}_{10}(|\sigma_{xy}|)$ for the simulation of the experiment
-  setup described in~\cite{MacMinn2015} with rigid bodies. We can see
-  the formation of the petal-like patterns described in literature.}
+  \caption{\label{fig:macminn_stress} The shear strain rate
+  $\log_{10}(|\sigma_{xy}|)$  of the suspension in
+  Figure~\ref{fig:macminn}.  The formation of the petal-like patterns is
+  also observed for the suspension of deformable
+  bodies~\cite{MacMinn2015}.}
 \end{figure}
 
 \FloatBarrier
