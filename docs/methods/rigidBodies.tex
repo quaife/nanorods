@@ -870,21 +870,24 @@ boundary integrals~\cite{Pozrikidis1992}.
 \section{Numerical Methods\label{s:method}} 
 \todo[inline]{Bryan hasn't edited section 3}
 
-To compute rheological statistics, simulations must be run to a long horizon. With the goal of performing such long-time simulations of dense
-suspensions, appropriate numerical methods must be employed.  To achieve
+We are ultimately interested in studying statistical and rheological
+properties of the fiber suspensions.  Therefore, we develop stable
+numerical methods that solve the governing
+equations~\eqref{eqn:modelEquations} for long time horizons.  To achieve
 high-order accuracy, the spatial grid is resolved with spectral accuracy
 (Section~\ref{sec:spatial}), and stability is achieved by using implicit
-interactions in the time integrator and adaptive time stepping (Section~\ref{sec:temporal}). The computational cost is managed
-with the fast multipole method
-\cite{Greenbaum1992} and a
-block-diagonal preconditioner.
+interactions in the time integrator and adaptive time stepping
+(Section~\ref{sec:temporal}). Each time step requires solving a block
+diagonal preconditioned dense linear system that is solved with GMRES
+and accelerated with the fast multipole method~\cite{Greenbaum1992}
+(Section~\ref{sec:fast}).  We also discuss a numerical methods for
+related to the collision algorithm (Section~\ref{sec:contact}), and computing the
+pressure and stress (Section~\ref{sec:pressure_stres}).
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{Spatial Discretization}\label{sec:spatial}
 
-\todo[inline]{Need to say a few words about computing pressure and
-stress towards end of this section}
 All the integral equations are discretized
 with a Nystr\"om  methods, and interactions between nearly touching
 interfaces is resolved with a near-singular integration scheme. By using
@@ -1078,6 +1081,7 @@ sufficiently small and the suspension is sufficiently dense,
 then~\eqref{eqn:BlockImplicit} is unstable for time step sizes that vary
 over several orders of magnitude.
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{Contact Resolution}
 \label{sec:contact}
 \todo[inline]{dump of text}
@@ -1143,8 +1147,6 @@ region (on the order of an arclength term), the stiffness introduced by
 interactions between different bodies is avoided. 
 
 
-\subsection{Balancing Repulsion Forces}
-
 %\begin{comment}
 %The addition of a forcing term to the right hand side of the Stokes equations
 %would normally lead to a volume integral. However, in this case since
@@ -1180,7 +1182,6 @@ cluster. Whenever a force on a body is scaled the torque on that
 body is scaled by the same amount.
 
 \subsection{Temporal Adaptivity}
-
 The NCP solver is quite sensitive to the initial configuration.
 Occasionally it may take an unfeasible amount of LCP iterations to
 converge. To avoid this we adopt a heuristic adaptive time stepping
@@ -1194,6 +1195,7 @@ by a factor of $1.5$.
 \begin{comment}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{Fast Summation and Preconditioning}
+\label{sec:fast}
 \todo[inline]{Do we describe how the preconditioner is updated by simply
 rotating?}
 After discretizing~\eqref{eqn:bieformulation1}
@@ -1242,6 +1244,15 @@ $L_k \gets \int_{\Gamma_k}
 	}
 \end{algorithm}
 \end{comment}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Computing the Pressure and Stress}
+\label{sec:pressure_stress}
+\todo[inline]{Need to say a few words about computing pressure and
+stress towards end of this section}
+
+
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Results\label{s:results}} 
