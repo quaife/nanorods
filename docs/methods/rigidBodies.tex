@@ -46,13 +46,12 @@ resulting suspensions are computed.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Introduction\label{s:intro}}
-\todo[inline]{Possible Journals (impact factor in parenthesis) are
-International Journal for Numerical Methods in Fluids (1.6),
-International Journal for Numerical Methods in Engineering (2.1),
-Journal of Scientific Computing (1.9), BIT (1.7), Numerical Mathematics
-Theory Methods and Applications (0.6).  I like International journal for
-Numerical Methods in Fluids which is a Wiley journal}
-
+%\todo[inline]{Possible Journals (impact factor in parenthesis) are
+%International Journal for Numerical Methods in Fluids (1.6),
+%International Journal for Numerical Methods in Engineering (2.1),
+%Journal of Scientific Computing (1.9), BIT (1.7), Numerical Mathematics
+%Theory Methods and Applications (0.6).  I like International journal for
+%Numerical Methods in Fluids which is a Wiley journal}
 Dispersions of particulate rods or fibers are used in composite
 materials to tune mechanical, thermal, and electrical properties.
 Typically, these materials are processed in the melt or liquid
@@ -437,7 +436,7 @@ method in Section~\ref{sec:repulsion}.
 There exist many numerical methods for
 solving~\eqref{eqn:modelEquations} such as level set
 methods~\cite{Dou2007}, immersed boundary methods~\cite{Mittal2005},
-disipative particle dynamics~\cite{Pivkin2010}, smoothed particle
+dissipative particle dynamics~\cite{Pivkin2010}, smoothed particle
 hydrodynamics~\cite{Polfer2016}, and lattice Boltzmann
 methods~\cite{Ladd1994a, Ladd1994b}. However, because the fluid
 equations are linear a boundary integral equation (BIE)
@@ -614,9 +613,9 @@ is that they do not guarantee that particles remain contact-free.
 
 We apply a modification of the contact-aware method of Lu et
 al.~\cite{Lu2017} that explicitly requires that particles remain
-contact-free. We only summarize the method, but a
-in-depth description is in~\cite{Lu2017}.  The method starts with the
-Stokes equations in variational form,
+contact-free. We only summarize the method, but a in-depth description
+is in~\cite{Lu2017}.  The method starts with the Stokes equations in
+variational form,
 \begin{align}
   \min \int_{\Omega} \nabla\uu:\nabla\uu~\text{d}\Omega,
   \quad\text{ such that }\quad \nabla\cdot\uu = 0, 
@@ -966,25 +965,25 @@ controlling these costs are discussed in Section~\ref{sec:fast}.
 The contact resolution method starts by advancing the force- and
 torque-free bodies from time $t$ to $t + \Delta t$ with
 equation~\eqref{eqn:centersAngles}.  Then, equation~\eqref{eqn:stokesEL}
-needs to be solved with the inequality constraint that the STIV is greater
-than zero.  The definition of the STIV includes a parameter that guarantees
-that not only do bodies intersect, but they maintain minimum separation
-distance. Following~\cite{Lu2017}, we use a Lagrange multiplier,
-$\lambda$, to satisfy the non-positive STIV inequality constraint.  The
-resulting equations are  the incompressible Stokes equations with body
-forces and torques that depend on the gradient of the STIV, and the
-inequality constraint that the STIV is greater than or equal to zero.  Therefore, the
-governing equations are similar to~\eqref{eqn:BIEformulation}, except
-that the force- and torque-free conditions have been changed.
-\todo{The STIV must be greater than or equal to 0 (in fact it is identically 0 for non-intersecting bodies)}
+needs to be solved with the inequality constraint that the STIV is
+greater than zero.  The definition of the STIV includes a parameter that
+guarantees that not only do bodies intersect, but they maintain minimum
+separation distance. Following~\cite{Lu2017}, we use a Lagrange
+multiplier, $\lambda$, to satisfy the non-negative STIV inequality
+constraint (a negative STIV indicates contact).  The resulting equations
+are  the incompressible Stokes equations with body forces and torques
+that depend on the gradient of the STIV, and the inequality constraint
+that the STIV is less than or equal to zero.  Therefore, the governing
+equations are similar to~\eqref{eqn:BIEformulation}, except that the
+force- and torque-free conditions have been changed.
 
-The resulting equation is a non-linear complementary problem (NCP)
-To solve the NCP, the problem is linearized as a sequence of linear
-complementary problems (LCPs) that are solved until the STIV is
-greater than or equal to zero.  For small minimum separation distances, it is possible
-that the LCP converges very slowly, or not at all, to the solution of
-the NCP.  In Section~\ref{sec:temporal}, we describe two methods to
-avoid this slow convergence.
+The resulting equation is a non-linear complementary problem (NCP) To
+solve the NCP, the problem is linearized as a sequence of linear
+complementary problems (LCPs) that are solved until the STIV is less
+than or equal to zero.  For small minimum separation distances, it is
+possible that the LCP converges very slowly, or not at all, to the
+solution of the NCP.  In Section~\ref{sec:temporal}, we describe two
+methods to avoid this slow convergence.
 
 \begin{comment}
 Next, collision detection is
@@ -1032,14 +1031,12 @@ configuration.
 
 If only two bodies are in contact, the symmetry of the STIV ensures that
 the net force is zero.   However, if more than two bodies are in
-contact, then the forces returned by the STIV are not
-guaranteed to sum to zero.  We improve the validity of the method by
-always requiring that the suspension's total force added to the system is zero,
-meaning
+contact, then the forces returned by the STIV are not guaranteed to sum
+to zero.  We improve the validity of the method by always requiring that
+the suspension's total force added to the system is zero, meaning
 \begin{align*}
   \sum_{j=1}^{M_p} \FF^\gamma_j = \mathbf{0}. 
 \end{align*}
-\todo{net torque can be nonzero, conservation of torque is not necessary}
 To accomplish this, we group all bodies that are in contact into
 distinct clusters.  For each cluster, the body that is in contact with
 the most other bodies (to break ties, the body with the largest
@@ -1079,11 +1076,11 @@ use an heuristic adaptive time stepping method.  When the LCP solver
 requires many iterations to solve the NCP, this indicates that the time
 step size should be reduced.  Conversely, if the LCP solver converges
 quickly to the solution of the NCP, then a larger time step size can be
-taken.  Therefore, if the STIV at each LCP iteration is not
-decreasing sufficiently fast, we abort the time step and restart with
-the time step size $\Delta t/2$. Conversely, if the STIV decreases
-quickly at each LCP iteration, then, at the next time step, we increase
-$\Delta t$ to $1.5\Delta t$.
+taken.  Therefore, if the each LCP iteration is not converging
+to a contact-free configuration sufficiently fast, we abort the time
+step and restart with the time step size $\Delta t/2$. Conversely, if
+the LCP iteration converges quickly, then, at the next time step, we
+increase $\Delta t$ to $1.5\Delta t$.
 
 The stability of the method depends on the discretization
 of~\eqref{eqn:BIEformulation} and the minimum separation distance.  If
@@ -1199,7 +1196,7 @@ After discretizing~\eqref{eqn:bieformulation1}
 and~\eqref{eqn:bieformulation2} using the Nystr\"om method, dense linear
 systems need to be solved.  The discretized system is solved with
 GRMES~\cite{Saad1986}, and since these are both second-kind Fredholm
-integral equations, the number of required GMRES iteartions is
+integral equations, the number of required GMRES iterations is
 independent of the resolution~\cite{cam-ips-kel-mey-xue1996}.
 
 with a block diagonal preconditioner and
@@ -1251,7 +1248,7 @@ velocity double-layer potential.  The challenge stems from a singularity
 that scales as $\mathcal{O}(|\xx - \yy|^{-2})$ as a target point
 approaches a source point.  The pressure and stress are computed using a
 combination of singularity subtraction and odd-even
-integration~\cite{sid-sir1988}\todo{this reference is not in my bibliography}.  The result is a spectrally accurate
+integration~\cite{sid-isr1988}.  The result is a spectrally accurate
 method for computing the pressure and stress.
 
 Near-singular integration still required, and our interpolation-based
@@ -1568,16 +1565,18 @@ in the experimental results.
 
 \FloatBarrier
 \subsection{Taylor-Couette}
-In many industrial applications, for example pulp and paper manufacturing, suspensions of rigid ellongated fibers are encountered. Motivated by these suspensions we investigate rheological and statistical
-properties of confined suspensions.  We consider suspensions of varying
-area fraction and body aspect ratio; specifically we will look at 5, 10,
-and 15 percent area fractions and elliptical bodies of aspect ratio,
-$\lambda$ of 1, 3, and 6.  In all the examples, $nu M 1/ell^2$, so all the
-suspensions are in the dilute regime.  The bodies initial locations are
-random, but non-overlapping (Figure \ref{fig:couette_setup}).  The flow
-is driven by rotating the outer cylinder at a constant angular velocity
-while the inner cylinder remains fixed. 
-
+In many industrial applications, for example pulp and paper
+manufacturing, suspensions of rigid elongated fibers are encountered.
+Motivated by these suspensions we investigate rheological and
+statistical properties of confined suspensions.  We consider suspensions
+of varying area fraction and body aspect ratio; specifically we will
+look at 5, 10, and 15 percent area fractions and elliptical bodies of
+aspect ratio, $\lambda$ of 1, 3, and 6.  In all the examples, $nu M
+1/ell^2$, so all the suspensions are in the dilute regime.  The bodies
+initial locations are random, but non-overlapping (Figure
+\ref{fig:couette_setup}).  The flow is driven by rotating the outer
+cylinder at a constant angular velocity while the inner cylinder remains
+fixed. 
 
 \begin{figure}[!h]
 \begin{center}
@@ -1760,44 +1759,74 @@ increase the viscosity less. }\label{tab:viscosity}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \FloatBarrier
 \section{Conclusions\label{s:conclusions}}
-\todo[inline]{The conclusions still need some work ... running out of
-steam}
-We have developed a stable time stepping method that is capable of
+We have developed a stable time stepping method for
 simulating dense suspensions of rigid bodies without introducing
-stiffness or requiring a large minimum separation distance.  Repulsion
-forces between bodies are added that are guaranteed to be sufficiently
-large enough to avoid overlap between bodies. Using this new time
-stepper we are able to simulate concentrated suspensions while
-maintaining a reasonably large time step. This allows us to compute
-rheological parameters such as the orientation of rigid fibers in a
-shear flow and the effective shear viscosity of a suspension. 
+stiffness or requiring a large minimum separation distance.  A contact
+algorithm is used that is guaranteed to avoid overlap.  Using this new
+time stepper we are able to simulate concentrated suspensions with a
+large time step and a small minimum separation distance.  We verify that
+our new globally implicit time stepping method is able to take
+larger stable time step sizes when compared to a locally implicit
+time stepping method.
 
-There are several outstanding issues with this method. Perhaps the most
-obvious is that as described, this method is only applicable to
-two-dimensional problems. That said, the mathematical formulation is the
-same for three-dimensional problems. Though numerically more
-complicated, three-dimensional boundary integral formulations for
-suspensions have been developed, see for
-example~\cite{cor-gre-rac-vee2017}.  The computation of the STIV in
-three-dimensions has also been developed~\cite{Harmon2011} but it has
-not yet been applied to suspensions.
-%and applied to vesicle
-%simulations~\cite{Zorin2017}.
+The contact algorithm is not reversible, and we examine the net effect
+on the reversibility of the flow.  We compare the initial and final
+configurations of two suspensions where the flow is reversed halfway
+through the simulation.  The simulations demonstrate that the error in
+the reversibility is the expected sum of the time stepping error and the
+error introduced by the contact algorithm.
 
-Mathematically, using STIVs as the collision metric, there is to the
-author's knowledge no theory which guarantees that the LCPs that are
-needed to compute the contact force have a unique solution. This can on
-occasion lead to a non-converging sequence of LCPs. These situations
-appear to be common in suspensions involving solid walls. We have used
-adaptive time-stepping as a way to mitigate this issue, however this is
-entirely heuristic and does not always work. In \cite{Yan2017} a similar
-method is developed that is guaranteed to converge. Instead of using
-STIVs as the collision metric, a signed distance function is used. This
-method, while always convergent, is limited in the sense that it does
-not capture a collision if one body passes completely through another.
-STIVs on the other hand are designed to catch all contact the occurs
-between bodies in a single time step and may be non-zero even if the
-final state is contact-free. 
+We compare our new time stepping method  We use the new time stepping
+method to compute rheological properties of suspensions including order
+parameters, effective viscosities, and strain rates.  These rheological
+properties are compared with known order parameters for of Jeffery
+orbits and the strain rate observed in an experiment for deformable
+bodies.
+
+There are several outstanding issues with this method. The most obvious
+is that the suspensions are two-dimensional.  All the individual
+algorithms we have developed in three dimensions.  However, to simulate
+similar results with respect to volume fraction, minimum separation
+distances, and aspect ratios, the spatial resolution will have to be
+reduced, and this will still require parallel algorithms and
+low-resolution algorithms~\cite{Kabacogulu2017}.  
+
+A recent publication considers three-dimensional simulations of rigid
+bodies~\cite{cor-gre-rac-vee2017}, but uses a different contact
+algorithm than the STIV we used.  It is unclear that this contact
+algorithm will be able to resolve dense suspensions where there are many
+contacts.  As an alternative to the STIV, the contact can be measured
+only at the final configuration, rather than as a space-time volume.
+However, this collision metric indicates a contact-free configuration
+when two particles pass through one another.  Therefore, we prefer to
+use the STIV contact algorithm, which has been developed in three
+dimensions~\cite{Harmon2011}, but it has not yet been applied to
+suspensions.
+
+Even with the development of our new time stepping method, we observe
+difficult cases.  First, a good contact model between mobile bodies and
+fixed rigid walls needs to be developed.  Second, the LCP solver can
+converge slowly or not at all to a contact-free suspension.  While the
+adaptive time stepping method helps alleviate some of these instances,
+it is clear that additional algorithms or parameters need to be
+adjusted.  Moreover, a more reliable algorithm for choosing an optimal
+time step size would help avoid instances where the time step size is
+reduced many times before a time step is finally accepted.
+
+%Mathematically, using STIVs as the collision metric, there is to the
+%author's knowledge no theory which guarantees that the LCPs that are
+%needed to compute the contact force have a unique solution. This can on
+%occasion lead to a non-converging sequence of LCPs. These situations
+%appear to be common in suspensions involving solid walls. We have used
+%adaptive time-stepping as a way to mitigate this issue, however this is
+%entirely heuristic and does not always work. In \cite{Yan2017} a similar
+%method is developed that is guaranteed to converge. Instead of using
+%STIVs as the collision metric, a signed distance function is used. This
+%method, while always convergent, is limited in the sense that it does
+%not capture a collision if one body passes completely through another.
+%STIVs on the other hand are designed to catch all contact the occurs
+%between bodies in a single time step and may be non-zero even if the
+%final state is contact-free. 
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
