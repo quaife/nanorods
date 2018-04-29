@@ -863,8 +863,6 @@ boundary integrals~\cite{Pozrikidis1992}.
 		
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Numerical Methods\label{s:method}} 
-\todo[inline]{Bryan hasn't edited section 3}
-
 We are ultimately interested in studying statistical and rheological
 properties of the fiber suspensions.  Therefore, we develop stable
 numerical methods that solve the governing
@@ -879,12 +877,12 @@ linear system that is solved with GMRES and accelerated with the fast
 multipole method~\cite{Greenbaum1992} (Section~\ref{sec:fast}).  We also
 discuss a numerical methods for related to the collision algorithm
 (Section~\ref{sec:contact}), and computing the pressure and stress
-(Section~\ref{sec:pressure_stres}).
+(Section~\ref{sec:pressure_stress}).
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{Spatial Discretization}\label{sec:spatial}
-Let $\xx(\alpha)$, $\alpha \in [0,2\pi)$ be a parameterization of a
+Let $\xx(\alpha)$, $\alpha \in [0,2\pi)$, be a parameterization of a
 rigid body $\gamma_i$.  We will use a collocation method that requires
 the discretization points $\xx_k$ at $k=1,\ldots,N_p$.  Spectral
 accuracy is achieved by representing functions defined on $\gamma_i$ as
@@ -893,30 +891,16 @@ a Fourier series
   f(\alpha) = f(\xx_i(\alpha)) = 
     \sum_{k = 0}^{N_p-1} \hat{f}_k e^{ik\alpha}.
 \end{align}
-The rigid walls are identically discretized at $N_2$ points and
+The rigid walls are identically discretized at $N_w$ points and
 functions defined on the rigid walls are also represented with a Fourier
 series.  We use the FFT to compute the Fourier coefficients, and all
 derivatives are computed with spectral accuracy using by differentiating
 in Fourier space.
 
 With collocation points defined on the rigid walls and solid bodies, we
-are now able to discretize the layer potentials.
-\todo[inline]{Bryan left off here}
-
-and interactions between nearly touching
-interfaces is resolved with a near-singular integration scheme. By using
-these methods, spectral accuracy can be achieved for long time horizons
-with optimal complexity.
-
-For bodies that are in near-contact the near singular
-integration scheme described in~\cite{Quaife2014, Ying2006} is used.
-
-
-
-The double-layer potentials in~\eqref{eqn:BIEformulation} are
-discretized with a Nystr\"om method.  Because the kernels are smooth,
-the trapezoid rule guarantees spectral accuracy~\cite{Trefethan2014}.
-Equations~\eqref{eqn:BIEformulation}  are discretized as
+now discretize the layer potentials.  We use a Nystr\"om method by
+approximating the double-layer potentials with the trapezoid rule.
+Equations~\eqref{eqn:BIEformulation} are discretized as
 \begin{equation*}
   \begin{aligned}
   \UU(\xx_i) = -\frac{1}{2}\eeta(\xx_i) + 
@@ -924,27 +908,29 @@ Equations~\eqref{eqn:BIEformulation}  are discretized as
     &+ \sum_{j=1}^{M_p} \left(\mathbf{S}(\xx_i,\cc^\gamma_j)\FF_j +
     \mathbf{R}(\xx_i,\dd_j)L_j\right)  \\
     &+ \sum_{j=1}^{M_w} \left(\mathbf{S}(\xx_i,\cc^\Gamma_j)\FF_j +
-    \mathbf{R}(\xx_i,\cc^\Gamma_j)\L_j\right),
+    \mathbf{R}(\xx_i,\cc^\Gamma_j)\L_j\right), \quad \xx_i \in \Gamma,
   \end{aligned}
 \end{equation*}
+for $\xx_i \in \Gamma$, and
 \begin{equation*}
   \begin{aligned}
-\uu^\tau_j + \omega_j(\xx_i - \cc^\gamma_j)^\perp = -\frac{1}{2}\eeta(\xx_i) +
+\uu^\tau_j + \omega_j(\xx_i - \cc^\gamma_j)^\perp =
+-\frac{1}{2}\eeta(\xx_i) +
 \sum_{k=1}^{N} K(\xx_i,\xx_k) \eeta(\xx_k) \Delta s_k
     &+ \sum_{j=1}^{M_p} \left(\mathbf{S}(\xx_i,\cc^\gamma_j)\FF_j +
-    \mathbf{R}(\xx_i,\dd_j)L_j\right)  \\
+    \mathbf{R}(\xx_i,\dd_j)L_j\right) \\
     &+ \sum_{j=1}^{M_w} \left(\mathbf{S}(\xx_i,\cc^\Gamma_j)\FF_j +
     \mathbf{R}(\xx_i,\cc^\Gamma_j)\L_j\right),
   \end{aligned}
 \end{equation*}
-where $N = M_w N_w + M_p N_p$ is the total number of discretization
-points and
+for $\xx \in \gamma_j$, where $N = M_w N_w + M_p N_p$ is the total
+number of discretization points and
 \begin{align*}
   K(\xx,\yy) = \frac{1}{\pi} \frac{\rr \cdot \nn}{\rho^2} 
                \frac{\rr \otimes \rr}{\rho^2}
 \end{align*}
-is the kernel of the double-layer potential.
- For the diagonal entries, we use the limiting value of $K$
+is the kernel of the double-layer potential.  The diagonal entries of
+$K$ are replaced with the limiting value
 \begin{align*}
   \lim_{\substack{\yy \rightarrow \xx \\ \yy \in \bd\Omega}} 
     K(\xx,\yy) = \frac{\kappa}{2\pi}\tt\otimes\tt,
@@ -953,139 +939,24 @@ is the kernel of the double-layer potential.
 where $\kappa(\xx)$ is the curvature and $\tt(\xx)$ is the tangent
 vector of $\bd\Omega$ at $\xx$.
 
-The trapezoid rule achieves spectral accuracy when both the source
-points $\yy$ and the target point $\xx$ are on the same solid wall
-$\Gamma_k$ or rigid body $\gamma_k$.  However, when the target point
-is on a different body, the accuracy of the trapezoid rule can
-deteriorate which leads to instabilities.  This increase in error
-happens when the target point is close to the source points, but not on
-the same body as the source points.  To resolve this issue, an algorithm
-for near-singular integration method must be employed.  There are now
-several methods for near-singular integration including
-regularizations~\cite{Beale2001}, quadrature by
-expansion~\cite{Klockner2013}, barycentric
-interpolation~\cite{Barnett2015}, and panel-based
-quadrature~\cite{Helsing2008}.  In this work, we use an interpolation
-based scheme~\cite{Ying2006} which has been used for other
-two-dimensional suspensions.  To compute the pressure and stress, odd-even integration with singularity subtraction is used.~\cite{Quaife2014}.
-
-Once all of the equations in~\eqref{eqn:BIEformulation} are discretized
-using the above described quadrature rules, the result is a dense $N
-\times N$ linear system.  Since this linear system is the discretization
-of a second-kind integral equation, GMRES~\cite{Saad1986} converges in a
-mesh-independent number of iterations~\cite{Campbell1996}.  Since GMRES
-only requires matrix-vector multiplications, the algorithmic cost per
-time step is proportional to the cost of doing a single matrix-vector
-multiply.
-\todo[inline]{Discuss our preconditioner here?  and a sentence about
-using the FMM}
-
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\subsection{Time Stepping Methods}
-\label{sec:temporal}
-
-We use a Lagrangian formulation where we track the centers
-$\cc_i^\gamma$ and orientations $\theta_i$ of each rigid body
-$\gamma_i$. Given a suspension of rigid
-bodies,~\eqref{eqn:BIEformulation} is solved for the translational and
-rotational velocities of each body. Then, the position and angle of each
-body are updated according to the ODEs,
-\begin{align*}
-  \frac{\text{d}}{\text{d}t}\mathbf{c}_k = \mathbf{u}^\tau_k, \qquad
-  \frac{\text{d}}{\text{d}t}\theta_k =\omega_k.
-\end{align*}
-The ODEs are advanced in time using an explicit Euler step
-\begin{align*}
-  \cc_k^{N+1} &= \cc_k^N + \Delta t \left(\uu_k^\tau\right)^N, \\
-  \theta_k^{N+1} &= \theta_k^N + \Delta t \left(\omega_k\right)^N.
-\end{align*}
-This low cost first-order time stepper is justifiable since we are
-not interested in accurate trajectories, but rather are
-interested in statistical quantities of bulk quantities related to the
-suspension over large amounts of parameter values.
-
-The stability of the method is depends strongly on the method used to
-solve~\eqref{eqn:BIEformulation} for the translational and angular
-velocities $\uu_j$ and $\omega_j$. If the numerical error of the
-computed velocity is too large, unphysical contact will occur and
-which STIV will attempt to resolve.  However, if large errors are caused
-by interactions of bodies that are closer than the minimum separation
-distance, then these errors will not be resolved by STIV unless a very
-small time step is taken.  Therefore, if simulations result in nearly
-touching bodies, such as in dense concentrations, the it is important to
-use a time stepping method that allows for small minimum separations.
-
-The leading source of stiffness for a particular rigid body
-is the velocity field induced by the body itself. This leading source of
-stiffness is typically resolved by using the {\em locally implicit}
-discretization
-\begin{align*}
-  \DD[\eeta](\xx) \approx \DD^{n}[\eeta^{N+1}](\xx) +
-  \DD^{n}[\eeta^N](\xx),
-\end{align*}
-where the superscript on the layer potential $\DD$ means that the layer
-potential is defined in terms of the geometry at time step $n$.  A
-secondary source of stiffness is caused by nearly touching bodies.  This
-can be resolved by treating not only the self-interactions  implicitly,
-but also treating the interactions between different bodies implicitly.
-This method is the {\em globally implicit} discretization
-\begin{align*}
-  \DD[\eeta](\xx) \approx \DD^{N}[\eeta_{N+1}](\xx) +
-  \DD^{N}[\eeta^{N+1}](\xx),
-\end{align*}
-
-
-
-While the interactions between
-different bodies can be treated explicitly or implicitly, the layer
-potential will always be discretized explicitly. By this we mean that
-the density function $\eeta$ at time step $N$ will be discretized on the
-body configuration at time step $N$.  In the original work of Lu et
-al.~\cite{Lu2017}, they use a semi-implicit method where the interaction
-between a rigid body and itself are treated implicitly, and all other
-interactions are treated explicitly.  For example, in the governing
-equation for the rigid bodies~\eqref{eqn:BIEformulation2}, double-layer
-potential terms is discretized as
-\begin{align}
- \DD[\eeta^{N+1}](\xx_j) \approx
-  \DD[\eeta^{N+1}_{k_0}](\xx_j) + 
-  \sum_{\substack{k=1 \\ k \neq k_0}}^{M_p} \DD[\eeta^{N}_k](\xx_j),
-  \label{eqn:BlockImplicit}
-\end{align}
-where $\xx_j$ is on body $k_0$, the superscript denotes the time
-step, and $\DD$ is discretized on the configuration at time step $N$. The interaction between the
-rigid bodies and the solid walls'
-density function, Stokeslets, and rotlets are also discretized
-explicitly.  The advantage of this discretization is that it results in
-a block-diagonal matrix structure that can be solved efficiently by using a block-diagonal
-preconditioner. However, by allowing
-larger interactions between different bodies, stiffness is introduced
-and a smaller time step must be taken. 
-
-Similar to the methodology
-outline described for vesicle suspensions~\cite{Quaife2014}, we instead
-change the fluid solver so that large time steps can still be taken
-without introducing stiffness.  In particular, with the same setup
-described in~\eqref{eqn:BlockImplicit}, we discretize the fluid
-equations as
-\begin{align}
-  \DD[\eeta^{N+1}](\xx_j) = 
-  \sum_{k=1}^{M_p} \DD[\eeta^{N+1}_k](\xx_j).
-  \label{eqn:SemiImplicit}
-\end{align}
-Equation~\eqref{eqn:SemiImplicit} is no longer block-diagonal and requires additional computational
-resources. In particular
-interactions between different bodies must be computed at every
-iteration rather than once per time step (to form the right hand side).
-However, as was observed for dense vesicle suspensions~\cite{Quaife2014, Rahimian2015} this
-additional cost is offset by the
-excessively small time step that is required if the fluid
-solver~\eqref{eqn:BlockImplicit} is used.  Moreover, as we will see in
-the Results section, it is possible that if the buffer region is
-sufficiently small and the suspension is sufficiently dense,
-then~\eqref{eqn:BlockImplicit} is unstable for time step sizes that vary
-over several orders of magnitude.
+Since the kernel $K(\xx,\yy)$ is smooth, the trapezoid rule guarantees
+spectral accuracy~\cite{Trefethan2014}.  However, at a fixed resolution
+$N$, the error grows when a target point and a source point on different
+bodies are sufficiently close.  The error is caused by a nearly-singular
+integrand with large derivatives.  To resolve this issue, an algorithm
+for near-singular integration method must be employed.  We use the
+interpolation scheme outlined in~\cite{Quaife2014} that is based off of
+the algorithm first outlined in~\cite{Ying2006}.
+  
+After discretizing~\eqref{eqn:BIEformulation} with a Nystr\"om method,
+the result is a dense linear system for the density function, rotlets
+and Stokeslets, and the translational and rotational velocities of each
+body.  We chose a double-layer potential formulation so that the linear
+system can be solved with a mesh-independent number of GMRES
+iterations~\cite{Campbell1996}.  Therefore, the algorithmic cost is
+dominated by the cost of a matrix-vector multiplication, and the number
+of required geometry-dependent GMRES iterations.  Algorithms for
+controlling these costs are discussed in Section~\ref{sec:fast}.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{Contact Resolution}
@@ -1108,12 +979,13 @@ stalling.
 From an algorithmic point of view, contact resolution starts by
 advancing the force- and torque-free bodies from time $t$ to $t +
 \Delta t$ according to equation~\eqref{eqn:centersAngles} where the
-translational and angular velocities satisfy~\eqref{eqn:BIEformulation2}.
-Next, collision detection is performed.  However, instead of requiring
-that the bodies are contact-free, we make the additional restriction
-that the minimum separation distance is greater than some user-specified
-tolerance.  Finally, based on the amount of overlap that occurs,
-artificial forces and torques are added to the bodies, and the governing
+translational and angular velocities
+satisfy~\eqref{eqn:BIEformulation2}.  Next, collision detection is
+performed.  However, instead of requiring that the bodies are
+contact-free, we make the additional restriction that the minimum
+separation distance is greater than some user-specified tolerance.
+Finally, based on the amount of overlap that occurs, artificial forces
+and torques are added to the bodies, and the governing
 equations~\eqref{eqn:BIEformulation} are resolved, except that forces
 and torques are included in equation~\eqref{eqn:BIEformulation5}.  
 
@@ -1187,21 +1059,152 @@ given a net force that balances all other bodies in the
 cluster. Whenever a force on a body is scaled the torque on that
 body is scaled by the same amount.
 
-\subsection{Temporal Adaptivity}
-The NCP solver is quite sensitive to the initial configuration.
-Occasionally it may take an unfeasible amount of LCP iterations to
-converge. To avoid this we adopt a heuristic adaptive time stepping
-scheme. Once the number of LCP iterations crosses a threshold, if we
-find the STIV volume is not decreasing fast enough we abort the time
-step and restart it with a time step size of $\Delta t/2$. If, conversely, the NCP
-converges in a small number of LCP iterations, we increase $\Delta t$
-by a factor of $1.5$.
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Time Stepping Methods}
+\label{sec:temporal}
+Since we only consider rigid body suspensions, we only track the centers
+$\cc_i^\gamma$ and orientations $\theta_i$ of each rigid body
+$\gamma_i$. Given a suspension of rigid
+bodies,~\eqref{eqn:BIEformulation} is solved for the translational and
+rotational velocities of each body. Then, the position and angle of each
+body are updated according to the ODEs,
+\begin{align*}
+  \frac{\text{d}}{\text{d}t}\cc_k &= \uu^\tau_k,  
+    \quad \cc_k(0) = \cc_k^0, \\
+  \frac{\text{d}}{\text{d}t}\theta_k &= \omega_k,
+    \quad \theta_k(0) = \theta_k^0.
+\end{align*}
+The ODEs are advanced in time using the first-order explicit Euler
+method
+\begin{align*}
+  \cc_k^{N+1} &= \cc_k^N + \Delta t \left(\uu_k^\tau\right)^N, \\
+  \theta_k^{N+1} &= \theta_k^N + \Delta t \left(\omega_k\right)^N.
+\end{align*}
+We justify using a low cost first-order time stepper since we are
+interested in statistical, rheological, an bulk quantities rather than
+the individual trajectories of the rigid bodies.  If high-order accuracy
+is desired, a Runge-Kutta or deferred correction
+method~\cite{Quaife2015, qua-bir2016} can be applied.
+
+Since the dynamics of the suspension can develop complex features, we
+use an heuristic adaptive time stepping method.  When the LCP solver
+requires many iterations to solve the NCP, this indicates that the timne
+step size should be reduced.  Conversely, if the LCP solver converges
+quickly to the solution of the NCP, then a larger time step size can be
+taken.  Therefore, if the STIV at each LCP iteration is not
+decreasing sufficiently fast, we abort the time step and restart with
+the time step size $\Delta t/2$. Conversely, if the STIV decreases
+quickly at each LCP iteration, then, at the next time step, we increase
+$\Delta t$ to $1.5\Delta t$.
+
+The stability of the method depends on the discretization
+of~\eqref{eqn:BIEformulation} and the minimum separation distance.  If
+the minimum separation distance is small and the interaction between two
+nearly-touching bodies is discretized explicitly, then convergence of
+the LCP solver to the solution of the NCP requires a large number of
+iterations, and the time step size is reduced.  In contrast, if the
+interaction between the bodies is discretized implicitly, then the
+stiffness caused by the nearly-touching bodies is resolved and a larger
+time step can be taken.
+
+The leading source of stiffness for a particular rigid body is the
+velocity field induced by the body itself. This leading source of
+stiffness is controlled with a {\em locally implicit} discretization
+\begin{align}
+  \DD[\eeta](\xx) \approx \DD^{n}[\eeta^{N+1}](\xx) +
+  \DD^{n}[\eeta^N](\xx),
+  \label{eqn:BlockImplicit}
+\end{align}
+where the superscript of $\DD$ implies that the geometry used in the
+discretization of the layer potential is at time step $n$.  This time
+stepping method is focus of the work of Lu et al.~\cite{Lu2017}.   Then,
+to avoid stiffness, caused by nearly-touching bodies, a sufficiently
+large minimum separation distance is used.
+ 
+Instead of avoiding nearly-touching bodies, we use the {\em globally
+implicit} discretization
+\begin{align}
+  \DD[\eeta](\xx) \approx \DD^{N}[\eeta_{N+1}](\xx) +
+  \DD^{N}[\eeta^{N+1}](\xx).
+  \label{eqn:SemiImplicit}
+\end{align}
+By discretizing the interactions between different bodies implicitly,
+the stiffness caused by nearly-touching bodies is reduced, so large time
+steps with small minimum separation distances are possible.
+
+%For example, in the governing equation for the rigid
+%bodies~\eqref{eqn:BIEformulation2}, double-layer potential terms is
+%discretized as
+%\begin{align}
+% \DD[\eeta^{N+1}](\xx_j) \approx
+%  \DD[\eeta^{N+1}_{k_0}](\xx_j) + 
+%  \sum_{\substack{k=1 \\ k \neq k_0}}^{M_p} \DD[\eeta^{N}_k](\xx_j),
+%  \label{eqn:BlockImplicit}
+%\end{align}
+%where $\xx_j$ is on body $k_0$, the superscript denotes the time
+%step, and $\DD$ is discretized on the configuration at time step $N$. The interaction between the
+%rigid bodies and the solid walls'
+%density function, Stokeslets, and rotlets are also discretized
+%explicitly.  The advantage of this discretization is that it results in
+%a block-diagonal matrix structure that can be solved efficiently by using a block-diagonal
+%preconditioner. However, by allowing
+%larger interactions between different bodies, stiffness is introduced
+%and a smaller time step must be taken. 
+%
+%Similar to the methodology
+%outline described for vesicle suspensions~\cite{Quaife2014}, we instead
+%change the fluid solver so that large time steps can still be taken
+%without introducing stiffness.  In particular, with the same setup
+%described in~\eqref{eqn:BlockImplicit}, we discretize the fluid
+%equations as
+%\begin{align}
+%  \DD[\eeta^{N+1}](\xx_j) = 
+%  \sum_{k=1}^{M_p} \DD[\eeta^{N+1}_k](\xx_j).
+%  \label{eqn:SemiImplicit}
+%\end{align}
+%Equation~\eqref{eqn:SemiImplicit} is no longer block-diagonal and requires additional computational
+%resources. In particular
+%interactions between different bodies must be computed at every
+%iteration rather than once per time step (to form the right hand side).
+%However, as was observed for dense vesicle suspensions~\cite{Quaife2014, Rahimian2015} this
+%additional cost is offset by the
+%excessively small time step that is required if the fluid
+%solver~\eqref{eqn:BlockImplicit} is used.  Moreover, as we will see in
+%the Results section, it is possible that if the buffer region is
+%sufficiently small and the suspension is sufficiently dense,
+%then~\eqref{eqn:BlockImplicit} is unstable for time step sizes that vary
+%over several orders of magnitude.
 
 
-\begin{comment}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{Fast Summation and Preconditioning}
 \label{sec:fast}
+A discretization of the locally implicit time
+stepper~\eqref{eqn:BlockImplicit} results in a block-diagonal linear
+system, where each block is a dense $N_p \times N_p$ or $N_w \times N_w$
+matrix.  In contrast, a discretization of the globally implicit time
+stepper~\eqref{eqn:SemiImplicit} results in a dense $N \times N$ linear
+system.  Therefore, considering only the rigid body contributions, the
+cost of a single matrix-vector multiplication is $\mathcal{O}(M_p
+N_p^2)$ for~\eqref{eqn:BlockImplicit} and $\mathcal{O}(M_p^2 N_p^2$
+for~\eqref{eqn:SemiImplicit}.  We reduce the cost of matrix-vector
+multiplication by using the fast multipole method.  This reduces the
+cost of a single matrix-vector multiplication for both the locally
+implicit and globally implicit time stepping methods to $\mathcal{O}(N)$
+operations.
+
+Reducing the cost of matrix-vector multiplication greatly reduces the
+computational effort.  However, for dense suspensions, the number of
+GMRES iterations can also be large.  Therefore, we apply a
+block-diagonal preconditioner where each block is precomputed and
+factorized.  The identical preconditioner has been used for
+two-dimensional vesicle suspensions~\cite{Quaife2014}.  For rigid
+bodies, the preconditioner is further accelerated by factorizing all
+double-layer potentials at the initial condition, and then multiplying
+with rotation matrices corresponding to the rotation velocity $\omega$.
+
+
+\begin{comment}
 \todo[inline]{Do we describe how the preconditioner is updated by simply
 rotating?}
 After discretizing~\eqref{eqn:bieformulation1}
@@ -1225,8 +1228,8 @@ treating inter-body interactions explicitly and moving them to the
 right hand side. This is termed {\em locally implicit} and is described
 in \cite{Lu2017}. For dense suspensions however this type of time
 stepping can lead to instabilities as bodies become tightly packed. 
-\end{comment}
-\begin{comment}
+%\end{comment}
+%\begin{comment}
 \begin{algorithm}
 	 \SetKwInOut{Input}{Input}
     	\SetKwInOut{Output}{Output}
@@ -1256,7 +1259,7 @@ $L_k \gets \int_{\Gamma_k}
 \label{sec:pressure_stress}
 \todo[inline]{Need to say a few words about computing pressure and
 stress towards end of this section}
-
+To compute the pressure and stress, odd-even integration with singularity subtraction is used~\cite{Quaife2014}.
 
 
 
