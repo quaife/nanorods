@@ -626,15 +626,17 @@ Stokes equations in variational form,
 After taking a time step, all pairs of bodies whose separation falls
 below a minimum separation distance, which includes those that have
 collided, are flagged.  Then, the space-time interference volume (STIV),
-defined as the volume in space-time (adjusted by the minimum separation
-distance) swept out by the trajectory of two bodies, is computed.  Next,
-equation~\eqref{eqn:stokesEL} is supplemented with an additional
-constraint that the STIV is positive (no contact).  By introducing a
-Lagrange multiplier, $\lambda$, for this inequality constraint, a body
-force on the rigid body boundaries is introduced.   Solving for $\lambda$
-requires solving a nonlinear complementary problem (NCP) which is solved
-iteratively using a sequence of linear complementary problem (LCP)
-solves, and is discussed in more detail in Section~\ref{sec:contact}.
+defined as the volume in space-time distance swept out by the trajectory
+of two bodies, is computed.  Next, equation~\eqref{eqn:stokesEL} is
+supplemented with an additional constraint that the STIV is positive (no
+contact).  As detailed in~\cite{Lu2017, Harmon2011}, STIV offer a metric
+to quantify collision volumes.  By using computing the STIV, rather than
+simply the overlap at the new time step, time steps that result in rigid
+bodies passing through each other are detected and resolved.  Details
+for solving~\eqref{eqn:stokesEL} with the STIV inequality constraint are
+given in Section~\ref{sec:contact}.
+
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %\begin{comment}
@@ -961,26 +963,30 @@ controlling these costs are discussed in Section~\ref{sec:fast}.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{Contact Resolution}
 \label{sec:contact}
-\todo[inline]{dump of text}
-The NCP explicitly requires that the STIV is greater than or equal to zero, meaning that there is
-no contact.  Therefore, unlike most repulsion-based methods, the
-contact-aware method guarantees that there is no collision.  However, it
-is possible that the sequence of LCPs is not able to converge to a
-solution of the NCP.  This stalling typically occurs if the interaction
-between two bodies in close proximity is treated explicitly.
-\todo[inline]{Libin mad separation large.  We use a new time stepper}
-Therefore, in Section~\ref{sec:temporal} we describe a new time stepping
-method that allows for much closer contact without the contact algorithm
-stalling.
-\todo[inline]{Some of the references to sections don't make sense now}
-\todo[inline]{dump of text}
+The contact resolution method starts by advancing the force- and
+torque-free bodies from time $t$ to $t + \Delta t$ with
+equation~\eqref{eqn:centersAngles}.  Then, equation~\eqref{eqn:stokesEL}
+needs to be solved with the inequality constraint that the STIV is less
+than 0.  The definition of the STIV includes a parameter that guarantees
+that not only do bodies intersect, but they maintain minimum separation
+distance.  Following~\cite{Lu2017}, we use a Lagrange multiplier,
+$\lambda$, to satisfy the non-positive STIV inequality constraint.  The
+resulting equations are  the incompressible Stokes equations with body
+forces and torques that depend on the gradient of the STIV, and the
+inequality constraint that the STIV is non-positive.  Therefore, the
+governing equations are similar to~\eqref{eqn:BIEformulation}, except
+that the force- and torque-free conditions have been changed.
 
+The resulting equation is a non-linear complementary problem (NCP)
+Rather than solving the NCP, the problem is linearized as a linearly
+complementary problem (LCP) that is solved iteratively until the STIV is
+less than zero.  For small minimum separation distances, it is possible
+that the LCP converges very slowly, or not at all, to the solution of
+the NCP.  In Section~\ref{sec:temporal}, we describe two methods to
+avoid this slow convergence.
 
-From an algorithmic point of view, contact resolution starts by
-advancing the force- and torque-free bodies from time $t$ to $t +
-\Delta t$ according to equation~\eqref{eqn:centersAngles} where the
-translational and angular velocities
-satisfy~\eqref{eqn:BIEformulation2}.  Next, collision detection is
+\begin{comment}
+Next, collision detection is
 performed.  However, instead of requiring that the bodies are
 contact-free, we make the additional restriction that the minimum
 separation distance is greater than some user-specified tolerance.
@@ -989,7 +995,7 @@ and torques are added to the bodies, and the governing
 equations~\eqref{eqn:BIEformulation} are resolved, except that forces
 and torques are included in equation~\eqref{eqn:BIEformulation5}.  
 
-\begin{comment}
+
 To
 find the amount of overlap, the space-time interference volume
 (STIV)~\cite{Harmon2011} based on a linear trajectory of the rigid
@@ -1011,19 +1017,6 @@ configuration.
 %configuration.
 
 
-As detailed in~\cite{Lu2017, Harmon2011}, space-time interference
-volumes (STIV) offer a metric to quantify collision volumes. One
-advantage of STIVs over other collision detection methods, such as a
-signed distance, is that STIVs involve a time integral and can detect
-collisions even if the final configuration is contact-free. Thus, even
-if one body passes completely through another, using STIVs we can
-compute a contact volume and its response to changes in the velocity of
-the bodies.
-
-Moreover, by including STIV with a sufficiently large buffer
-region (on the order of an arclength term), the stiffness introduced by
-interactions between different bodies is avoided. 
-
 
 %\begin{comment}
 %The addition of a forcing term to the right hand side of the Stokes equations
@@ -1036,28 +1029,23 @@ interactions between different bodies is avoided.
 %\text{d}_\mathbf{u}V^T\pmb{\lambda}\cdot(\mathbf{x}-\mathbf{c}_k)^\perp~\text{d}s.\]
 %\end{comment}
 
-Physically we expect that any repulsion force exerted by one body on
-another is balanced by an equal and opposite repulsion force from the
-second body.  In this way the net force in the system coming from
-repulsion forces is always zero, i.e.
-\begin{equation*}
-	\sum\limits_{j=1}^{M_p} \FF^\gamma_j = \mathbf{0}.
-\end{equation*}
-This is particularly important for unbounded domains, as for planar flow Stokes
-paradox says that only force-free configurations have bounded solutions at
-infinity \cite{Power1993, Pozrikidis1992}.
-
-If only two bodies are in contact, the symmetry of the STIV ensures that the
-net force is zero. However, if one body is in contact with more than one
-, then due to the scaling of the magnitudes of the forces, the net force may be nonzero. In
-this case the repulsion forces may need to be balanced manually. To do
-this, we group all bodies 
-that are in contact into distinct clusters.
-For each cluster, the body that is in contact with the most other bodies
-(to break ties, the body  with the largest repulsion force in magnitude) is
-given a net force that balances all other bodies in the
-cluster. Whenever a force on a body is scaled the torque on that
-body is scaled by the same amount.
+If only two bodies are in contact, the symmetry of the STIV ensures that
+the net force is zero.   However, if more than two bodies are in
+contact, then the forces and torques returned by the STIV are not
+guaranteed to sum to zero.  We improve the validity of the method by
+always requiring that the suspension's total force and torque are zero,
+meaning
+\begin{align*}
+  \sum_{j=1}^{M_p} \FF^\gamma_j = \mathbf{0}, \qquad 
+  \sum_{j=1}^{M_p} L^\gamma_j = 0.
+\end{align*}
+To accomplish this, we group all bodies that are in contact into
+distinct clusters.  For each cluster, the body that is in contact with
+the most other bodies (to break ties, the body with the largest
+repulsion force in magnitude) is given a net force that balances all
+other bodies in the cluster. Whenever a force on a body is scaled the
+torque on that body is scaled by the same amount.
+\todo[inline]{Why not just make all the torques also add to 0?}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{Time Stepping Methods}
@@ -1257,10 +1245,20 @@ $L_k \gets \int_{\Gamma_k}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{Computing the Pressure and Stress}
 \label{sec:pressure_stress}
-\todo[inline]{Need to say a few words about computing pressure and
-stress towards end of this section}
-To compute the pressure and stress, odd-even integration with singularity subtraction is used~\cite{Quaife2014}.
+Computing the pressure~\eqref{eqn:pressure} and
+stress~\eqref{eqn:stress} are more challenging than evaluating the
+velocity double-layer potential.  The challenge stems from a singularity
+that scales as $\mathcal{O}(|\xx - \yy|^{-2})$ as a target point
+approaches a source point.  The pressure and stress are computed using a
+combination of singularity subtraction and odd-even
+integration~\cite{sid-sir1988}.  The result is a spectrally accurate
+method for computing the pressure and stress.
 
+Near-singular integration still required, and our interpolation-based
+method requires limiting values of the layer
+potentials~\eqref{eqn:pressure} and~\eqref{eqn:stress} as $\xx
+\rightarrow \bd\Omega$.  The limiting values and tests of the
+near-singular integration scheme are reported in~\cite{Quaife2014}.
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
