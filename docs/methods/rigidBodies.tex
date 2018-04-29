@@ -877,8 +877,8 @@ than accuracy, so we use low-order but stable time stepping schemes.
 Each time step requires solving a block diagonal preconditioned dense
 linear system that is solved with GMRES and accelerated with the fast
 multipole method~\cite{Greenbaum1992} (Section~\ref{sec:fast}).  We also
-discuss a numerical methods for related to the collision algorithm
-(Section~\ref{sec:contact}), and computing the pressure and stress
+discuss a numerical methods for the collision algorithm
+(Section~\ref{sec:contact}), and for computing the pressure and stress
 (Section~\ref{sec:pressure_stress}).
 
 
@@ -966,21 +966,22 @@ controlling these costs are discussed in Section~\ref{sec:fast}.
 The contact resolution method starts by advancing the force- and
 torque-free bodies from time $t$ to $t + \Delta t$ with
 equation~\eqref{eqn:centersAngles}.  Then, equation~\eqref{eqn:stokesEL}
-needs to be solved with the inequality constraint that the STIV is less
-than 0.  The definition of the STIV includes a parameter that guarantees
+needs to be solved with the inequality constraint that the STIV is greater
+than zero.  The definition of the STIV includes a parameter that guarantees
 that not only do bodies intersect, but they maintain minimum separation
-distance.  Following~\cite{Lu2017}, we use a Lagrange multiplier,
+distance. Following~\cite{Lu2017}, we use a Lagrange multiplier,
 $\lambda$, to satisfy the non-positive STIV inequality constraint.  The
 resulting equations are  the incompressible Stokes equations with body
 forces and torques that depend on the gradient of the STIV, and the
-inequality constraint that the STIV is non-positive.  Therefore, the
+inequality constraint that the STIV is greater than or equal to zero.  Therefore, the
 governing equations are similar to~\eqref{eqn:BIEformulation}, except
 that the force- and torque-free conditions have been changed.
+\todo{The STIV must be greater than or equal to 0 (in fact it is identically 0 for non-intersecting bodies)}
 
 The resulting equation is a non-linear complementary problem (NCP)
-Rather than solving the NCP, the problem is linearized as a linearly
-complementary problem (LCP) that is solved iteratively until the STIV is
-less than zero.  For small minimum separation distances, it is possible
+To solve the NCP, the problem is linearized as a sequence of linear
+complementary problems (LCPs) that are solved until the STIV is
+greater than or equal to zero.  For small minimum separation distances, it is possible
 that the LCP converges very slowly, or not at all, to the solution of
 the NCP.  In Section~\ref{sec:temporal}, we describe two methods to
 avoid this slow convergence.
@@ -1031,21 +1032,20 @@ configuration.
 
 If only two bodies are in contact, the symmetry of the STIV ensures that
 the net force is zero.   However, if more than two bodies are in
-contact, then the forces and torques returned by the STIV are not
+contact, then the forces returned by the STIV are not
 guaranteed to sum to zero.  We improve the validity of the method by
-always requiring that the suspension's total force and torque are zero,
+always requiring that the suspension's total force added to the system is zero,
 meaning
 \begin{align*}
-  \sum_{j=1}^{M_p} \FF^\gamma_j = \mathbf{0}, \qquad 
-  \sum_{j=1}^{M_p} L^\gamma_j = 0.
+  \sum_{j=1}^{M_p} \FF^\gamma_j = \mathbf{0}. 
 \end{align*}
+\todo{net torque can be nonzero, conservation of torque is not necessary}
 To accomplish this, we group all bodies that are in contact into
 distinct clusters.  For each cluster, the body that is in contact with
 the most other bodies (to break ties, the body with the largest
 repulsion force in magnitude) is given a net force that balances all
 other bodies in the cluster. Whenever a force on a body is scaled the
 torque on that body is scaled by the same amount.
-\todo[inline]{Why not just make all the torques also add to 0?}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{Time Stepping Methods}
@@ -1068,7 +1068,7 @@ method
   \cc_k^{N+1} &= \cc_k^N + \Delta t \left(\uu_k^\tau\right)^N, \\
   \theta_k^{N+1} &= \theta_k^N + \Delta t \left(\omega_k\right)^N.
 \end{align*}
-We justify using a low cost first-order time stepper since we are
+A low cost first-order time stepper can be justified since we are
 interested in statistical, rheological, an bulk quantities rather than
 the individual trajectories of the rigid bodies.  If high-order accuracy
 is desired, a Runge-Kutta or deferred correction
@@ -1076,7 +1076,7 @@ method~\cite{Quaife2015, qua-bir2016} can be applied.
 
 Since the dynamics of the suspension can develop complex features, we
 use an heuristic adaptive time stepping method.  When the LCP solver
-requires many iterations to solve the NCP, this indicates that the timne
+requires many iterations to solve the NCP, this indicates that the time
 step size should be reduced.  Conversely, if the LCP solver converges
 quickly to the solution of the NCP, then a larger time step size can be
 taken.  Therefore, if the STIV at each LCP iteration is not
@@ -1105,7 +1105,7 @@ stiffness is controlled with a {\em locally implicit} discretization
 \end{align}
 where the superscript of $\DD$ implies that the geometry used in the
 discretization of the layer potential is at time step $n$.  This time
-stepping method is focus of the work of Lu et al.~\cite{Lu2017}.   Then,
+stepping method is focus of the work of Lu et al.~\cite{Lu2017}.   There,
 to avoid stiffness, caused by nearly-touching bodies, a sufficiently
 large minimum separation distance is used.
  
@@ -1251,7 +1251,7 @@ velocity double-layer potential.  The challenge stems from a singularity
 that scales as $\mathcal{O}(|\xx - \yy|^{-2})$ as a target point
 approaches a source point.  The pressure and stress are computed using a
 combination of singularity subtraction and odd-even
-integration~\cite{sid-sir1988}.  The result is a spectrally accurate
+integration~\cite{sid-sir1988}\todo{this reference is not in my bibliography}.  The result is a spectrally accurate
 method for computing the pressure and stress.
 
 Near-singular integration still required, and our interpolation-based
