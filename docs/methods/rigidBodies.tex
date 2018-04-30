@@ -279,7 +279,7 @@ updated at each time step since the geometry is dynamic.
 Once the BIE formulation of the appropriate fluid equations are solved
 for the translational and rotational velocities, a time step must be
 taken.  We adopt a Lagrangian approach, and since the bodies are rigid,
-we only need to track each particle's center and inclination angle.
+we only need to track each body's center and inclination angle.
 Therefore, for a suspension of $M_p$ bodies, a system of $3M_p$ ordinary
 differential equations must be solved---these equations are coupled
 through the fluid solver.  Embedded time stepping
