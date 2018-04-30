@@ -1776,7 +1776,7 @@ through the simulation.  The simulations demonstrate that the error in
 the reversibility is the expected sum of the time stepping error and the
 error introduced by the contact algorithm.
 
-We compare our new time stepping method  We use the new time stepping
+We use the new time stepping
 method to compute rheological properties of suspensions including order
 parameters, effective viscosities, and strain rates.  These rheological
 properties are compared with known order parameters for of Jeffery
@@ -1805,11 +1805,10 @@ suspensions.
 
 Even with the development of our new time stepping method, we observe
 difficult cases.  First, a good contact model between mobile bodies and
-fixed rigid walls needs to be developed.  Second, the LCP solver can
+fixed rigid walls needs to be developed.  Second, the NCP solver can
 converge slowly or not at all to a contact-free suspension.  While the
 adaptive time stepping method helps alleviate some of these instances,
-it is clear that additional algorithms or parameters need to be
-adjusted.  Moreover, a more reliable algorithm for choosing an optimal
+it is clear that additional algorithms are neede. Moreover, a more reliable algorithm for choosing an optimal
 time step size would help avoid instances where the time step size is
 reduced many times before a time step is finally accepted.
 
