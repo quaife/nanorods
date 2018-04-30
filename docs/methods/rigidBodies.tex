@@ -1027,7 +1027,7 @@ If only two bodies are in contact, the symmetry of the STIV ensures that
 the net force is zero.   However, if more than two bodies are in
 contact, then the forces returned by the STIV are not guaranteed to sum
 to zero.  We improve the validity of the method by always requiring that
-the suspension's total force added to the system is zero, meaning
+the total force added to the system is zero, meaning
 \begin{align*}
   \sum_{j=1}^{M_p} \FF^\gamma_j = \mathbf{0}. 
 \end{align*}
@@ -1059,8 +1059,8 @@ method
   \cc_k^{N+1} &= \cc_k^N + \Delta t \left(\uu_k^\tau\right)^N, \\
   \theta_k^{N+1} &= \theta_k^N + \Delta t \left(\omega_k\right)^N.
 \end{align*}
-A low cost first-order time stepper can be justified since we are
-interested in statistical, rheological, an bulk quantities rather than
+A low cost first-order time stepper can be justified on the grounds that we are
+interested in statistical, rheological, and bulk quantities rather than
 the individual trajectories of the rigid bodies.  If high-order accuracy
 is desired, a Runge-Kutta or deferred correction
 method~\cite{Quaife2015, qua-bir2016} can be applied.
@@ -1081,14 +1081,13 @@ of~\eqref{eqn:BIEformulation} and the minimum separation distance.  If
 the minimum separation distance is small and the interaction between two
 nearly-touching bodies is discretized explicitly, then convergence of
 the LCP solver to the solution of the NCP requires a large number of
-iterations, and the time step size is reduced.  In contrast, if the
+iterations, and the maximum stable time step size is reduced.  In contrast, if the
 interaction between the bodies is discretized implicitly, then the
-stiffness caused by the nearly-touching bodies is resolved and a larger
+stiffness caused by the nearly-touching bodies is resolved and a larger stable
 time step can be taken.
 
 The leading source of stiffness for a particular rigid body is the
-velocity field induced by the body itself. This leading source of
-stiffness is controlled with a {\em locally implicit} discretization
+velocity field induced by the body itself. This can be controlled with a {\em locally implicit} discretization
 \begin{align}
   \DD[\eeta](\xx) \approx \DD^{n}[\eeta^{N+1}](\xx) +
   \DD^{n}[\eeta^N](\xx),
@@ -1097,7 +1096,7 @@ stiffness is controlled with a {\em locally implicit} discretization
 where the superscript of $\DD$ implies that the geometry used in the
 discretization of the layer potential is at time step $n$.  This time
 stepping method is focus of the work of Lu et al.~\cite{Lu2017}.   There,
-to avoid stiffness, caused by nearly-touching bodies, a sufficiently
+to avoid stiffness caused by nearly-touching bodies, a sufficiently
 large minimum separation distance is used.
  
 Instead of avoiding nearly-touching bodies, we use the {\em globally
@@ -1770,7 +1769,7 @@ through the simulation.  The simulations demonstrate that the error in
 the reversibility is the expected sum of the time stepping error and the
 error introduced by the contact algorithm.
 
-We compare our new time stepping method  We use the new time stepping
+We use the new time stepping
 method to compute rheological properties of suspensions including order
 parameters, effective viscosities, and strain rates.  These rheological
 properties are compared with known order parameters for of Jeffery
@@ -1799,11 +1798,10 @@ suspensions.
 
 Even with the development of our new time stepping method, we observe
 difficult cases.  First, a good contact model between mobile bodies and
-fixed rigid walls needs to be developed.  Second, the LCP solver can
+fixed rigid walls needs to be developed.  Second, the NCP solver can
 converge slowly or not at all to a contact-free suspension.  While the
 adaptive time stepping method helps alleviate some of these instances,
-it is clear that additional algorithms or parameters need to be
-adjusted.  Moreover, a more reliable algorithm for choosing an optimal
+it is clear that additional algorithms are neede. Moreover, a more reliable algorithm for choosing an optimal
 time step size would help avoid instances where the time step size is
 reduced many times before a time step is finally accepted.
 
