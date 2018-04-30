@@ -27,18 +27,18 @@ Physics}, {\bf 347}:160--182, 2017] where overlap is avoided by
 imposing a minimum separation distance.  In its original form, the
 method discretizes interactions between different particles explicitly.
 Therefore, to avoid stiffness, a large minimum separation distance is
-used.  In this paper, we extend the method of Lu et al.~by treating the
-particle-particle interactions implicitly.  This new time stepping
-method is able to simulate dense suspensions with large time step sizes
-and a small minimum separation distance.  The method is tested on
-various unbounded and bounded flows, and rheological properties of the
-resulting suspensions are computed.
+used.  In this paper, we extend the method of Lu et al.~by treating all
+interactions implicitly.  This new time stepping method is able to
+simulate dense suspensions with large time step sizes and a small
+minimum separation distance.  The method is tested on various unbounded
+and bounded flows, and rheological properties of the resulting
+suspensions are computed.
 
 \end{abstract}
 
 \begin{keyword}
   Stokes flow \sep Boundary integral method \sep Rigid body suspensions
-  \sep Rheology 
+  \sep Collision handling \sep Rheology 
 \end{keyword}
 
 \maketitle
@@ -96,7 +96,7 @@ coefficient~\cite{Batchelor1971} that depends on the size and
 concentration of the particles, and the solvent viscosity. The ensemble
 average $\langle \cdot \rangle = \int \cdot \,
 \psi(\mathbf{p})\,d\mathbf{p}$ represents a weighted average over the
-probability distribution of particle orientations $\psi(\mathbf{p})$. 
+probability distribution of fiber orientations $\psi(\mathbf{p})$. 
 
 In computer simulations, the fiber orientation distribution is modeled
 implicitly or explicitly. In the \emph{implicit} approach, individual
@@ -175,16 +175,15 @@ composite materials.
 \paragraph{Contributions} Our main contributions are extending the time
 stepping strategy introduced for vesicle suspensions~\cite{Quaife2014}
 to rigid body suspensions, and analyzing the rheological properties of
-the suspensions.  Suspensions of deformable bodies, such as vesicles, have
-the flexibility to deform as they approach one another, and this creates
-a natural minimum separation distance.  However, for rigid body
-suspensions, the inability to deform can force bodies much closer
-together, and numerical errors can easily cause unphysical overlap between particles.  To
-avoid overlap Lu et al.~\cite{Lu2017} develop a contact algorithm that
-guarantees a minimum separation distance between bodies and use a {\em
-locally implicit} time stepping method that only treats inter-body
-interactions implicitly.  That is, if $\uu_{ij}$ is the velocity of body
-$i$ induced
+the suspensions.  Deformable bodies, such as vesicles, deform as they
+approach one another, and this creates a natural minimum separation
+distance.  However, for rigid body suspensions, the inability to deform
+can force bodies much closer together, and numerical errors can easily
+cause unphysical overlap between particles.  To avoid overlap, Lu et
+al.~\cite{Lu2017} developed a contact algorithm that guarantees a
+minimum separation distance between bodies and use a {\em locally
+implicit} time stepping method that only treats inter-body interactions
+implicitly.  That is, if $\uu_{ij}$ is the velocity of body $i$ induced
 by body $j$, then the time stepping method used is
 \begin{align*}
   \frac{\xx_i(t + \Delta t) -  \xx_i(t)}{\Delta t} = 
@@ -195,8 +194,8 @@ the interactions between different bodies explicitly, the minimum
 separation distance must be kept sufficiently large to avoid a small
 time step restriction due to stiffness---a typical minimum separation
 distance is $\mathcal{O}(1)$ arclength spacings.  In line with previous
-work of one of the authors~\cite{Quaife2014}, we discretize both inter-
-and intra-fiber interactions semi-implicitly
+work of one of the authors~\cite{Quaife2014}, we discretize all
+interactions semi-implicitly
 \begin{align*}
   \frac{\xx_i(t + \Delta t) -  \xx_i(t)}{\Delta t} = 
     \uu_{ii}(t+\Delta t) + \sum_{j \neq i} \uu_{ij}(t+\Delta t).
@@ -208,70 +207,65 @@ is $\mathcal{O}(10^{-2})$ arclength spacings.
 
 While maintaining a minimum separation distance is important for stable
 simulations, the contact algorithm developed by Lu et al.~does introduce
-artificial forces that shifts bodies onto different streamlines.  This
-has an effect of breaking the reversibility of the Stokes equations.  We
-carefully examine the effect that the contact algorithm has on the
-reversibility of the flow.  Finally, we apply our new time stepping to
-examine the rheological properties of dense rigid body suspensions with
-small minimum separation distances.  In particular, we compute the
-effective shear viscosity of a suspension of rigid bodies in a Couette
-device, examine the alignment angle of elliptical bodies of varying area
-fraction and aspect ratio, and compare the results to analytical
-Jeffery's orbits.
+artificial forces that shifts bodies onto different streamlines, and
+this breaks  the reversibility of the Stokes equations.  We examine the
+effect of the contact algorithm on the reversibility of the flow.
+Finally, we use our new time stepping to examine the rheological
+properties of dense rigid body suspensions with small minimum separation
+distances.  In particular, we compute the effective shear viscosity of a
+suspension of rigid bodies in a Couette device, examine the alignment
+angle of elliptical bodies of varying area fraction and aspect ratio,
+and compare the results to analytical Jeffery's orbits.
 
 \paragraph{Limitations} The main limitation is that the method is
 developed in two dimensions.  By limiting ourselves to two dimensions,
-we are able to perform simulations of denser suspensions  than would be possible in three-dimensions.  However, many of
-the algorithms we present have been developed in three dimensions
-including boundary integral equation methods and fast summation
-methods~\cite{cor-gre-rac-vee2017, kli-tor2014, kli-tor2016}.  The most
-challenging algorithms to extend to three dimensions include efficient
-preconditioners and the space-time interference volume that requires
-efficiently integrating a four-dimensional domain ($3$ space dimensions
-and $1$ time dimension).
+we are able to perform simulations of denser suspensions  than would be
+possible in three dimensions.  However, the algorithms we present have
+been developed in three dimensions including boundary integral equation
+methods and fast summation methods~\cite{cor-gre-rac-vee2017,
+kli-tor2014, kli-tor2016}.  The most challenging algorithms to extend to
+three dimensions include efficient preconditioners and a suspension
+space-time interference volume that integrates a four-dimensional domain
+($3$ space dimensions and $1$ time dimension).
 
 
-\paragraph{Related work} Rather than giving an exhaustive list of work
-related to particulate suspensions in viscous fluids, we focus on
+\paragraph{Related work} Rather than presenting an exhaustive list of
+work related to particulate suspensions in viscous fluids, we focus on
 literature related to BIEs and time stepping for rigid body suspensions.
-A more general overview of BIEs for particulate suspensions can be found
-in the texts~\cite{Pozrikidis1992, Guazzelli2011, Karrila1991}.  This
-work draws heavily from methods developed for simulating two-dimensional
-vesicle suspensions~\cite{Quaife2014, Quaife2015, qua-bir2016,
-Rahimian2010, Lu2017}.  We represent the velocity as a completed
-double-layer potential representation~\cite{Power1987, Power1993,
-Karrila1989} that is discretized with a Nystr\"om method using the
-trapezoid rule~\cite{Trefethan2014} and solved iteratively with
-GMRES~\cite{Saad1986}.  Alternatively, a Galerkin discretization is
-possible~\cite{Mammoli1999, Mammoli2002, Mammoli2006}.
+A more complete overview of BIEs for particulate suspensions can be
+found in the texts~\cite{Pozrikidis1992, Guazzelli2011, Karrila1991}.
+Our work draws heavily from methods developed for simulating
+two-dimensional vesicle suspensions~\cite{Quaife2014, Quaife2015,
+qua-bir2016, Rahimian2010, Lu2017}.  
 
-The numerical solution of integral equations requires efficient
+We represent the velocity as a completed double-layer potential
+representation~\cite{Power1987, Power1993, Karrila1989} that is
+discretized with high-order quadrature and solved iteratively with
+GMRES~\cite{Saad1986}.  By using a double-layer potential, a second-kind
+integral equation needs to be solved.  Upon discretization, the required
+number of GMRES iterations is mesh-independent~\cite{Campbell1996}, but
+it is geometry-dependent.  Therefore, preconditioners are often applied.
+There are a variety of preconditioners available for integral
+equations~\cite{cou-pou-dar2017, che2000, qua-cou-dar2018, Quaife2015a,
+bra-lub1990, hem-sch1981}, we apply a simple block-diagonal
+preconditioner that was successfully used for vesicle
+suspensions~\cite{Quaife2014}.
+
+The numerical solution of integral equations requires accurate
 quadrature methods for a variety of integrands.  Many of these
 integrands are smooth and periodic, and the trapezoid rule is typically
 used since it guarantees spectral accuracy~\cite{Trefethan2014}.
 However, integrands with large derivatives must be computed when bodies
-are in near-contact, and this is a certainty at high concentrations.  We
+are in near-contact, and this is a certainty in dense suspensions.  We
 apply an interpolation-based quadrature method~\cite{Ying2006,
 Quaife2014} since it is efficient and extends to three dimensions, but
 other near-singular integration schemes are possible~\cite{Klockner2013,
 Barnett2015, Beale2016, Helsing2008, Kropinski1999, Mammoli2006,
-Siegel2018}.  Finally, by using a double-layer potential formulation we
-do not require quadrature methods for logarithmic terms.  However, when
-computing the pressure and stress, this involves hyper-singular
-integrands, and we use a combination of singularity subtraction and
-odd-even integration~\cite{sid-isr1988, Quaife2014}.
-
-We use a double-layer potential so that the resulting integral equation
-is second-kind.  Therefore, after discretizing with accurate quadrature,
-the result is a dense linear system that is solved with a
-mesh-independent number of GMRES iterations~\cite{Saad1986}.  While the
-required number of GMRES iterations is
-mesh-independent~\cite{Campbell1996}, it is not geometry independent.
-Therefore, preconditioners are often applied.  There are a variety of
-preconditioners available for integral equations~\cite{cou-pou-dar2017,
-che2000, qua-cou-dar2018, Quaife2015a, bra-lub1990, hem-sch1981}, we
-apply a simple block-diagonal preconditioner that was successfully used
-for vesicle suspensions~\cite{Quaife2014}.
+Siegel2018}.  The same interpolation-based near-singular integration
+scheme is used to compute the pressure and stress, but a combination of
+singularity subtraction and odd-even integration~\cite{sid-isr1988,
+Quaife2014} is also used to resolve high-order singularities in the
+integrands.
 
 The greatest opportunity of acceleration is reducing the cost of the
 matrix-vector multiplication required at each GMRES iteration.  We use
