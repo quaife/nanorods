@@ -1,68 +1,92 @@
-\documentclass[preprint, 10pt]{elsarticle}
+\documentclass[AMA,STIX1COL]{WileyNJD-v2}
 
-\newcommand{\mcaption}[2]{\caption{\small \em #1}\label{#2}}
-\newcommand{\secref}[1]{\ref{#1}}
+\usepackage{todonotes}
+\articletype{Research Article}%
+
+\received{}
+\revised{}
+\accepted{}
+
+\raggedbottom
 
 \input{preambles.tex}
-
 \begin{document}
 
 \title{Stable and contact-free time stepping for dense rigid particle
 suspensions}
 
-\author[Lukas]{Lukas Bystricky}
-\author[Lukas]{Sachin Shanbhag}
-\author[Bryan]{Bryan D.~Quaife}
-\address[Lukas]{Department of Scientific Computing, Florida State University,
-Tallahassee, FL, 32306.}
-\address[Bryan]{Department of Scientific Computing and Geophysical Fluid
-Dynamics Institute, Florida State University, Tallahassee, FL, 32306.}
+\author[1]{Lukas Bystricky}
 
-\begin{abstract} 
-We consider suspensions of rigid bodies in a two-dimensional viscous
-fluid. Even with high-fidelity numerical methods, unphysical contact
-between particles occurs because of spatial and temporal discretization
-errors.  We apply the method of Lu et al.~[{\em Journal of Computational
-Physics}, {\bf 347}:160--182, 2017] where overlap is avoided by
-imposing a minimum separation distance.  In its original form, the
-method discretizes interactions between different particles explicitly.
-Therefore, to avoid stiffness, a large minimum separation distance is
-used.  In this paper, we extend the method of Lu et al.~by treating all
-interactions implicitly.  This new time stepping method is able to
-simulate dense suspensions with large time step sizes and a small
-minimum separation distance.  The method is tested on various unbounded
-and bounded flows, and rheological properties of the resulting
-suspensions are computed.
+\author[1]{Sachin Shanbhag}
 
-\end{abstract}
+\author[1,2]{Bryan Quaife*}
 
-\begin{keyword}
-  Stokes flow \sep Boundary integral method \sep Rigid body suspensions
-  \sep Collision handling \sep Rheology 
-\end{keyword}
+\authormark{Bystricky \textsc{et al}}
+
+
+\address[1]{\orgdiv{Department of Scientific Computing},
+\orgname{Florida State University}, \orgaddress{\state{Florida},
+\country{USA}}}
+
+\address[2]{\orgdiv{Geophysical Fluid Dynamics Institute},
+\orgname{Florida State University}, \orgaddress{\state{Florida},
+\country{USA}}}
+
+\corres{Bryan Quaife, Department of Scientific Computing, Florida State
+University. \email{bquaife@fsu.edu}}
+
+%\presentaddress{This is sample for present address text this is sample for present address text}
+
+\abstract[Summary]{We consider suspensions of rigid bodies in a
+two-dimensional viscous fluid. Even with high-fidelity numerical
+methods, unphysical contact between particles occurs because of spatial
+and temporal discretization errors.  We apply the method of Lu et
+al.~[{\em Journal of Computational Physics}, {\bf 347}:160--182, 2017]
+where overlap is avoided by imposing a minimum separation distance.  In
+its original form, the method discretizes interactions between different
+particles explicitly.  Therefore, to avoid stiffness, a large minimum
+separation distance is used.  In this paper, we extend the method of Lu
+et al.~by treating all interactions implicitly.  This new time stepping
+method is able to simulate dense suspensions with large time step sizes
+and a small minimum separation distance.  The method is tested on
+various unbounded and bounded flows, and rheological properties of the
+resulting suspensions are computed.}
+
+\keywords{Stokes flow, Boundary integral method, Rigid body suspensions,
+Collision handling, Rheology}
+
+\jnlcitation{\cname{%
+\author{L.~Bystricky}, 
+\author{S. Shanbhag}, 
+\author{B. Quaife}} (\cyear{2018}), 
+\ctitle{Stable and contact-free time stepping for dense rigid particle
+  suspensions},
+\cjournal{Int J Numer Meth Fl},
+\cvol{}.}
 
 \maketitle
 
+%\footnotetext{\textbf{Abbreviations:} ANA, anti-nuclear antibodies; APC, antigen-presenting cells; IRF, interferon regulatory factor}
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\section{Introduction\label{s:intro}}
+
+\section{Introduction}\label{s:intro}
 Dispersions of particulate rods or fibers are used in composite
 materials to tune mechanical, thermal, and electrical properties.
 Typically, these materials are processed in the melt or liquid
-suspension state via operations like injection molding, extrusion, or
-casting. It is important to model fiber suspensions for two reasons: (i)
-the distribution and orientation of the fibers, which determines the
-properties of the composite material, are governed by the flow history
-during processing, and (ii) the rheological properties of the
-suspension, which influence the flow behavior, in turn, depend on the
-size, shape, distribution, and orientation of the
+suspension state via operations like injection molding, extrusion,
+casting, etc. It is important to model fiber suspensions for two
+reasons: (i) the distribution and orientation of the fibers, which
+determines the properties of the composite material, are governed by the
+flow history during processing, and (ii) the rheological properties of
+the suspension, which influence the flow behavior, in turn, depend on
+the size, shape, distribution, and orientation of the
 fibers~\cite{larsoncf}.
 
 The theory of rigid fibers in flowing fluids was pioneered by
 Jeffery~\cite{Jeffery1922} who analyzed the motion of a single
 spheroidal particle sheared in a Newtonian solvent. At a given shear
 rate $\dot{\gamma}$, he observed that fibers of length $\ell$ and
-diameter $d$ underwent periodic motion with a period $(\pi/\dot{\gamma})
+diameter $d$ underwent periodic motion with a period $\pi/(2|\dot{\gamma}|)
 (\lambda + 1/\lambda)$, where $\lambda = \ell/d$ is the aspect ratio.
 The period increases with $\lambda$, and when $\lambda \gg 1$, a
 particle exhibiting a ``Jeffery's orbit" stays aligned with the flow
@@ -72,16 +96,16 @@ half-revolution. In the dilute regime (number of rods/unit volume $\nu <
 as cylinders, can be quantitatively described via Jeffery's orbits once
 corrections are made for particle shape~\cite{Bretherton1962}.
 
-As $\nu$ increases, the interactions between fibers become significant.
+As $\nu$ increases, interactions between fibers become significant.
 Batchelor extended Jeffery's theory for multiple particles, by relating
-the average stress tensor, ${\bm \sigma}$, to the distribution of fiber
+the average stress tensor, $\ssigma$, to the distribution of fiber
 orientation $\mathbf{p}$, and the deformation tensor $\mathbf{D} =
 (\nabla \mathbf{u} + \nabla \mathbf{u}^\intercal)/2$. Assuming purely
 hydrodynamic interactions between fibers, and a slender body
 approximation ($\lambda \gg 1$)~\cite{Batchelor1970, Batchelor1970a,
 Doi1978, Dinh1984, Shaqfeh1990},
 \begin{align}
-  {\bm \sigma} = 2 \mu \mathbf{D} + \nu \zeta 
+  \ssigma = 2 \mu \mathbf{D} + \nu \zeta 
     \langle \mathbf{p p p p} \rangle : \mathbf{D},
 \label{eqn:batchelor}
 \end{align}
@@ -126,13 +150,13 @@ contribution of the fibers to the steady shear viscosity is relatively
 modest in non-Brownian suspensions. This is especially true for high
 aspect ratio fibers which rotate and align along the flow direction, and
 contribute to the viscosity only during the occasional
-tumble~\cite{larsoncf}.  Thus, one ought to be careful not to interpret
-the success of theory and computer models in predicting the viscosity
-change in the semi-dilute regime as validation of the underlying fiber
-interaction model. Indeed fiber-fiber interactions are more sensitively
-reflected in other viscometric functions such as first normal stress
-difference, and distribution of orientations as reflected in, for
-example, the dispersion of Jeffery's orbits~\cite{Lindstroem2009}.
+tumble~\cite{larsoncf}.  Thus, the success of theory and computer models
+in predicting the viscosity change in the semi-dilute regime does not
+automatically validate the underlying fiber interaction model. Indeed
+fiber-fiber interactions are more sensitively reflected in other
+viscometric functions such as first normal stress difference, and
+distribution of orientations as reflected in, for example, the
+dispersion of Jeffery's orbits~\cite{Lindstroem2009}.
 
 Once the concentration increases beyond $\nu \approx 1/d\ell^2$, the
 suspension enters the concentrated regime. Here, excluded volume
@@ -175,7 +199,7 @@ distance.  However, for rigid body suspensions, the inability to deform
 can force bodies much closer together, and numerical errors can easily
 cause unphysical overlap between particles.  To avoid overlap, Lu et
 al.~\cite{Lu2017} developed a contact algorithm that guarantees a
-minimum separation distance between bodies and use a {\em locally
+minimum separation distance between bodies and used a {\em locally
 implicit} time stepping method that only treats inter-body interactions
 implicitly.  That is, if $\uu_{ij}$ is the velocity of body $i$ induced
 by body $j$, then the time stepping method used is
@@ -270,7 +294,7 @@ iterations can be entirely avoided by applying a direct solver for
 BIEs~\cite{mar-bar-gil-vee2016}, but these solvers would have to be
 updated at each time step since the geometry is dynamic.
 
-Once the BIE formulation of the appropriate fluid equations are solved
+Once the appropriate BIE formulation of the fluid equations are solved
 for the translational and rotational velocities, a time step must be
 taken.  We adopt a Lagrangian approach, and since the bodies are rigid,
 we only need to track each body's center and inclination angle.
@@ -313,9 +337,8 @@ numerical methods used to form numerical solutions.
 The results are described in Section~\ref{s:results}, and conclusions
 are drawn in Section~\ref{s:conclusions}.
 
-
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\section{Formulation\label{s:formulation}} 
+\section{Formulation}\label{s:formulation} 
 We consider a collection of rigid particles suspended in a
 two-dimensional bounded or unbounded domain, $\Omega$, with boundary
 $\partial\Omega$. We let $\Gamma$ be the boundary of the fluid geometry,
@@ -330,22 +353,20 @@ an interior point $\cc^\gamma_i$ and a corresponding orientation angle
 $\theta_i$.  A schematic of the geometry is in
 Figure~\ref{fig:geomSchematic}.
 
-\begin{figure}[!h]
-\begin{center}
-\includegraphics{figures/multiply_connected.pdf}
-\end{center}
-\caption{\label{fig:geomSchematic}A sketch of a bounded fluid domain
-$\Omega$.  $\gamma_1$ and $\gamma_2$ enclose rigid particles, while
-$\Gamma_1$ is a solid wall.  If $\Omega$ is unbounded,  $\Gamma_0$  is
-not present.  The vector $\nn$ is the unit normal vector pointing out of
-the fluid domain.}
+\begin{figure}[t]
+  \centerline{\includegraphics{figures/multiply_connected.pdf}}
+\caption{A sketch of a bounded fluid domain $\Omega$.  $\gamma_1$ and
+  $\gamma_2$ enclose rigid particles, while $\Gamma_1$ is a solid wall.
+  If $\Omega$ is unbounded,  $\Gamma_0$  is not present.  The vector
+  $\nn$ is the unit normal vector pointing out of the fluid
+domain.\label{fig:geomSchematic}}
 \end{figure}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{Governing Equations}\label{sec:governing}
 
 We are interested in small particles and slow velocities which renders
-the Reynolds number small $\Re \ll 1$, and the fluid is governed by the
+the Reynolds number small ($\Re \ll 1$), and the fluid is governed by the
 incompressible Stokes equations.  A Dirichlet boundary condition $\UU$
 is imposed on the solid walls $\Gamma$, a no-slip boundary condition is
 imposed on the rigid bodies $\gamma$, and the rigid bodies are assumed
@@ -357,7 +378,7 @@ the time being, are assumed to be 0.  Therefore, the governing equations
 for $M_p$ particles suspended in a bounded $M_w$-connected domain is
 \begin{equation}
   \label{eqn:modelEquations}
-  \begin{split}
+  \begin{aligned}
   \mu \Delta \uu = \grad p, &\hspace{20pt} \xx \in \Omega, \gap
     &&\mbox{\em conservation of momentum,}\\
   \grad \cdot \uu = 0, &\hspace{20pt} \xx \in \Omega, \gap
@@ -370,7 +391,7 @@ for $M_p$ particles suspended in a bounded $M_w$-connected domain is
     &&\mbox{\em force-free bodies,} \\
   L_j^\gamma = 0, &\hspace{20pt}j=1,\ldots,M_p, \gap 
     &&\mbox{\em torque-free bodies.}
-  \end{split}
+  \end{aligned}
 \end{equation}
 Here, $\uu$ is the velocity, $p$ is the pressure, $\mu$ is the fluid
 viscosity, $\uu^\tau_j$ and $\omega_j$ are the translational and
@@ -387,10 +408,8 @@ Upon solving for the translational and rotational velocities, the rigid
 body centers and inclination angles $(\cc_j,\theta_j)$,
 $j=1,\ldots,M_p$, satisfy
 \begin{align}
-\begin{split}
   \frac{d\cc_j}{dt} = \uu^\tau_j, \qquad 
   \frac{d\theta}{dt} = \omega_j.
-\end{split}
 \label{eqn:centersAngles}
 \end{align}
 Equations~\eqref{eqn:modelEquations} and~\eqref{eqn:centersAngles} govern
@@ -415,7 +434,7 @@ methods~\cite{Dou2007}, immersed boundary methods~\cite{Mittal2005},
 dissipative particle dynamics~\cite{Pivkin2010}, smoothed particle
 hydrodynamics~\cite{Polfer2016}, and lattice Boltzmann
 methods~\cite{Ladd1994a, Ladd1994b}. However, because the fluid
-equations are linear a boundary integral equation (BIE)
+equations are linear, a boundary integral equation (BIE)
 formulation~\cite{Pozrikidis1992} is possible.  BIEs have several
 advantages including that only the interface has to be tracked, which
 simplifies the representation of complex and moving geometries, and
@@ -460,7 +479,7 @@ integral equation~\eqref{eqn:secondKindBIE} is replaced with the
 completed second-kind BIE
 \begin{equation}
   \label{eqn:completed_DLP}
-  \begin{split}
+  \begin{aligned}
   -\frac{1}{2}\eeta(\xx_0) + \DD[\eeta](\xx_0) + 
     \sum_{j=1}^{M_w} \left(\mathbf{S}(\xx,\cc^\Gamma_j)\FF^\Gamma_j + 
       \mathbf{R}(\xx,\cc^\Gamma_j)L^\Gamma_j\right) &= \UU(\xx_0),
@@ -469,7 +488,7 @@ completed second-kind BIE
       &&j=1,\ldots,M_w, \\
   \int_{\Gamma_j} \eeta\cdot (\xx - \cc^\Gamma_j)^\perp~\text{d}s &=   
       L^\Gamma_j, &&j=1,\ldots,M_w.
-  \end{split}
+\end{aligned}
 \end{equation}
 
 We now introduce a suspension of rigid bodies $\gamma_j$,
@@ -526,9 +545,9 @@ space is removed by adding the term
 to~\eqref{eqn:BIEformulation1}, but only for points $\xx \in \Gamma_0$.
 Finally, if $\Omega$ is unbounded, equation~\eqref{eqn:BIEformulation}
 has no null space, and the only modification is that
-equation~\eqref{eqn:BIEformulation1} is removed and
-equation~\eqref{eqn:BIEformulation2} has the background velocity
-$\uu_\infty(\xx)$ is added to its right hand side.
+equation~\eqref{eqn:BIEformulation1} is removed, and the background
+velocity $\uu_\infty(\xx)$ is added to the right hand side of
+equation~\eqref{eqn:BIEformulation2}.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{A Contact-Based Repulsion Force}
@@ -550,7 +569,7 @@ Lennard-Jones potential that grows as a high order polynomial as two
 bodies approach~\cite{Flormann2017, Liu2006}. This has been shown to
 work for dense suspensions, but the resulting ODEs for the rigid body
 dynamics become very stiff as the separation between bodies decreases.
-Spring models~\cite{Tsubota2006, Zhao2013, Kabacogulu2017} have also
+Spring models~\cite{Tsubota2006, Kabacogulu2017} have also
 been used to generate artificial repulsion forces, but these models also
 introduce stiffness. A further disadvantage of many contact algorithms
 is that they do not guarantee that particles remain contact-free.
@@ -573,26 +592,23 @@ defined as the volume in space-time distance swept out by the trajectory
 of two bodies, is computed.  Next, equation~\eqref{eqn:stokesEL} is
 supplemented with an additional constraint that the STIV is positive (no
 contact).  As detailed in~\cite{Lu2017, Harmon2011}, STIV offer a metric
-to quantify collision volumes.  By using computing the STIV, rather than
+to quantify collision volumes.  By computing the STIV, rather than
 simply the overlap at the new time step, time steps that result in rigid
 bodies passing through each other are detected and resolved.  Details
 for solving~\eqref{eqn:stokesEL} with the STIV inequality constraint are
 given in Section~\ref{sec:contact}.
-
-
-
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{Computing the Pressure and Stress}
 To understand the rheological and statistical properties of suspensions
 of rigid bodies, it is necessary to compute the pressure, stress, and
 energy dissipation.  This expressions are standard~\cite{Power1993}, but
-we summarize them for completeness.  A numerical method for Computing
+we summarize them for completeness.  A numerical method for computing
 the pressure, stress, and energy dissipation is described in
 Section~\ref{sec:spatial}.
 
 The pressure of the two-dimensional double-layer potential
-is~cite{Power1993}
+is~\cite{Power1993}
 \begin{align*}
   p(\xx) = \frac{1}{\pi}\int_{\partial\Omega}\frac{1}{\rho^2}\left(
 \mathbf{I} - 2\frac{\rr \otimes \rr}{\rho^2}\right)\nn\cdot\eeta~\text{d}s,
@@ -650,11 +666,11 @@ These expressions hold inside $\Omega$. On the boundary there is a jump
 in the pressure and stress, as reported in~\cite{Quaife2014}.  These
 boundary terms are required for our near-singular integration scheme
 described in Section~\ref{sec:spatial}.  Finally, using the divergence
-theorem, we the volumed average stresses can be expressed in terms of
+theorem, the volumed average stresses can be expressed in terms of
 boundary integrals~\cite{Pozrikidis1992}. 
 		
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\section{Numerical Methods\label{s:method}} 
+\section{Numerical Methods}\label{s:method}
 We are ultimately interested in studying statistical and rheological
 properties of the fiber suspensions.  Therefore, we develop stable
 numerical methods that solve the governing
@@ -686,8 +702,8 @@ a Fourier series
 The rigid walls are identically discretized at $N_w$ points and
 functions defined on the rigid walls are also represented with a Fourier
 series.  We use the FFT to compute the Fourier coefficients, and all
-derivatives are computed with spectral accuracy using by differentiating
-in Fourier space.
+derivatives are computed with spectral accuracy by differentiating in
+Fourier space.
 
 With collocation points defined on the rigid walls and solid bodies, we
 now discretize the layer potentials.  We use a Nystr\"om method by
@@ -760,13 +776,13 @@ needs to be solved with the inequality constraint that the STIV is
 greater than zero.  The definition of the STIV includes a parameter that
 guarantees that not only do bodies intersect, but they maintain minimum
 separation distance. Following~\cite{Lu2017}, we use a Lagrange
-multiplier, $\lambda$, to satisfy the non-negative STIV inequality
-constraint (a negative STIV indicates contact).  The resulting equations
-are  the incompressible Stokes equations with body forces and torques
-that depend on the gradient of the STIV, and the inequality constraint
-that the STIV is less than or equal to zero.  Therefore, the governing
-equations are similar to~\eqref{eqn:BIEformulation}, except that the
-force- and torque-free conditions have been changed.
+multiplier to satisfy the non-negative STIV inequality constraint (a
+negative STIV indicates contact).  The resulting equations are  the
+incompressible Stokes equations with body forces and torques that depend
+on the gradient of the STIV, and the inequality constraint that the STIV
+is less than or equal to zero.  Therefore, the governing equations are
+similar to~\eqref{eqn:BIEformulation}, except that the force- and
+torque-free conditions have been changed.
 
 The resulting equation is a non-linear complementary problem (NCP) To
 solve the NCP, the problem is linearized as a sequence of linear
@@ -819,15 +835,15 @@ desired, a Runge-Kutta or deferred correction method~\cite{Quaife2015,
 qua-bir2016} can be applied.
 
 Since the dynamics of the suspension can develop complex features, we
-use an heuristic adaptive time stepping method.  When the LCP solver
+use a heuristic adaptive time stepping method.  When the LCP solver
 requires many iterations to solve the NCP, this indicates that the time
 step size should be reduced.  Conversely, if the LCP solver converges
 quickly to the solution of the NCP, then a larger time step size can be
-taken.  Therefore, if the each LCP iteration is not converging
-to a contact-free configuration sufficiently fast, we abort the time
-step and restart with the time step size $\Delta t/2$. Conversely, if
-the LCP iteration converges quickly, then, at the next time step, we
-increase $\Delta t$ to $1.5\Delta t$.
+taken.  Therefore, if each LCP iteration is not converging to a
+contact-free configuration sufficiently fast, we abort the time step and
+restart with the time step size $\Delta t/2$. Conversely, if the LCP
+iteration converges quickly, then, at the next time step, we increase
+$\Delta t$ to $1.5\Delta t$.
 
 The stability of the method depends on the discretization
 of~\eqref{eqn:BIEformulation} and the minimum separation distance.  If
@@ -840,7 +856,8 @@ implicitly, then the stiffness caused by the nearly-touching bodies is
 resolved and a larger stable time step can be taken.
 
 The leading source of stiffness for a particular rigid body is the
-velocity field induced by the body itself. This can be controlled with a {\em locally implicit} discretization
+velocity field induced by the body itself. This can be controlled with a
+{\em locally implicit} discretization
 \begin{align}
   \DD[\eeta](\xx) \approx \DD^{n}[\eeta^{N+1}](\xx) +
   \DD^{n}[\eeta^N](\xx),
@@ -874,7 +891,7 @@ matrix.  In contrast, a discretization of the globally implicit time
 stepper~\eqref{eqn:SemiImplicit} results in a dense $N \times N$ linear
 system.  Therefore, considering only the rigid body contributions, the
 cost of a single matrix-vector multiplication is $\mathcal{O}(M_p
-N_p^2)$ for~\eqref{eqn:BlockImplicit} and $\mathcal{O}(M_p^2 N_p^2$
+N_p^2)$ for~\eqref{eqn:BlockImplicit} and $\mathcal{O}(M_p^2 N_p^2)$
 for~\eqref{eqn:SemiImplicit}.  We reduce the cost of matrix-vector
 multiplication by using the fast multipole method.  This reduces the
 cost of a single matrix-vector multiplication for both the locally
@@ -912,7 +929,7 @@ near-singular integration scheme are reported in~\cite{Quaife2014}.
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\section{Results\label{s:results}} 
+\section{Results}\label{s:results}
 We use our new time stepping method to simulate bounded and unbounded
 suspensions of two-dimensional rigid bodies in a viscous fluid.  The
 main parameters are the minimum separation distance $\delta$, the number
@@ -947,12 +964,11 @@ are now summarized.
   the shear strain rate and make qualitative comparisons to results for
   deformable bodies~\cite{MacMinn2015}.
 
-  \item {\bf Taylor-Couette Flow}: With the ability to do high area
-  fraction suspensions without imposing a large non-physical minimum
-  separation distance, we simulate rigid bodies of varying aspect ratios
-  inside a Taylor-Couette device.  We examine the effect of the rigid
-  body shape and area fraction on the effective viscosity and the
-  alignment angles.
+  \item {\bf Taylor-Couette Flow}: With the ability to do concentrated
+  suspensions without imposing a large non-physical minimum separation
+  distance, we simulate rigid bodies of varying aspect ratios inside a
+  Taylor-Couette device.  We examine the effect of the rigid body shape
+  and concentration on the effective viscosity and the alignment angles.
 \end{itemize}
 
 
@@ -992,14 +1008,15 @@ plot, the final vertical displacement body initially on the left is
 plotted.  These results are computed for the locally implicit time
 stepping method~\cite{Lu2017}, and the general trend of the trajectories
 are similar.
-\begin{figure}[!h]
-  \begin{center}
-    \includegraphics{figures/shear_setup1.pdf}
+\begin{figure}[t]
+  \centerline{
+  \includegraphics{figures/shear_setup1.pdf}}
+  \centerline{
     \begin{tabular}{c c}
       \includegraphics{figures/shear_displacement1.pdf} &
       \includegraphics{figures/separation_displacement1.pdf}
     \end{tabular}
-  \end{center}
+  }
 \caption{\label{fig:shear_experiment} Shear experiment. Top: The initial
 setup and trajectory of the left body.   Bottom left: The left body's
 trajectory for varying minimum separation distances.  Notice how
@@ -1015,8 +1032,8 @@ measure the error between the body's center at $t=0$ and $t=20$.  We
 expect an error that is the sum of a first-order error caused by time
 stepping, and a fixed constant caused by the minimum separation
 distance.  The results for various values of $\delta$ are reported in
-Table~\ref{tab:reverse}. When the contact algorithm is not applied
-when $\delta=0$ and $\delta=h$, we observe the expected
+Table~\ref{tab:reverse}. The contact algorithm is not applied
+when $\delta=0$ and when $\delta=h$, and we observe the expected
 first-order convergence.  When $\delta \geq 2h$, the bodies are
 deflected onto contact-free streamlines when their proximity reaches the
 minimum separation distance.  After the flow is reversed, the bodies
@@ -1025,46 +1042,47 @@ the initial deflection is not reversed.  For these larger values of
 $\delta$, we see in Table~\ref{tab:reverse} that the error eventually
 plateaus as $\Delta t$ is decreased.
 
-\begin{table}[!h]
-\begin{center}
-\begin{tabular}{c| c c c c c}
-$ $ & & & $\Delta t$ & &\\
-$\delta$ & $4\e{-2}$ &$ 2\e{-2}$ & $1\e{-2}$ & $5\e{-3}$ & $2.5\e{-3}$\\
-\hline
-0 & $1.35\e{-1}$ & $7.32\e{-2}$ & $3.74\e{-2}$ & $2.00\e{-2}$ & $1.01\e{-2}$\\
-$h$ & $1.35\e{-1}$ & $7.32\e{-2}$ & $3.74\e{-2}$ & $2.00\e{-2}$ & $1.01\e{-2}$\\
-$2h$ & $1.88\e{-1}$ & $1.41\e{-1}$ & $1.17\e{-1}$ & $1.08\e{-1}$ &
-$1.02\e{-1}$\\
-$2.25h$ & $2.55\e{-1}$ & $2.08\e{-1}$ & $1.87\e{-1}$ & $1.78\e{-1}$ &
-$1.73\e{-1}$\\
-$2.50h$ & $3.05\e{-1}$ & $2.69\e{-1}$ & $2.52\e{-1}$ & $2.45\e{-1}$ &
-$2.40\e{-1}$\\
-$2.75h$ & $3.64\e{-1}$ & $3.31\e{-1}$ & $3.13\e{-1}$ & $3.07\e{-1}$ &
-$3.03\e{-1}$\\
-$3.00h$ & $4.12\e{-1}$ & $3.88\e{-1}$ & $3.72\e{-1}$ & $3.67\e{-1}$ &
-$3.63\e{-1}$
-\end{tabular}
-\end{center}
+\begin{table}[t]
 \caption{A study of time reversibility of the shear flow example. At
-$t=10$, the flow direction is reversed and we calculate the relative
-error in the initial and final positions. When the collision constraint
-is active and force is needed to keep the bodies apart the error in
-the reversibility is dominated by the contact
-algorithm.}\label{tab:reverse}
+  $t=10$, the flow direction is reversed and we calculate the relative
+  error in the initial and final positions. When the collision
+  constraint is active and force is needed to keep the bodies apart the
+  error in the reversibility is dominated by the contact
+algorithm.\label{tab:reverse}}
+  \centering
+  \begin{tabular*}{500pt}{@{\extracolsep\fill}c| c c c c c@{\extracolsep\fill}}
+    \toprule
+%    $ $ & & & $\Delta t$ & &\\
+    $\delta$ & $\Delta t = 4\e{-2}$ &$\Delta t = 2\e{-2}$ &$\Delta t =
+    1\e{-2}$ &$\Delta t = 5\e{-3}$ &$\Delta t = 2.5\e{-3}$\\
+    \midrule
+    0 & $1.35\e{-1}$ & $7.32\e{-2}$ & $3.74\e{-2}$ & $2.00\e{-2}$ & $1.01\e{-2}$\\
+    $h$ & $1.35\e{-1}$ & $7.32\e{-2}$ & $3.74\e{-2}$ & $2.00\e{-2}$ & $1.01\e{-2}$\\
+    $2h$ & $1.88\e{-1}$ & $1.41\e{-1}$ & $1.17\e{-1}$ & $1.08\e{-1}$ &
+    $1.02\e{-1}$\\
+    $2.25h$ & $2.55\e{-1}$ & $2.08\e{-1}$ & $1.87\e{-1}$ & $1.78\e{-1}$ &
+    $1.73\e{-1}$\\
+    $2.50h$ & $3.05\e{-1}$ & $2.69\e{-1}$ & $2.52\e{-1}$ & $2.45\e{-1}$ &
+    $2.40\e{-1}$\\
+    $2.75h$ & $3.64\e{-1}$ & $3.31\e{-1}$ & $3.13\e{-1}$ & $3.07\e{-1}$ &
+    $3.03\e{-1}$\\
+    $3.00h$ & $4.12\e{-1}$ & $3.88\e{-1}$ & $3.72\e{-1}$ & $3.67\e{-1}$ &
+    $3.63\e{-1}$ \\
+    \bottomrule
+  \end{tabular*}
 \end{table}
 
 The break in reversibility is further demonstrated by examining
 individual streamlines.  In Figure~\ref{fig:shear_cross}, we compute the
 streamline of the left body for three different initial placements.  We
 set $\delta=3h$ for all the streamlines.  With this threshold, only the
-bottom-most streamline falls below $\delta$.  Therefore, as the bodies approach, the streamlines behave as expected---they do
-not cross.  However, when the contact algorithm is applied to the blue
-streamline, the streamlines cross.
+bottom-most streamline falls below $\delta$.  Therefore, as the bodies
+approach, the streamlines behave as expected---they do not cross.
+However, when the contact algorithm is applied to the blue streamline,
+the streamlines cross.
 
-\begin{figure}[!h]
-\begin{center}
-\includegraphics{figures/shear_streamlines_cross.pdf}
-\end{center}
+\begin{figure}[t]
+\centerline{\includegraphics{figures/shear_streamlines_cross.pdf}}
 \caption{\label{fig:shear_cross} The contact algorithm causes
 streamlines to cross. Keeping the minimum separation fixed at
 $\delta=3h$, we vary the starting $y$ location of the left body. The
@@ -1083,7 +1101,7 @@ concentrated regimes by comparing the number of bodies per unit area,
 $\nu$, to the average body length $\ell$. If $\nu < 1/\ell^2$, then we
 are in the dilute regime, otherwise we are in the concentrated regime
 (in 2D planar suspensions, unlike 3D suspensions, there is no
-semi-dilute regimes).  We consider the suspension of 75 rigid bodies in
+semi-dilute regime).  We consider the suspension of 75 rigid bodies in
 the Taylor-Green flow $\mathbf{u}^\infty = (\cos(x)\sin(y),
 -\sin(x)\cos(y))$.  The number of bodies per unit area is $\nu \approx
 3.1$ which is greater than $1/\ell^2=1.1$.  Therefore, this suspension
@@ -1099,24 +1117,24 @@ stiffness by treating these interactions implicitly, and the simulation
 successfully reaches the time horizon.  We performed the same
 simulation, but with the locally implicit time stepping
 method~\cite{Lu2017}.  Because of the near-contact, smaller time step
-sizes must be taken.  We took time step sizes as small as $10^{-8}$, and
-the method was not able to successfully reach the time horizon.  This
-exact behavior has also been observed for vesicle
+sizes must be taken.  Even when we took time step sizes as small as
+$10^{-8}$, the method was not able to successfully reach the time
+horizon.  This exact behavior has also been observed for vesicle
 suspensions~\cite{Quaife2014}.  In the bottom right plot of
 Figure~\ref{fig:taylor_green}, we show the trajectory of one body for
 different time step sizes.  The dots denote locations where the contact
 algorithm is applied.  For this very complex flow, the trajectories are
 in good agreement with different time step sizes.
 
-\begin{figure}[!h]
-  \begin{center}
+\begin{figure}[t]
+  \centerline{
     \begin{tabular}{c c }
-      \includegraphics[width=6cm]{figures/taylor_green0.pdf} &
-      \includegraphics[width=6cm]{figures/taylor_green1.pdf}\\
-      \includegraphics[width=6cm]{figures/taylor_green2.pdf} &
-      \includegraphics[width=6cm]{figures/taylor_green_tracks_new.pdf}
+      \includegraphics[width=7cm]{figures/taylor_green0.pdf} &
+      \includegraphics[width=7cm]{figures/taylor_green1.pdf}\\
+      \includegraphics[width=7cm]{figures/taylor_green2.pdf} &
+      \includegraphics[width=7cm]{figures/taylor_green_tracks_new.pdf}
     \end{tabular}
-  \end{center}
+  }
   \caption{\label{fig:taylor_green} Snapshots of a dense suspension in
   an unbounded Taylor-Green flow.  The number of bodies per unit area
   $\nu$ is approximately 3.1. This is greater than $1/\ell^2 = 1.1$,
@@ -1129,7 +1147,7 @@ in good agreement with different time step sizes.
 \end{figure}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\FloatBarrier
+%\FloatBarrier
 \subsection{Fluid Driven Deformation}
 A recent experiment considers a dense monolayer packing of soft
 deformable bodies~\cite{MacMinn2015}.  Motivated by this experiment, we
@@ -1151,10 +1169,10 @@ pass.  Since the outer boundary is well-separated from the fixed bodies,
 the outer boundary condition is justifiably approximated with a uniform
 flow.
 
-\begin{figure}[h!]
-\begin{center}
+\begin{figure}[t]
+  \centerline{
 \includegraphics{figures/injection_plate_setup.pdf}
-\end{center}
+}
 \caption{\label{fig:radial} The geometry used in our numerical
 experiment that is motivated by the experimental setup of MacMinn et
 al.~\cite{MacMinn2015}.  The fixed solid bodies are shaded in black.}
@@ -1171,7 +1189,8 @@ We observe only a minor violation of reversibility, and it is largest
 for bodies that were initially near the fixed bodies---the contact
 algorithm is applied to these bodies most frequently.
 
-\begin{figure}[h!]
+\begin{figure}[t]
+  \centerline{
   \begin{tabular}{c c c}
     \includegraphics{figures/injection_plate0.pdf}&
     \includegraphics{figures/injection_plate2.pdf}&
@@ -1180,6 +1199,7 @@ algorithm is applied to these bodies most frequently.
     \includegraphics{figures/injection_plate8.pdf}&
     \includegraphics{figures/injection_plate8_overlay.pdf}\\
   \end{tabular}
+  }
   \caption{\label{fig:macminn} Snapshots of a rigid body suspension
   motivated by an experiment for deformable bodies~\cite{MacMinn2015}.
   Fluid is injected at a constant rate starting at $t=0$. At $t=4$ the
@@ -1197,7 +1217,8 @@ experimental results are in good agreement.  In particular, the
 petal-like patterns in Figure~\ref{fig:macminn_stress} are also observed
 in the experimental results.
 
-\begin{figure}[h!]
+\begin{figure}[t]
+  \centerline{
   \begin{tabular}{c c c}
     \includegraphics{figures/shear_stress1.pdf}&
     \includegraphics{figures/shear_stress2.pdf}&
@@ -1206,9 +1227,10 @@ in the experimental results.
     \includegraphics{figures/shear_stress5.pdf}&
     \includegraphics{figures/shear_stress4.pdf}
   \end{tabular}
-  \begin{center}
+}
+\centerline{
     \includegraphics{figures/colorbar.pdf}
-  \end{center}
+  }
   \caption{\label{fig:macminn_stress} The shear strain rate
   $\log_{10}(|\sigma_{xy}|)$  of the suspension in
   Figure~\ref{fig:macminn}.  The formation of the petal-like patterns is
@@ -1216,30 +1238,30 @@ in the experimental results.
   bodies~\cite{MacMinn2015}.}
 \end{figure}
 
-\FloatBarrier
+%\FloatBarrier
 \subsection{Taylor-Couette Flow}
 In many industrial applications, for example pulp and paper
 manufacturing, suspensions of rigid elongated fibers are encountered.
 Motivated by these suspensions we investigate rheological and
 statistical properties of confined suspensions.  We consider suspensions
-of varying area fraction and body aspect ratio; specifically we will
-look at 5, 10, and 15 percent area fractions and elliptical bodies of
-aspect ratio, $\lambda$ of 1, 3, and 6.  In all the examples, $nu M
-1/ell^2$, so all the suspensions are in the dilute regime.  The bodies
-initial locations are random, but non-overlapping (Figure
-\ref{fig:couette_setup}).  The flow is driven by rotating the outer
-cylinder at a constant angular velocity while the inner cylinder remains
-fixed. 
+of varying area fraction and body aspect ratio; specifically we look at
+5, 10, and 15 percent area fractions and elliptical bodies of aspect
+ratio, $\lambda$ of 1, 3, and 6.  In all the examples, $\nu < 1/\ell^2$,
+so all the suspensions are in the dilute regime.  The bodies initial
+locations are random, but non-overlapping
+(Figure~\ref{fig:couette_setup}).  The flow is driven by rotating the
+outer cylinder at a constant angular velocity while the inner cylinder
+remains fixed. 
 
-\begin{figure}[!h]
-\begin{center}
+\begin{figure}[t]
+  \centerline{
 \begin{tabular}{c c c c}
-\includegraphics[width=3cm]{figures/couette_005_3_1.pdf} &
-\includegraphics[width=3cm]{figures/couette_005_6_1.pdf} &
-\includegraphics[width=3cm]{figures/couette_010_3_1.pdf} &
-\includegraphics[width=3cm]{figures/couette_010_6_1.pdf}
+\includegraphics[width=4cm]{figures/couette_005_3_1.pdf} &
+\includegraphics[width=4cm]{figures/couette_005_6_1.pdf} &
+\includegraphics[width=4cm]{figures/couette_010_3_1.pdf} &
+\includegraphics[width=4cm]{figures/couette_010_6_1.pdf}
 \end{tabular}
-\end{center}
+}
 \caption{Four initial configurations for Taylor-Couette flow with
 varying volume fraction $\phi$ and aspect ratio $\lambda$. From left to
 right: 1) $\phi=5\%$, $\lambda= 3$, 2) $\phi=5\%$, $\lambda=6$, 3)
@@ -1265,8 +1287,8 @@ random suspension (no alignment), and $S=-1$ means that all bodies are
 perfectly aligned perpendicular to the shear direction.  In our
 geometric setup, a body centered at $(x,y)$ has an expected angle of
 $\tilde{\theta}\tan^{-1}(y/x) + \pi/2$, and the average alignment of the
-bodies will be in the direction of the shear, which is also
-perpendicular to the radial direction.
+bodies will be in the direction of the shear, which is perpendicular to
+the radial direction.
 
 Since the initial condition is random, the initial configurations in
 Figure~\ref{fig:couette_setup} have an order parameter $S\approx 0$. As
@@ -1276,10 +1298,10 @@ minor effect on $S$; however, the aspect ratio has a large effect.  In
 particular, suspensions with slender bodies align much better with the
 flow.
 
-\begin{figure}[!h]
-\begin{center}
-\includegraphics{figures/order_parameter.pdf}\\
-\end{center}
+\begin{figure}[t]
+  \centerline{
+\includegraphics{figures/order_parameter.pdf}
+}
 \caption{\label{fig:angles} The order parameter of different fiber
 concentrations and aspect ratios. We see that the 6:1 fibers align
 better. The 6:1 fibers rotate rotate through the angle perpendicular to
@@ -1291,8 +1313,8 @@ shows $\lambda=3$, while the blue line shows $\lambda=6$. }
 \end{figure} 
 
 This matches the known dynamics of a single body in an unbounded shear
-flow, where the body will align with the shear direction on
-average. Bodies with a high aspect ratio rotate quickly when then they are
+flow, where the body will align with the shear direction on average.
+Bodies with a high aspect ratio rotate quickly when then they are
 perpendicular to the shear direction and spend more time nearly aligned
 with the shear direction. We compare our results to the time averaged
 order parameter of a single elliptical body in an unbounded shear flow.
@@ -1322,25 +1344,28 @@ parameter in this case is the same as the rotational period for a single
 fiber. In Figure \ref{fig:angles} the theoretical order parameter is
 shown for a suspension of non-hydrodynamically interacting fibers in an
 unbounded shear flow.  Hydrodynamic interactions prevent the suspension
-from disaligning completely.
+from disaligning completely. This phenomenon explains why the observed
+$\langle S\rangle$ is higher than the theoretical $\langle S\rangle$,
+qualitatively.
 
-
-
-\begin{table}[!h]
-\begin{center}
-\begin{tabular}{c |c |c |c}
+\begin{table}[t]
+  \centering
+  \caption{The time averaged order parameter during the second
+  revolution of the Couette apparatus. The higher aspect ratio fibers
+  align better on average. The alignment is in all cases higher than
+predicted for a single Jeffery orbit. \label{tab:order}}
+\begin{tabular*}{500pt}{@{\extracolsep\fill}cccc@{\extracolsep\fill}}
+    \toprule
 area fraction, $\phi$ & aspect ratio, $\lambda$ & computed $ \langle S \rangle$ & theoretical
 $\langle S \rangle$ (single fiber)\\
-\hline
+\midrule
 5\%  & 3 & 0.52 & 0.50 \\
 10\% & 3 & 0.60 & 0.50 \\
 15\% & 3 & 0.65 & 0.50 \\
 5\%  & 6 & 0.91 & 0.71 \\
-10\% & 6 & 0.89 & 0.71
-\end{tabular}
-\end{center}
-\caption{The time averaged order parameter during the second revolution of the Couette apparatus. The higher aspect ratio fibers align better on average. The alignment is in all cases higher than predicted for a single Jeffery orbit.
-}\label{tab:order}
+10\% & 6 & 0.89 & 0.71 \\
+\bottomrule
+\end{tabular*}
 \end{table} 
 
 Another quantity of interest in rheology is the effective viscosity of a
@@ -1361,20 +1386,22 @@ inner cylinder.  By computing the ratio of the torque on the inner
 cylinder with bodies to the torque without bodies we determine the
 effective viscosity of a suspension.  Figure~\ref{fig:torque} shows the
 effective viscosity increases with $\phi$, but is generally lower for
-bodies with aspect ratio $\lambda=6$. This is because higher aspect ratio
-bodies align themselves better, and thus contribute less to the bulk
-shear stress. The spikes in \ref{fig:torque} occur when a repulsion
-force is added to the system. Similar spikes were observed numerically
-in~\cite{Lu2017}. To make the results more clear we have used a multiscale local polynomial transform to smooth the data shown in Figure \ref{fig:torque}.
-\begin{figure}[!h]
-\begin{center}
-\includegraphics{figures/couette_torque_smooth_005.pdf}\\
-\includegraphics{figures/couette_torque_smooth_010.pdf}\\
-\includegraphics{figures/couette_torque_smooth_015.pdf}
-\end{center}
+bodies with aspect ratio $\lambda=6$. This is because higher aspect
+ratio bodies align themselves better, and thus contribute less to the
+bulk shear stress. The spikes in Figure~\ref{fig:torque} occur when a
+repulsion force is added to the system. Similar spikes were observed
+numerically in~\cite{Lu2017}. To make the results more clear we have
+used a multiscale local polynomial transform to smooth the data shown in
+Figure~\ref{fig:torque}.
+\begin{figure}[t]
+  \centerline{\includegraphics{figures/couette_torque_smooth_005.pdf}} 
+  \centerline{\includegraphics{figures/couette_torque_smooth_010.pdf}}
+  \centerline{\includegraphics{figures/couette_torque_smooth_015.pdf}}
 \caption{Instantaneous bulk effective viscosity for various volume
-fractions and body aspect ratios. The inner
-cylinder is fixed, while the outer one rotates at a constant angular velocity. The transparent lines represent the raw data, while the solid lines have been smoothed using a multiscale local polynomial transform. }\label{fig:torque}
+fractions and body aspect ratios. The inner cylinder is fixed, while the
+outer one rotates at a constant angular velocity. The transparent lines
+represent the raw data, while the solid lines have been smoothed using a
+multiscale local polynomial transform.}\label{fig:torque}
 \end{figure} 
 
 Finally, instead of computing the instantaneous effective viscosity,
@@ -1382,28 +1409,30 @@ experimenters are interested in the time averaged effective viscosity of
 a suspension. In Table~\ref{tab:viscosity}, we report the average
 instantaneous effective viscosity over the second revolution of the
 outer cylinder
-\begin{table}[!h]
-\begin{center}
-\begin{tabular}{c| c | c |  c}
-$\lambda$ & 5\% area fraction  & 10\% area fraction  & 15\% area fraction\\
-\hline
-1 & 1.12 & 1.22 & 1.42 \\
-3 & 1.10 & 1.23 & 1.36 \\
-6 & 1.08 & 1.18 & 
-\end{tabular}
-\end{center}
+\begin{table}[t]
+  \centering
 \caption{Time averaged effective viscosity for various area fractions
 and aspect ratios. The time average is done between the first and second
 revolutions of the outer cylinder. As $\phi$ increases the effective
 viscosity increases as expected. In general higher aspect ratio bodies
-increase the viscosity less. }\label{tab:viscosity}
+increase the viscosity less. \label{tab:viscosity}}
+%\begin{tabular}{c| c | c |  c}
+\begin{tabular*}{500pt}{@{\extracolsep\fill}cccc@{\extracolsep\fill}}
+  \toprule
+$\lambda$ & 5\% area fraction  & 10\% area fraction  & 15\% area fraction\\
+\midrule
+1 & 1.12 & 1.22 & 1.42 \\
+3 & 1.10 & 1.23 & 1.36 \\
+6 & 1.08 & 1.18 &  \\
+\bottomrule
+\end{tabular*}
 \end{table}
 
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\FloatBarrier
-\section{Conclusions\label{s:conclusions}}
+%\FloatBarrier
+\section{Conclusions}\label{s:conclusions}
 We have developed a stable time stepping method for
 simulating dense suspensions of rigid bodies without introducing
 stiffness or requiring a large minimum separation distance.  A contact
@@ -1424,16 +1453,16 @@ error introduced by the contact algorithm.
 We use the new time stepping method to compute rheological properties of
 suspensions including order parameters, effective viscosities, and
 strain rates.  These rheological properties are compared with known
-order parameters for of Jeffery orbits and the strain rate observed in
-an experiment for deformable bodies.
+order parameters for Jeffery orbits and the strain rate observed in an
+experiment for deformable bodies.
 
 There are several outstanding issues with this method. The most obvious
 is that the suspensions are two-dimensional.  All the individual
-algorithms we have developed in three dimensions.  However, to simulate
-similar results with respect to volume fraction, minimum separation
-distances, and aspect ratios, the spatial resolution will have to be
-reduced, and this will still require parallel algorithms and
-low-resolution algorithms~\cite{Kabacogulu2017}.  
+algorithms we have developed can be extended to three dimensions.
+However, to simulate similar results with respect to volume fraction,
+minimum separation distances, and aspect ratios, the spatial resolution
+will have to be reduced, and this will still require parallel algorithms
+and low-resolution algorithms~\cite{Kabacogulu2017}.  
 
 A recent publication considers three-dimensional simulations of rigid
 bodies~\cite{cor-gre-rac-vee2017}, but uses a different contact
@@ -1457,11 +1486,15 @@ reliable algorithm for choosing an optimal time step size would help
 avoid instances where the time step size is reduced many times before a
 time step is finally accepted.
 
+\section*{Acknowledgments}
+This research was supported by the Simons Foundation Program:
+Mathematics and Physical Sciences-Collaboration Grants for
+Mathematicians and startup funds from Florida State University.  The
+authors thank Libin Lu, Abtin Rahimian, and Denis Zorin for supplying
+the STIV code, and Manas Rachh for supplying the Stokes double-layer
+potential FMM.
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\section*{References}
+\bibliography{bibliography}%
 
-\bibliographystyle{plainnat} 
-\bibliography{bibliography}
-\biboptions{sort&compress}
+
 \end{document}
