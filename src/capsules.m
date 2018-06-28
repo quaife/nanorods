@@ -111,7 +111,7 @@ if ~isempty(o.X)
     [xsou,ysou] = oc.getXY(X1);
     % separate targets into x and y coordinates
     
-    h = max(o.length)/N1;
+    h = max(o.length)/N1; %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     % smallest arclength over all boundaries
     ptsperbox = 10;
     % Estimate for number of points per box.  This simply sets the
@@ -330,11 +330,11 @@ if ~isempty(o.X)
                         nearestSS{k}(ipt,k2) = nearestx;
                         nearestSS{k}(ipt+N1,k2) = nearesty;
                         
-                        nearFibersSS{k}= [nearFibersSS{k},k2];
                         % Find closest point along a local interpolant using
                         % Newton's method.
                         
                         if (distSS{k}(ipt,k2) < h)
+                            nearFibersSS{k}= [nearFibersSS{k},k2];
                             zoneSS{k}(ipt,k2) = 1;
                         end
                         % Point ipt of boundary k2 is in the near zone of
@@ -388,6 +388,7 @@ if ~isempty(o.X)
             % index of closest discretization point
             argnearST{k} = spalloc(N1,np2,0);
             % argument in [0,1] of local interpolant
+            nearFibersST{k} = {};
         end
         % New way of representing near-singular integration structure so that
         % we can use sparse matricies.
@@ -442,7 +443,7 @@ if ~isempty(o.X)
                             ytar(ii,jj),k,icpST{k}(ii,jj));
                         nearestST{k}(ii,jj) = nearestx;
                         nearestST{k}(ii+Np2,jj) = nearesty;
-                        
+
                         %          figure(2);
                         %          plot(xtar(ii,jj),ytar(ii,jj),'g.')
                         %          plot(nearestx,nearesty,'bo')
@@ -453,6 +454,7 @@ if ~isempty(o.X)
                         % compute distance and nearest point between
                         % (xtar(ii,jj),ytar(ii,jj)) and boundary k
                         if distST{k}(ii,jj) < h
+                            nearFibersST{k}= [nearFibersST{k},jj];
                             zoneST{k}(ii,jj) = 1;
                             % (xtar(ii,jj),ytar(ii,jj)) is in the near zone of boundary k
                         end
@@ -461,6 +463,9 @@ if ~isempty(o.X)
                 
             end % ii and jj
             
+            nftmp = nearFibersST{k};
+            nearFibersST{k} = unique([nftmp{:}]);
+            
         end % k
         
         NearOther.dist = distST;
@@ -468,7 +473,7 @@ if ~isempty(o.X)
         NearOther.nearest = nearestST;
         NearOther.icp = icpST;
         NearOther.argnear = argnearST;
-        NearOther.nearFibers = [];
+        NearOther.nearFibers = nearFibersST;
         % store near-singluar integration requirements in structure NearOther
         
     end % relate == 2 || relate == 3
@@ -588,7 +593,7 @@ Fdlp = Fdlp(1:o.N,:);
 % take only first component of the DLP
 % plot(Fdlp);
 
-buffer = 1e-4;
+buffer = 1e-2;
 
 icollision = any(abs(Fdlp(:)) > buffer);
 
@@ -721,10 +726,10 @@ function [stress1,stress2] = stressTensor(o,f,RS,stressTar,sEqualsT)
 % than vesicles.  If doing solid walls, there is a stress due to the
 % rotlet and stokeslet terms that needs to be added in
 
-N = o.Np; % points per vesicle
-n = o.np; % number of vesicles
+N = o.N; % points per vesicle
+n = o.n; % number of vesicles
 op = poten(N);
-Ntar = stressTar.Np*stressTar.np;
+Ntar = stressTar.N*stressTar.n;
 % number of points where we want to evaluate the stress
 
 tangent = o.xt;
@@ -822,29 +827,24 @@ kernel2 = @op.exactStressDL2;
 % we can compute diagonal value to use near-singular integration
 
 % CREATE UPSAMPLED MATRICES
-Xsou = o.X; 
-Nup = N*ceil(sqrt(N));
 
-Xup = [interpft(Xsou(1:N,:),Nup);...
-       interpft(Xsou(N+1:2*N,:),Nup)];
+geom = capsules([],o.X);
+[D1, D2] = op.stressDLmatrix(geom);
 
-geomUp = capsules([],Xup);
-[Dup1, Dup2] = op.stressDLmatrix(geomUp);
-
-stress1 = op.nearSingInt(o,f,S1diagOutFn,Dup1,NearStruct,kernel1,kernel1,...
+stress1 = op.nearSingInt(o,f,S1diagOutFn,D1,NearStruct,kernel1,kernel1,...
     stressTar,sEqualsT,false);
   % correct stress at exterior points
 
 % Use near-singular integration to compute first component of
 % the stress due to the double-layer potential
 
-stress2 = op.nearSingInt(o,f,S2diagOutFn,Dup2,NearStruct,kernel2,kernel2,...
+stress2 = op.nearSingInt(o,f,S2diagOutFn,D2,NearStruct,kernel2,kernel2,...
     stressTar,sEqualsT,false);
 % correct stress at exterior points
 
 if sEqualsT
     % add self contribution
-    for k = 1:o.nv        
+    for k = 1:o.n        
         stress1(:,k) = stress1(:,k) + S1diagOut(:,:,k)*f(:,k);
         stress2(:,k) = stress2(:,k) + S2diagOut(:,:,k)*f(:,k);
     end
@@ -853,14 +853,15 @@ end
 % the stress due to the double-layer potential
 
 if ~isempty(RS)
-  for k = 2:o.nv
+  for k = 1:o.n
+
     cx = o.center(1,k);
     cy = o.center(2,k);
     % center of interior solid wall k
-    xi = RS(3*(k-2) + 3);
+    xi = RS(3*(k-1) + 3);
     % rotlet on interior solid wall k
-    xi1 = RS(3*(k-2) + 1);
-    xi2 = RS(3*(k-2) + 2);
+    xi1 = RS(3*(k-1) + 1);
+    xi2 = RS(3*(k-1) + 2);
     % first and second components of the stokeslet on 
     % interior solid wall k 
     [x,y] = oc.getXY(stressTar.X);
@@ -868,35 +869,55 @@ if ~isempty(RS)
     ry = y - cy;
     rho4 = (rx.^2 + ry.^2).^2;
     
-    stress1(1:stressTar.N,:) = stress1(1:stressTar.N,:) - 4*xi*rx.*ry./rho4;
+    stress1(1:stressTar.N,:) = stress1(1:stressTar.N,:) - xi*rx.*ry./rho4/pi;
     % add in (1,1) component of stress due to Rotlet
     stress1(1+stressTar.N:end,:) = stress1(1+stressTar.N:end,:) + ...
-                    2*xi*(rx.^2 - ry.^2)./rho4;
+                    xi*(rx.^2 - ry.^2)./rho4/(2*pi);
     % add in (1,2) component of stress due to Rotlet
-    stress2(1:stressTar.N,:) = stress2(1:stressTar.N,:) + 2*xi*(rx.^2 - ry.^2)./rho4;
+    stress2(1:stressTar.N,:) = stress2(1:stressTar.N,:) +...
+                    xi*(rx.^2 - ry.^2)./rho4/(2*pi);
     % add in (2,1) component of stress due to Rotlet
-    stress2(1+stressTar.N:end,:) = stress2(1+stressTar.N:end,:) + 4*xi*rx.*ry./rho4;
+    stress2(1+stressTar.N:end,:) = stress2(1+stressTar.N:end,:) + xi*rx.*ry./rho4/pi;
     % add in (2,2) component of stress due to Rotlet
 
 
-    stress1(1:stressTar.N,:) = stress1(1:stressTar.N,:) + ...
-                2*(rx*xi1 + ry*xi2).*(-rx.^2 + ry.^2)./rho4;
+    %(1,1)
     stress1(1:stressTar.N,:) = stress1(1:stressTar.N,:) - ...
-                2*(rx*xi1 + ry*xi2)./(rx.^2+ry.^2);
-    % add in (1,1) component of stress due to Stokeslet
-    % need to add in -1*pressure term as well
+                rx.^2.*(rx*xi1 + ry*xi2)./(pi*rho4);
+    
+    %(1,2)
     stress1(1+stressTar.N:end,:) = stress1(1+stressTar.N:end,:) - ...
-                4*rx.*ry.*(rx*xi1 + ry*xi2)./rho4;
-    % add in (1,2) component of stress due to Stokeslet
+                rx.*ry.*(rx*xi1 + ry*xi2)./(pi*rho4);
+    
+    %(2,1)        
     stress2(1:stressTar.N,:) = stress2(1:stressTar.N,:) - ...
-                4*rx.*ry.*(rx*xi1 + ry*xi2)./rho4;
-    % add in (1,2) component of stress due to Stokeslet
-    stress2(1+stressTar.N:end,:) = stress2(1+stressTar.N:end,:) + ...
-                2*(rx*xi1 + ry*xi2).*(rx.^2 - ry.^2)./rho4;
+                rx.*ry.*(rx*xi1 + ry*xi2)./(pi*rho4);
+    
+    %(2,2)
     stress2(1+stressTar.N:end,:) = stress2(1+stressTar.N:end,:) - ...
-                2*(rx*xi1 + ry*xi2)./(rx.^2+ry.^2);
-    % add in (2,2) component of stress due to Stokeslet
-    % need to add in -1*pressure term as well
+                ry.^2.*(rx*xi1 + ry*xi2)./(pi*rho4);
+    
+    
+%     stress1(1:stressTar.N,:) = stress1(1:stressTar.N,:) + ...
+%                 (rx*xi1 + ry*xi2).*(-rx.^2 + ry.^2)./rho4/(2*pi);
+%     stress1(1:stressTar.N,:) = stress1(1:stressTar.N,:) - ...
+%                 (rx*xi1 + ry*xi2)./(rx.^2+ry.^2)/(2*pi);
+%     % add in (1,1) component of stress due to Stokeslet
+%     % need to add in -1*pressure term as well
+%     
+%     stress1(1+stressTar.N:end,:) = stress1(1+stressTar.N:end,:) - ...
+%                 rx.*ry.*(rx*xi1 + ry*xi2)./rho4/pi;
+%     % add in (1,2) component of stress due to Stokeslet
+%     stress2(1:stressTar.N,:) = stress2(1:stressTar.N,:) - ...
+%                 rx.*ry.*(rx*xi1 + ry*xi2)./rho4/pi;            
+%     % add in (1,2) component of stress due to Stokeslet
+%     
+%     stress2(1+stressTar.N:end,:) = stress2(1+stressTar.N:end,:) + ...
+%                 (rx*xi1 + ry*xi2).*(rx.^2 - ry.^2)./rho4/pi;
+%     stress2(1+stressTar.N:end,:) = stress2(1+stressTar.N:end,:) - ...
+%                 (rx*xi1 + ry*xi2)./(rx.^2+ry.^2)/(2*pi);
+%     % add in (2,2) component of stress due to Stokeslet
+%     % need to add in -1*pressure term as well
   end
 end
 % Add in contributions due to Rotlets and Stokeslets

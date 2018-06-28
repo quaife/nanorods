@@ -139,45 +139,115 @@ switch options.far_field
         Xwalls = o.setXY(x,y);
       
     case 'pipe'
-        cen = [0 0];
+        cen = [0 0; 0,0];
         
         order = 20;        
         r = (cos(t).^order + sin(t).^order).^(-1/order);
         
-        x = [100*r.*cos(t)];
-        y = [20*r.*sin(t)];
+        x = [5*r.*cos(t), 0.25*cos(-t)];
+        y = [1*r.*sin(t), 0.25*sin(-t)];
 
         Xwalls = o.setXY(x,y);
         
     case 'bounded_shear'
         
-        %cen = [0 0; 0 2.5];
-        cen = [0;0];
-        
-        C = 0.044;
-        a = 0.1;
-%         
-        ell = a/C;
-        L = ell*5;
-%         ell = 10;
-%         L = 50;
-        
         order = 20;
         
         r = (cos(t).^order + sin(t).^order).^(-1/order);
-% % 
-%         x = [(L/2)*r.*cos(t), 4*cos(-t)];
-%         y = [(ell/2)*r.*sin(t) + ell/2, sin(-t)+2.5];
-%         
-%         x = [(L/2)*r.*cos(t)];
-%         y = [(ell/2)*r.*sin(t)] + ell/2;
         
-        x = [100*r.*cos(t)];
-        y = [20*r.*sin(t)];
+        x = 100*r.*cos(t);
+        y = 20*r.*sin(t);
 
 % %         
        Xwalls = o.setXY(x,y);
 
+    case 'bounded_extensional'
+        
+        order = 2;
+        
+        r = (cos(t).^order + sin(t).^order).^(-1/order);
+        
+        x = r.*cos(t);
+        y = 2*r.*sin(t);
+
+% %         
+       Xwalls = o.setXY(x,y);
+       
+    case 'bounded_eigenvalues'
+        
+       % cen = [0; 0];
+%         
+%         x = [10*cos(t)+cen(1,1)];
+%         y = [10*sin(t)+cen(2,1)];
+%       
+%         cen = [0 0 5;0 -5 2];
+%         
+%         x = [10*cos(t)+cen(1,1), 0.1*cos(-t)+cen(1,2), 0.1*cos(-t)+cen(1,3)];
+%         y = [10*sin(t)+cen(2,1), 0.1*sin(-t)+cen(2,2), 0.1*sin(-t)+cen(2,3)];
+%         
+        cen = [0 0 5 -5;0 -5 2 2];
+        
+        x = [10*cos(t)+cen(1,1), 4*cos(-t)+cen(1,2), 1*cos(-t)+cen(1,3), 4*cos(-t)+cen(1,4)];
+        y = [20*sin(t)+cen(2,1), 1*sin(-t)+cen(2,2), 4*sin(-t)+cen(2,3), 1*sin(-t)+cen(2,4)];
+        
+        Xwalls = o.setXY(x,y);
+        
+    case 'injection_plate'
+       
+        r_circles = 0.25;
+        spacing = 1*r_circles;
+        r_wall = 5;
+        N_walls = floor(2*pi*r_wall/ (spacing + 2*r_circles));
+        
+%         s_length = 2*pi*r_wall/N_walls;
+%         r_circles = (s_length - spacing)/2;
+%         N_walls = 16;
+%         
+%         s_length = 2*pi*r_wall/N_walls;
+%         r_circles = (s_length - spacing)/2;
+%         
+        
+        cen = zeros(N_walls+2,2);
+        % create inner and outer walls
+        x = [10*cos(t)+cen(1,1), 0.5*cos(-t)+cen(1,2)];
+        y = [10*sin(t)+cen(2,1), 0.5*sin(-t)+cen(2,2)];
+        
+        % create ring of solid walls
+        
+        x_circles = zeros(N,N_walls);
+        y_circles = zeros(N, N_walls);
+
+        for k = 1:N_walls
+            
+            center = r_wall*[cos((k-1)/N_walls*(2*pi)); sin((k-1)/N_walls*(2*pi))];
+            cen(k+2,:) = center;
+            
+            x_circles(:,k) = r_circles*cos(-t)+center(1);
+            y_circles(:,k) = r_circles*sin(-t)+center(2);
+        end
+        
+        Xwalls = o.setXY([x, x_circles],[y, y_circles]);
+	
+    case 'none'
+
+	x = 3*cos(t);
+	y = 3*sin(t);
+        
+	Xwalls = o.setXY(x,y);
+	cen = [0;0];
+
+    case 'sedementation'
+        cen = [0 0];
+        
+        order = 20;        
+        r = (cos(t).^order + sin(t).^order).^(-1/order);
+        
+        x = [20*r.*cos(t)];
+        y = [20*r.*sin(t)];
+
+        Xwalls = o.setXY(x,y);
+        
+        
 end
     
 end % createWalls

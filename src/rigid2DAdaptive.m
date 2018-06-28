@@ -231,9 +231,9 @@ if accept
 
         % compute difference, accept/reject
         err = abs(sol_estimate - sol_next);
-        %err(err < 1e-14) = 0;
+        %err(err < 1e-8) = 0;
         
-        rel_err = max(err./abs(sol_estimate));
+        rel_err = max(2*err./(sol_estimate + sol_next));
         
         if options.verbose
             om.writeMessage(['Relative error = ', num2str(rel_err)]);

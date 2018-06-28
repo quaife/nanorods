@@ -45,8 +45,9 @@ o.prams = prams;
 
 o.welcomeMessage();
 %% start new data file if needed
-if (o.save && ~o.append)
 
+if o.save && size(tau,1) <= 1
+    
     o.clearFiles();
     eta_w = zeros(2*prams.Nw, prams.nw);
     eta_p = zeros(2*prams.Np, prams.np);
@@ -166,39 +167,64 @@ load(o.data_file);
 t = [t, t_c];
 
 % variables solved at t_(k+1)
-xc(:,:,end+1) = xc_c;
-tau = [tau; tau_c];
-
+if prams.np > 0
+    xc(:,:,end+1) = xc_c;
+    tau = [tau; tau_c];
+end
 
 % variables solved at time level t_k
 if (length(t) > 2)
-    U(:,:,end+1) = U_c;
-    omega = [omega;omega_c];
-    eta_p(:,:,end+1) = eta_pc;
-    force_p(:,:,end+1) = force_pc;
-    torque_p(:,end+1) = torque_pc;
+    
+    if prams.np > 0
+        U(:,:,end+1) = U_c;
+        omega = [omega;omega_c];
+        eta_p(:,:,end+1) = eta_pc;
+
+        force_p(:,:,end+1) = force_pc;
+        torque_p(:,end+1) = torque_pc;
+    
+    else
+        U = [];
+        omega = [];
+        eta_p = [];
+        force_p = [];
+        torque_p = [];
+        
+    end
     
     if o.options.confined
         eta_w(:,:,end+1) = eta_wc;
 
         if o.prams.nw > 1
             stokes(:,:,end+1) = stokes_c;
-            rot(:,end+1) = rot_c;
+            rot(end+1,:) = rot_c;
         end
     end
 else
-    U(:,:,1) = U_c;
-    omega = omega_c;
-    eta_p(:,:,1) = eta_pc;
-    force_p(:,:,1) = force_pc;
-    torque_p(:,1) = torque_pc;
+    
+    if prams.np > 0
+        U(:,:,1) = U_c;
+        omega = omega_c;
+        eta_p(:,:,1) = eta_pc;
+    
+        force_p(:,:,1) = force_pc;
+        torque_p(:,1) = torque_pc;
+
+    else
+        U = [];
+        omega = [];
+        eta_p = [];
+        force_p = [];
+        torque_p = [];
+        
+    end
     
     if o.options.confined
         eta_w(:,:,1) = eta_wc;
 
         if o.prams.nw > 1
             stokes(:,:,1) = stokes_c;
-            rot(:,1) = rot_c;
+            rot(1,:) = rot_c;
         end
     end
 end
