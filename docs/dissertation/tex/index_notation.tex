@@ -1,0 +1,33 @@
+\chapter{Index Notation}
+
+
+Index notation is a tool to facilitate concise manipulation of tensor operations. Details on the definitions and properties of tensors can be found in many engineering and physics textbooks. A vector in $\mathbb{R}^d$  is first-order tensor and can be represented in index notation as
+\[ \mathbf{a} = a_i, \]
+where $i$ ranges from 1 to $d$. In this dissertation, we will always take $d=2$. A second-order tensor can be represented as
+\[ \mathbf{A} = A_{ij},\]
+where now both $i$ and $j$ range from 1 to $d$. Higher order tensors can be defined in a similar manner. 
+
+\section{Einstein Summation Convention}
+
+When manipulating tensor expressions, it is often necessary to perform summation operations across indices. For example the dot product between two vectors in  is defined as
+\[ \mathbf{a}\cdot\mathbf{b} = a_1 b_1 + a_2 b_2 = \sum\limits_{i=1}^2 a_i b_i.\]
+Einstein simplified this notation by adopting the convention that any repeated index in an expression always implies a summation. The dot product can then be written more concisely as 
+\[ \mathbf{a}\cdot\mathbf{b} = a_i b_i.\]
+This notation can also be used to define matrix-vector products and the divergence operator
+\[ \mathbf{A}\mathbf{x} = \mathbf{b} \Leftrightarrow  A_{ij}x_i = b_j, \qquad \nabla\cdot\mathbf{a} = \frac{\partial}{x_i} a_i = \partial_i a_i. \]
+Often we will use the shorthand $\partial_i$ to represent $\partial/\partial x_i$. The gradient can be defined then as
+\[ \nabla \mathbf{a}  = \partial_j a_i.\]
+
+
+\section{Special Tensors}
+
+There are a couple of special tensors that come up often in index notation. The first is the Kronecker-delta tensor, a second-order tensor defined as
+\[ \delta_{ij} = \begin{cases} 0 & i \ne j,\\ 1 & i = j.\end{cases}\]
+This tensor is equivalent to the identity matrix in linear algebra. 
+
+The Levi-Civita tensor is third-order tensor defined by
+\[ \epsilon_{ijk} = \begin{cases} 1 & \text{if } (i,j,k) \text{ is } (1,2,3),~(2,3,1),~(3,1,2).\\
+					-1 & \text{if }(i,j,k) \text{ is } (3,2,1),~(1,3,2),~(2,1,3).\\
+					0 & \text{otherwise}.\end{cases}\]
+The Levi-Civita tensor appears in the cross product and curl:
+\[ \mathbf{a}\times\mathbf{b} = \epsilon_{ijk} a_j b_k, \qquad\qquad \nabla\times\mathbf{a} = \epsilon_{ijk}\partial_j a_k.\]

@@ -1,0 +1,222 @@
+% This is a "bare-bones" thesis template file.  For examples of how to
+% use a few more LaTeX features, look in the 'sample' folder.  Read
+% the User Guide for documentation of the 'fsuthesis' class features.
+
+\documentclass[11pt,expanded,copyright]{fsuthesis}
+\usepackage{amsthm}
+\usepackage{amssymb} 
+\usepackage{amsmath} 
+\usepackage{multirow}
+%\usepackage{units}
+\usepackage{graphicx}
+\usepackage{color}
+\usepackage{cite}
+%\usepackage{siunitx}
+%\usepackage{placeins}
+\usepackage{lmodern}
+\usepackage[shortlabels]{enumitem}
+\usepackage{tikz}
+\usepackage{pgfplots}
+\usetikzlibrary{decorations, decorations.text,backgrounds}
+\usetikzlibrary{spy}
+\usetikzlibrary{shapes.misc}
+\usetikzlibrary{external}
+\usetikzlibrary{positioning}
+\usetikzlibrary{calc}
+\usepackage{todonotes}
+\usepackage[linesnumbered,ruled,vlined]{algorithm2e}
+\usepackage{bm}
+%\usepackage{commath}
+\usepackage{mathtools}
+%\usepackage{todonotes}
+\usepackage{xfrac}
+\usepackage[T1]{fontenc}
+\usepackage[hidelinks]{hyperref}
+\usepackage{comment}
+\usepackage{stmaryrd}
+\usepackage[utf8]{inputenc}
+
+\newtheorem{theorem}{Theorem}[section]
+\newtheorem{proposition}{Proposition}[section]
+\newtheorem{definition}{Definition}[section]
+\newtheorem{lemma}{Lemma}[section]
+\newtheorem*{claim*}{Claim}
+
+\newcommand\mycommfont[1]{\footnotesize\ttfamily\textcolor{blue}{#1}}
+\SetCommentSty{mycommfont}
+\providecommand{\e}[1]{\ensuremath{\times 10^{#1}}}
+\newcommand{\tikzmark}[1]{\tikz[overlay,remember picture] \node (#1) {};}
+\DeclareMathOperator*{\argmin}{arg\,min} % thin space, limits underneath in displays
+
+\newcommand{\bd}{{\partial}}
+\newcommand{\cc}{{\mathbf{c}}}
+\newcommand{\dd}{{\mathbf{d}}}
+\newcommand{\ee}{{\mathbf{e}}}
+\newcommand{\DD}{{\mathbf{D}}}
+\newcommand{\eeta}{{\boldsymbol\eta}}
+\newcommand{\ff}{{\mathbf{f}}}
+\newcommand{\FF}{{\mathbf{F}}}
+\newcommand{\grad}{{\nabla}}
+\newcommand{\llambda}{{\boldsymbol\lambda}}
+\newcommand{\nn}{{\mathbf{n}}}
+\newcommand{\NN}{{\mathcal{N}}}
+\newcommand{\pderiv}[2]{\frac{\partial #1}{\partial #2}}
+\newcommand{\rr}{{\mathbf{r}}}
+\renewcommand{\Re}{{\mathrm{Re}}}
+\newcommand{\RR}{{\mathbf{R}}}
+\renewcommand{\ss}{{\mathbf{s}}}
+\newcommand{\ssigma}{{\boldsymbol\sigma}}
+\newcommand{\oomega}{{\boldsymbol\omega}}
+\renewcommand{\tt}{{\mathbf{t}}}
+\newcommand{\uu}{{\mathbf{u}}}
+\newcommand{\UU}{{\mathbf{U}}}
+\newcommand{\vv}{{\mathbf{v}}}
+\newcommand{\xx}{{\mathbf{x}}}
+\newcommand{\xxi}{{\boldsymbol{\xi}}}
+\newcommand{\SSigma}{{\boldsymbol{\Sigma}}}
+\newcommand{\yy}{{\mathbf{y}}}
+\newcommand{\qq}{{\mathbf{q}}}
+\newcommand{\ww}{{\mathbf{w}}}
+\newcommand{\zz}{{\mathbf{z}}}
+\newcommand{\ZZ}{{\mathbb{Z}}}
+\newcommand{\EE}{{\mathbf{E}}}
+\newcommand{\TT}{{\mathbf{T}}}
+\newcommand{\Ss}{{\mathbf{S}}}
+\newcommand{\bb}{{\mathbf{b}}}
+\newcommand{\CC}{{\mathbf{C}}}
+\newcommand{\BB}{{\mathbf{B}}}
+\newcommand{\A}{{\mathbf{A}}}
+\newcommand{\N}{{\mathbf{N}}}
+\newcommand{\MM}{{\mathbf{M}}}
+\newcommand{\JJ}{{\mathbf{J}}}
+\newcommand{\D}{{\mathbf{D}}}
+\newcommand{\VV}{{\mathbf{V}}}
+\newcommand{\XX}{{\mathbf{X}}}
+\newcommand{\LL}{{\mathbf{L}}}
+\newcommand{\KK}{{\mathbf{K}}}
+\newcommand{\WW}{{\mathbf{W}}}
+\newcommand{\pp}{{\mathbf{p}}}
+\def\PI{3.1415926535898}
+\tikzset{cross/.style={cross out, draw=black, minimum size=2*(#1-\pgflinewidth), inner sep=0pt, outer sep=0pt},cross/.default={1pt}}
+\tikzset{samples=500}
+%\tikzexternalize[prefix=tikzext/]
+\pgfplotsset{every axis/.append style={%
+    scaled x ticks=false,
+    scaled y ticks=false}}
+
+\let\inf\relax \DeclareMathOperator*\inf{\vphantom{p}inf}
+%\sisetup{round-integer-to-decimal,round-mode=places,round-precision=9}
+
+%\setlistdepth{9}
+%\setcounter{secnumdepth}{4}
+
+%\newlist{myEnumerate}{enumerate}{9}
+%\setlist[myEnumerate,1]{label=(\arabic*)}
+%\setlist[myEnumerate,2]{label=(\Roman*)}
+%\setlist[myEnumerate,3]{label=(\Alph*)}
+%\setlist[myEnumerate,4]{label=(\roman*)}
+%\setlist[myEnumerate,5]{label=(\alph*)}
+%\setlist[myEnumerate,6]{label=(\arabic*)}
+%\setlist[myEnumerate,7]{label=(\Roman*)}
+%\setlist[myEnumerate,8]{label=(\Alph*)}
+%\setlist[myEnumerate,9]{label=(\roman*)}
+
+% Additional packages may be loaded here.
+
+% Do NOT use 'geometry' or 'setspace' packages! They will
+% mess up the spacing provided by 'fsuthesis'.
+
+\title{Contact-Free Simulations of Rigid Particle Suspensions Using Boundary Integral Equations}
+\author{Lukas Bystricky}
+\college{College of Arts and Sciences}
+\department{Department of Scientific Computing} % Delete if no department
+\degree{Doctor of Philosophy} 
+\manuscripttype{Dissertation}              % [Thesis, Dissertation, Treatise]               
+\degreeyear{2018}
+\defensedate{July 16th, 2018}
+
+%\subject{My Topic}
+%\keywords{keyterm1; keyterm2; keyterm3; ...}
+
+
+\committeeperson{Bryan Quaife}{Professor Co-Directing Dissertation}
+\committeeperson{Sachin Shanbhag}{Professor Co-Directing Dissertation}
+\committeeperson{Nick Cogan}{University Representative}
+\committeeperson{Chen Huang}{Committee Member}
+\committeeperson{Nick Moore}{Committee Member}
+
+\clubpenalty=9999
+\widowpenalty=9999
+
+\begin{document}
+
+\frontmatter
+\maketitle
+\makecommitteepage
+
+%\begin{dedication}
+%\end{dedication}
+
+%\begin{acknowledgments}
+%\end{acknowledgments}
+
+\tableofcontents
+\listoftables
+\listoffigures
+%\listofmusex
+
+%\begin{listofsymbols}
+%\end{listofsymbols}
+
+%comments on notation
+%\begin{listofabbrevs}
+%\end{listofabbrevs}
+
+%\begin{listofabbrevs}
+%\end{listofabbrevs}
+
+\begin{abstract}
+
+In many composite materials, rigid fibers are distributed throughout the material to tune the mechanical, thermal, and electric properties of the composite. The orientation and distribution of the fibers play a critical role on the properties of the composite. Many composites are processed as a liquid molten suspension of fibers  and then solidified, holding the fibers in place. Once the fiber orientations are known, theoretical models exist that can predict properties of the composite. Modeling the suspended fibers in the liquid state is important because their ultimate configuration depends strongly on the flow history during the molten processing. 
+
+Continuum models, such as the Folgar-Tucker model, predict the evolution of the fibers' orientation in a fluid.  These models are limited in several ways. First, they require empirical constants and closure relations that must be determined \emph{a priori}, either by experiments or detailed computer simulations. Second, they assume that all the fibers are slender bodies of uniform length. Lastly, these methods break down for concentrated suspensions. For these reasons, it is desirable in certain situations to model the movement of individual fibers explicitly. This dissertation builds upon recent advances in boundary integral equations to develop a robust, accurate, and stable method that simulates fibers of arbitrary shape in a planar flow. 
+
+In any method that explicitly models the  individual fiber motion, care must be taken to ensure numerical errors do not cause the fibers to overlap. To maintain fiber separation, a repulsion force and torque are added when required. This repulsion force is free of tuning parameters and is determined by solving a sequence of linear complementarity problems to ensure that the configuration does not have any overlap between fibers. Numerical experiments demonstrate the stability of the method for concentrated suspensions. 
+\end{abstract}
+
+\mainmatter
+\input introduction
+\input governing_equations
+\input numerics
+\input variational
+\input contact_results
+\input conclusions
+
+\appendix
+\input index_notation
+
+% You have your choice of bibliography sections, either
+% hand-crafted or BibTeX.
+
+% This is the "hand-crafted" bibliography/references section:
+%\begin{references}
+%Mybib, Sample. \textit{An Example of a Bibliographic Entry
+ %Created Manually}. Tallahassee, Florida: Fornish and Frak, 2010.
+
+%Smith, Marigold. \textit{Lots and Lots of Bibliographic Entries
+% and How to Display Them}. Tallahassee, Florida: Gibson and Goulash, 2010.
+%\end{references}
+
+% Or use the BibTeX bibliography/references section below.  View the
+% file 'myrefs.bib' to get a feel for what these entries may look
+% like.  See the document in the 'sample' folder for more citation and
+% BibTeX examples.
+
+\renewcommand*{\bibname}{References}
+\bibliographystyle{plain}
+\bibliography{bibliography}
+
+\begin{biosketch}
+	Lukas Bystricky received a B.Sc. in Mathematics from the University of British Columbia in 2012. After working for a year in Thundery Bay, Ontario he began his graduate studies in Scientific Computing at Florida State University. 
+\end{biosketch}
+\end{document}

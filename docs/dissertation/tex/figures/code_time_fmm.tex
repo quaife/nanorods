@@ -1,0 +1,74 @@
+% This file was created by matlab2tikz.
+%
+%The latest updates can be retrieved from
+%  http://www.mathworks.com/matlabcentral/fileexchange/22022-matlab2tikz-matlab2tikz
+%where you can also make suggestions and rate matlab2tikz.
+%
+\documentclass[tikz]{standalone}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{pgfplots}
+\usepackage{grffile}
+\pgfplotsset{compat=newest}
+\usetikzlibrary{plotmarks}
+\usepgfplotslibrary{patchplots}
+\usepackage{amsmath}
+\usetikzlibrary{decorations.markings}
+\begin{document}
+\begin{tikzpicture}
+
+\begin{axis}[%
+at={(0cm,0cm)},
+width=6cm,
+height=6cm,
+scale only axis,
+xmode=log,
+xmin=50,
+xmax=1e3,
+xminorticks=true,
+xlabel style={font=\color{white!15!black}},
+xlabel={$N_p$},
+ymode=log,
+yminorticks=true,
+ylabel style={font=\color{white!15!black}},
+ylabel={time (s)},
+axis background/.style={fill=white},
+legend style={legend cell align=left, align=left, draw=white!15!black, at={(0.5,1.02)}, anchor=south}
+]
+\addplot [only marks, line width=2.0pt, draw=none, mark=o, mark options={solid, blue}]
+  table[row sep=crcr]{%
+8 75\\
+16 61\\
+32 75\\
+64 118\\
+128 233\\
+256 593\\
+512 1692\\
+};
+\addlegendentry{ FMM, with preconditioner}
+
+\addplot [only marks, line width=2.0pt, draw=none, mark=o, mark options={solid, red}]
+  table[row sep=crcr]{%
+8 168\\
+16 200\\
+32 144\\
+64 221\\
+128 436\\
+256 1116\\
+512 3245\\
+};
+\addlegendentry{ FMM, without  preconditioner}
+
+\addplot [color=blue]
+  table[row sep=crcr]{%
+32 106.8125\\
+256 854.5\\
+1024 3418\\
+};
+\addlegendentry{$\mathcal{O}(N_p)$}
+
+
+
+\end{axis}
+\end{tikzpicture}%
+\end{document}

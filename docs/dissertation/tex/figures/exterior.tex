@@ -1,0 +1,32 @@
+% This file was created by matlab2tikz.
+%
+%The latest updates can be retrieved from
+%  http://www.mathworks.com/matlabcentral/fileexchange/22022-matlab2tikz-matlab2tikz
+%where you can also make suggestions and rate matlab2tikz.
+%
+\documentclass[tikz]{standalone}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{pgfplots}
+\usepackage{grffile}
+\pgfplotsset{compat=newest}
+\usetikzlibrary{plotmarks}
+\usepgfplotslibrary{patchplots}
+\usepackage{amsmath}
+\usetikzlibrary{decorations.markings}
+\usetikzlibrary{shapes,snakes}
+
+\begin{document}
+
+\begin{tikzpicture}[ultra thick]
+		\draw(0,0) node[circle,decorate, decoration={snake,amplitude=5pt,segment length=40pt},draw,scale=20,fill=green]{};
+	          \draw(2.2,3.4)node{\huge$S$};
+	           \draw(-6,2.5)node{\huge$\mathbf{u}^\infty$};
+	           \draw(0,0)node[circle, fill=black,scale=0.5]{};
+	           \draw(0,0.5)node{\huge$\mathbf{c}$};
+	            \draw[->](-2.8,1.9)--(-1.8,1);
+	           \draw(-1.4,0.6)node{\huge$\mathbf{n}$};
+	            \draw(5.5,1.7)node{\huge$V$};
+	             \draw[->](-7,2)--(-5,2);
+\end{tikzpicture}
+\end{document}

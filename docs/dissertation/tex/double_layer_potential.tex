@@ -1,0 +1,27 @@
+\chapter{The Completed Double Layer Potential}
+
+\begin{proposition}
+The stress tensor for a fluid moving with rigid body motion is zero everywhere.
+\end{proposition}
+
+\begin{proof}
+	A fluid moving with rigid body motion has velocity,
+	\begin{equation}\label{eq:rbm} \uu^{RBM}(\xx) = \UU + \oomega\times\xx,\end{equation}
+	where $\UU$ is a constant translational velocity and $\oomega$ is a constant angular velocity. In $\mathbb{R}^2$ the cross product in this equation makses sense with $\xx = [x_1, x_2, 0]$ and $\oomega = [0, 0, \omega]$. 
+
+Since this velocity is linear in $\xx$ all second derivatives in space are zero, which means that $\nabla p = 0$, and therefore pressure is constant. We will take the pressure to be 0. 
+
+	The viscous stress tensor is given by
+	\[ \sigma_{ij}' = \frac{1}{2}\left(\frac{\partial u_i}{\partial x_j} + \frac{\partial x_j}{\partial u_i}\right).\]
+	
+	Substituting in \eqref{eq:rbm} into this expression yields,
+	\begin{align*}
+		\sigma_{ij}' &= \frac{1}{2}\left(\frac{\partial U_i}{\partial x_j} + \frac{\partial}{\partial x_j}\epsilon_{i k \ell} \omega_k x_{\ell} + 
+					\frac{\partial U_j}{\partial x_i} + \frac{\partial}{\partial x_i}\epsilon_{j k \ell} \omega_k x_{\ell} \right)\\
+			     &= \frac{1}{2}\left(\epsilon_{ikl}\omega_k\delta_{jl} + \epsilon_{jkl}\omega_k\delta_{il}\right)\\
+			    &= \frac{1}{2}\left(\epsilon_{ikj}\omega_k + \epsilon_{jki}\omega_k\right)
+	\end{align*}
+
+	From the definition of $\epsilon$, if $i=j$, then $\epsilon_{ikj} =\epsilon_{jki} = 0$. If $i\ne j$ the definition of $\epsilon$ gives that $\epsilon_{ikj} = -\epsilon_{jki}$, meaning that this expression is 0 for all $i,j$. 
+
+\end{proof}

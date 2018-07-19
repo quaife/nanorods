@@ -1,0 +1,422 @@
+\chapter{Problem Description}
+
+In this chapter we present the mathematical and computational details that we use to apply BIEs to model rigid body suspensions. After providing the necessary background information, we present some numerical results illustrating the preliminary results.
+ 
+\section{Stokes Flow}
+
+As introduced in section \ref{sec:stokes}, the main equations we will be solving are the steady Stokes equations for incompressible Newtonian flow. Given in \eqref{eq:stokes_steady}, they are reprinted with velocity boundary conditions here,
+\begin{subequations}\label{eq:stokes}
+\begin{align}
+	\mu\Delta\mathbf{u} - \nabla p = \mathbf{0}\label{eq:stokes_mom} &\qquad\text{in }\Omega,\\
+	\nabla\cdot\mathbf{u} = 0\label{eq:stokes_div} &\qquad\text{in }\Omega,\\
+	\mathbf{u} = \mathbf{U} &\qquad\text{on } \partial\Omega.\label{eq:u_bc}
+\end{align}
+\end{subequations}
+ Here $\Omega$ is a domain in $\mathbb{R}^2$ with boundary $\partial\Omega$. For simplicity we will take $\mu=1$ for the remainder of this work.
+
+In this section we show how to apply boundary integral equations to solve \eqref{eq:stokes}. We will be considering a multiply connected bounded domain. Let $\Omega$ be the fluid domain whose boundary $\partial\Omega$ is the union of $n+1$ closed curves denoted $\Gamma_0$, $\Gamma_1, \hdots, \Gamma_n$, with $\Gamma_0$ being the enclosing boundary. An example of this domain is shown in Figure \ref{fig:omega_bounded}.
+\begin{figure}[!h]
+\begin{center}
+\begin{tikzpicture}
+	\path[fill=lightgray, draw=black, thick]
+	 (-2,0) to [out=90,in=180](-1,4) to[out=0, in = 45](8,4.5) to[out=225, in=10](7,-4) to[out=190, in=270](-2,0);
+	\draw[thick, fill=white] (2,1) circle(1.5);
+	\draw[thick, fill=white] (4,-2)[rotate around={30:(4,-2)}]circle[x radius=1.5, y radius = 0.5];
+	\draw[thick, fill=white] (6,1)[rotate around={-10:(6,1)}]circle[x radius=1, y radius = 0.8];
+	\fill(2,1)circle(0.1);
+	\fill(6,1)circle(0.1);
+	\fill(4,-2)circle(0.1);
+	\draw(2.3,1) node {$\mathbf{c}_1$};
+	\draw(4,-1.7) node {$\mathbf{c}_2$};
+	\draw(6,1.3) node {$\mathbf{c}_3$};
+	\draw(4,3) node {\Huge$\Omega$};
+	\draw(-2.3,1) node {$\Gamma_0$};
+	\draw(0,1) node {$\Gamma_1$};
+	\draw(2.5,-2) node {$\Gamma_2$};
+	\draw(4.7,1) node {$\Gamma_3$};
+	\draw[->](0.5,1)--(1,1) node[align=center, above]{$\mathbf{n}$};
+	\draw[->](-2,0)--(-2.5,0) node[align=center, above]{$\mathbf{n}$};
+\end{tikzpicture}
+\end{center}
+\caption[Sketch of an admissible domain.]{Sketch of three-ply connected domain. In this case $\partial\Omega$ is the union of $\Gamma_0$, $\Gamma_1$, $\Gamma_2$ and $\Gamma_3$. $\Gamma_0$ is always the enclosing boundary. The point $\mathbf{c}_k$, $k=1, 2, 3$ is an arbitrary point inside obstacle $k$.}\label{fig:omega_bounded}
+\end{figure}
+
+
+\section{Completed Double Layer Potential}
+
+
+The fundamental solution of the Stokes equations in $\mathbb{R}^2$, $\{\pmb{\Phi}^k(\mathbf{x},\mathbf{y}),\psi^k(\mathbf{x},\mathbf{y})\}$, $k = 1,2$ satisfies
+\begin{align*}
+	\Delta_{\mathbf{x}}\pmb{\Phi}^k(\mathbf{x},\mathbf{y}) - \nabla_{\mathbf{x}}\psi^k(\mathbf{x},\mathbf{y}) &= \delta(\mathbf{x}-\mathbf{y})\mathbf{e}^k,\\
+	\nabla_{\mathbf{x}} \cdot\pmb{\Phi}^k = 0.
+\end{align*}
+where $\mathbf{e}^k$ is the unit vector in direction $k$ and $\delta(\mathbf{x}-\mathbf{y})$ is the Dirac delta function centered at $\mathbf{y}$. The fundamental solution is given by
+\begin{comment}
+\begin{align*}
+	\pmb{\Phi}(x_1,x_2,y_1,y_2) &= \frac{1}{4\pi}\tiny\begin{pmatrix} (x_1 - y_1)(x_1 - y_1) - \ln\left(\sqrt{(x_1 - y_1)^2+(x_2-y_2)^2}\right) & (x_1 - y_1)(x_2-y_2) \\  (x_1 - y_1)(x_2-y_2) &  (x_2 - y_2)(x_2 - y_2) - \ln\left(\sqrt{(x_1 - y_1)^2+(x_2-y_2)^2}\right) \end{pmatrix}\\
+	\pmb{\psi}(x_1,x_2,y_1,y_2) &=\frac{1}{\pi} \begin{pmatrix} \frac{x_1 - y_1}{\sqrt{(x_1 - y_1)^2+(x_2-y_2)^2}} \\  \frac{x_2 - y_2}{\sqrt{(x_1 - y_1)^2+(x_2-y_2)^2}}\end{pmatrix}
+\end{align*}
+Equivalently, in more compact notation
+\end{comment}
+\begin{subequations}
+\begin{align}
+	\pmb{\Phi}(\mathbf{x},\mathbf{y}) &= \frac{1}{4\pi}\left(\frac{\mathbf{r}\otimes\mathbf{r}}{\rho^2} - \ln\rho\mathbf{I}\right),\\
+	\pmb{\psi}(\mathbf{x},\mathbf{y}) &= \frac{1}{\pi}\left(\frac{\mathbf{r}}{\rho^2}\right),
+\end{align}
+\end{subequations}
+where $\mathbf{r} = \mathbf{x} - \mathbf{y}$ is the vector joining the target point $\mathbf{x}\in\Omega$ to the source point $\mathbf{y}\in\Omega$ and $\rho = |\mathbf{r}|$ is its length. The fundamental solution for the velocity is known as a \textit{Stokeslet} and represents the fluid velocity at $\mathbf{x}$ induced by a point force of unit strength at $\mathbf{y}$. 
+
+\begin{comment}
+From the Stokeslet, we can obtain the double layer potentials
+\begin{subequations}
+\begin{align}
+	 \mathcal{D}[\pmb{\eta}](\mathbf{x}) &= \int_{\partial\Omega} \left(\sigma_{ij}(\pmb{\Phi}^k)n_k\right)\eta_i(\mathbf{y})\text{d}\mathbf{y} =  \int_{\partial\Omega} \mathbf{W}\pmb{\eta}(\mathbf{y})\text{d}\mathbf{y}, \label{eq:dlp_u}\\
+	\mathcal{C}[\pmb{\eta}](\mathbf{x}) &= \int_{\partial\Omega} \frac{\partial \psi^k}{\partial x_j}n_j\eta_k(\mathbf{y})\text{d}\mathbf{y} = \int_{\partial\Omega}\mathbf{q}\cdot\pmb{\eta}(\mathbf{y})\text{d}\mathbf{y},
+\end{align}
+\end{subequations}
+where $\eta(\mathbf{y}) = \langle \eta_1(\mathbf{y}), \eta_2(\mathbf{y})\rangle$ is an unknown density function and $\sigma_{ij}(\pmb{\Phi}^k)$ is called the \textit{stresslet}, given by:
+\begin{equation}
+	\sigma_{ij}\left(\pmb{\Phi}^k(\mathbf{x},\mathbf{y})\right) = \mathbf{I}\pmb{\psi} + \left(\nabla_{\mathbf{x}}\pmb{\Phi}^k + \nabla_{\mathbf{x}} \left(\pmb{\Phi^k}\right)^T\right).
+\end{equation}
+
+
+This leads to the kernels of the double layer potentials
+\begin{subequations}
+\begin{align}
+	\mathbf{W}(\mathbf{x},\mathbf{y}) & = -\frac{1}{\pi}\left(\frac{\mathbf{r}\cdot\mathbf{n}}{\rho^4}\mathbf{r}\otimes\mathbf{r}\right),\label{eq:dlp_u_kernel}\\
+		\mathbf{q}(\mathbf{x},\mathbf{y}) &= \frac{1}{\pi}\nabla_x \left(\frac{\mathbf{r}\cdot\mathbf{n}}{\rho^2}\right).
+\end{align}
+\end{subequations}
+\end{comment}
+
+The stress tensor arising from the fundamental solution,
+\[ \mathbf{T}(\mathbf{x},\mathbf{y}) = -\psi \mathbf{I} + \left(\nabla_{\mathbf{x}} \pmb{\Phi} + \left(\nabla_{\mathbf{x}}\pmb{\Phi}\right)^T\right),\]
+can be used to create the kernel for the \textit{double layer potential},
+\begin{equation}\label{eq:dlp_u} \mathcal{D}[\pmb{\eta}](\mathbf{x}) = \int_{\partial\Omega} \mathbf{K}(\mathbf{x},\mathbf{y})\pmb{\eta}(\mathbf{y})\text{d}s(\mathbf{y}),\end{equation}
+where $\mathbf{K}(\mathbf{x},\mathbf{y}) = -\mathbf{T}(\mathbf{x},\mathbf{y})\hat{\mathbf{n}}(\mathbf{y})$, with $\hat{\mathbf{n}}$ being the unit normal pointing out of the fluid domain. 
+
+
+To set up a Fredhom integral equation we will look at the limit of \eqref{eq:dlp_u} as $\mathbf{x}$ approaches a point  $\mathbf{x}^*\in\partial\Omega$. The double layer kernel has a jump as we cross the boundary, and this leads to a discontinuity in the double layer potential \cite{Ladyzhenskaya1963},
+\begin{subequations}\label{eq:dlp_limits}
+\begin{align}
+	\lim_{\substack{ \mathbf{x}\to\mathbf{x}^*\\ \mathbf{x}\notin \Omega}} \mathcal{D}[\pmb{\eta}](\mathbf{x})= \frac{1}{2}\pmb{\eta}(\mathbf{x}^*) &+ \int_{\partial\Omega} \mathbf{K}(\mathbf{x}^*,\mathbf{y})\pmb{\eta}(\mathbf{y})\text{d}s(\mathbf{y}), \\
+\lim_{\substack{ \mathbf{x}\to\mathbf{x}^*\\ \mathbf{x}\in \Omega}} \mathcal{D}[\pmb{\eta}](\mathbf{x})= -\frac{1}{2}\pmb{\eta}(\mathbf{x}^*) &+ \int_{\partial\Omega} \mathbf{K}(\mathbf{x}^*,\mathbf{y})\pmb{\eta}(\mathbf{y})\text{d}s(\mathbf{y}).
+\end{align}
+\end{subequations}
+
+\begin{figure}[!h]
+\begin{tabular}{c c}
+	\begin{tikzpicture}
+	\begin{axis}[domain=-1:1, view={0}{90}]
+	\addplot3[blue, quiver={u={x^2-ln(sqrt(x^2+y^2)}, v={x*y}, scale arrows=0.1}, -stealth,samples=10] {0};
+	\end{axis}
+	\end{tikzpicture}
+&
+	\begin{tikzpicture}
+	\begin{axis}[domain=-2:2, view={0}{90}]
+	\addplot3[blue, quiver={u={y/(x^2+y^2)}, v={-x/(x^2+y^2)}, scale arrows=0.15}, -stealth,samples=10] {0};
+	\end{axis}
+	\end{tikzpicture}
+\end{tabular}
+\caption[Plots of Stokeslet and rotlet.]{Example of singularities centered at origin. Left: Stokeslet.  Right:  Rotlet.}\label{fig:singularity}
+\end{figure}
+
+By setting the velocity field to the double layer potential, the goal becomes to match the Dirichlet boundary conditions \eqref{eq:u_bc} with the appropriate limiting value in \eqref{eq:dlp_limits}. This  leads to  the integral equation
+\begin{equation}\label{eq:fredholm_sing} - \frac{1}{2}\pmb{\eta}(\mathbf{x}) + \mathcal{D}[\pmb{\eta}](\mathbf{x}) = \mathbf{U}\qquad \mathbf{x}\in\partial\Omega.\end{equation}
+This is a desirable Fredholm equation of the second kind for the unknown density function $\pmb{\eta}$ defined on $\partial\Omega$. 
+
+
+Unfortunately, defining the velocity in terms of just the double layer potential does not let us represent every possible flow field. In particular we are limited to problems where the net force and torque on the boundary is 0. Thus \eqref{eq:fredholm_sing} is solvable only if this condition is met. This necessitates the completion~\cite{Power1993, Power1987} of the double layer potential by adding linear combinations of \textit{rotlets}, given by
+\begin{equation}
+	\mathbf{R}(\mathbf{x},\mathbf{y})\xi = \xi\frac{\mathbf{r}^\perp}{\rho^2},
+\end{equation}
+and Stokeslets for each obstacle in the domain. For notational purposes we will write Stokeslets as
+\[ \mathbf{S}(\mathbf{x},\mathbf{y})\pmb{\lambda} = \pmb{\Phi}(\mathbf{x},\mathbf{y})\pmb{\lambda}.\]
+Rotlets are the rotational analogue of Stokeslets and represent the fluid velocity induced by a point torque. Stokeslets and rotlets are called \textit{singularities}; an example of a Stokeslet and a rotlet are shown in Figure \ref{fig:singularity}. The Stokeslet $\mathbf{S}(\mathbf{x},\mathbf{c}_k)\pmb{\lambda}_k$ centered  inside obstacle $k$ exerts a total force $\pmb{\lambda}_k$ on obstacle $k$, and zero total torque. The rotlet $\mathbf{R}(\mathbf{x},\mathbf{c}_k)\xi_k$ centered inside obstacle $k$ exerts zero total force on obstacle $k$ and total torque equal to $\xi_k$. 
+
+By adding in the Rotlets and Stokeslets we arrive at the \textit{completed double layer potential}
+\begin{equation}\label{eq:dlp_complete}
+	 \mathbf{u}(\mathbf{x}) = \mathcal{D}[\pmb{\eta}](\mathbf{x}) + \sum\limits_{k=1}^n\mathbf{S}(\mathbf{x},\mathbf{c}_k)\pmb{\lambda}_k + \sum\limits_{k=1}^n \mathbf{R}(\mathbf{x},\mathbf{c}_k)\xi_k,\end{equation}
+where $\mathbf{c}_k$, $k=1,\hdots,n$ is a point inside obstacle $k$, as shown in figure \ref{fig:omega_bounded}. Typically this will be the center of the obstacle, but this is not necessary. Since  the double layer potential does not exert any force or torque on a closed surface, the total force on obstacle $k$ is $\pmb{\lambda}_k$ and the total torque exerted on obstacle $k$ is $\xi_k$. 
+
+
+
+At this point we have more unknowns than equations. One way to close the system is to relate the total force on each obstacle $\pmb{\lambda}_k$ and the total torque on each obstacle $\xi_k$ to the density $\pmb{\eta}$ by
+\begin{subequations}\label{eq:constraints}
+\begin{align}
+	\pmb{\lambda}_k &= \frac{1}{2\pi} \int_{\Gamma_k} \pmb{\eta}(\mathbf{y}) \text{d}s,\label{eq:force}\\
+	\xi_k &= \frac{1}{2\pi}\int_{\Gamma_k}\left( (\mathbf{y} - \mathbf{c}_k)^\perp \cdot\pmb{\eta}(\mathbf{y})\right)\text{d}s. \label{eq:torque}
+\end{align}
+\end{subequations}
+
+To finish our discussion of the completed double layer potential, we note that  $\int_{\Gamma_0} \mathbf{u}\cdot\mathbf{n}\text{d}s = 0$ implies that $\int_{\Gamma_0 }\pmb{\eta}\cdot\mathbf{n}\text{d}s = 0$~\cite{Pozrikidis1992}. By the Fredholm alternative, this constraint means that we have a rank one null space. It can be removed by adding an additional operator that is active along the boundary $\Gamma_0$
+\begin{equation}
+	\mathcal{N}_0[\pmb{\eta}](\mathbf{x}) = \int_{\Gamma_0}(\hat{\mathbf{n}}(\mathbf{x})\otimes\hat{\mathbf{n}}(\mathbf{y}))\pmb{\eta}(\mathbf{y})\text{d}s(\mathbf{y}).
+\end{equation}
+
+\section{Canonical Equations for Resistance and Mobility Problems}
+
+There are two common types of problems this formulation allows us to solve. The first is the \textit{resistance problem}, where the velocity of each obstacle is specified  and we are tasked with computing the forces and torques on each particle. The other problem, in which the forces and torques on the obstacles are specified and we must compute the velocity is called the \textit{mobility problem}. 
+
+Assuming no-slip boundary conditions, we have
+\begin{equation}\label{eq:canonical1}
+-\frac{1}{2}\pmb{\eta}(\mathbf{y}) + \mathcal{D}[\pmb{\eta}](\mathbf{y}) + \sum\limits_{j=1}^n \biggr(\mathbf{S}(\mathbf{y},\mathbf{c}_j)\pmb{\lambda}_j + \mathbf{R}(\mathbf{y},\mathbf{c}_j)\xi_j\biggr) + \delta_{0k}\mathcal{N}_0[\pmb{\eta}](\mathbf{y}) = \mathbf{U}(\mathbf{y}) \qquad \text{for } \mathbf{y}\in\Gamma_k.
+\end{equation}
+
+The velocity on $\Gamma_k$ can be decomposed into a translational velocity $\mathbf{U}^\tau_k$ and a rotational velocity $\omega_k$:
+\[ \mathbf{U}(\mathbf{y}) = \mathbf{U}^\tau_k + \omega_k(\mathbf{y} - \mathbf{c}_k)^\perp \qquad \mathbf{y}\in\Gamma_k.\]
+
+Using this decomposition in \eqref{eq:canonical1} and adding the constraints \eqref{eq:constraints} yields our final system
+\begin{subequations}\label{eq:canonical}
+\begin{equation}\label{eq:canonical_a}
+\begin{aligned}
+	 \mathbf{U}^\tau_k + \omega_k(\mathbf{x} - \mathbf{c}_k)^\perp &= -\frac{1}{2}\pmb{\eta}(\mathbf{x}) + \mathcal{D}[\pmb{\eta}](\mathbf{x}) \\+ &\sum\limits_{j=1}^n \mathbf{S}(\mathbf{x},\mathbf{c}_j)\pmb{\lambda}_j + \mathbf{R}(\mathbf{x},\mathbf{c}_j)xi_j + \delta_{0k}\mathcal{N}_0[\pmb{\eta}](\mathbf{x}) \qquad \mathbf{x}\in\Gamma_k,
+\end{aligned}
+\end{equation}
+\begin{align}
+	\pmb{\lambda}_k &= \frac{1}{2\pi} \int_{\Gamma_k} \pmb{\eta}(\mathbf{y}) \text{d}s,\\
+	\xi_k &= \frac{1}{2\pi}\int_{\Gamma_k} (\mathbf{y} - \mathbf{c}_k)^\perp \cdot\pmb{\eta}(\mathbf{y})\text{d}s.
+\end{align}
+\end{subequations}
+
+These are the canonical equations \cite{Karrila1989} for the resistance and mobility problem. Here for each $k = 1,\hdots, n$ we must specify either the velocity $\mathbf{U}(\mathbf{y}) = \mathbf{U}_\tau + \omega(\mathbf{y} - \mathbf{c}_k)^\perp$, or the net force $\pmb{\lambda_k}$ and torque $\xi_k$ along $\Gamma_k$. We then solve for the other variables, including the density function $\pmb{\eta}$.
+
+\section{Computational Considerations}
+
+Consider a domain bounded by $\Gamma_0$ containing $N + M$ total obstacles: $M $ of type 1, on which we specify the velocity $\mathbf{U}$ and $N$ of type 2, on which we specify the total force $\pmb{\lambda}$ and torque $\xi$. The outer boundary as well as obstacles of type 1 will be called solid walls, while the obstacles of type 2 will be called particles. Define:
+\[ \Gamma_w = \bigcup\limits_{k=1}^M \Gamma_k, \qquad\qquad \Gamma_p = \bigcup\limits_{k=M+1}^{N+M} \Gamma_k.\]
+
+An example of such a domain, with $N=4$ and $M=1$ is shown in Figure \ref{fig:couette}. We wish to solve for the total force and torque on $\Gamma_0 \cup \Gamma_w$ and the translational and angular velocity on $\Gamma_p$. 
+
+\begin{figure}[!h]
+\begin{center}
+\begin{tikzpicture}
+	\draw[ultra thick, red, fill=gray] (5,5) circle(4);
+	\draw[ultra thick, red,  fill=white] (5,5) circle(2);
+	\draw[ultra thick, blue, fill=white] (2.5,2.5)[rotate around={-10:(3,2)}]circle[x radius=0.2, y radius = 0.5];
+	\draw[ultra thick, blue, fill=white] (2.5,4.5)[rotate around={30:(2.5,3.5)}]circle[x radius=0.2, y radius = 0.5];
+	\draw[ultra thick, blue, fill=white] (6.5,3)[rotate around={90:(6.5,3)}]circle[x radius=0.2, y radius = 0.5];
+	\draw[ultra thick, blue, fill=white] (5.6,7.5)[rotate around={60:(5.6,7.5)}]circle[x radius=0.2, y radius = 0.5];
+\end{tikzpicture}
+\end{center}
+\caption[Sketch of a Couette device.]{Sketch of a Couette device. Objects outlined in red are solid walls;  objects outlined in blue are suspended particles.}\label{fig:couette}
+\end{figure}
+
+To simplify the calculations we will make use of the \textit{quasi-static approximation}. This approximation is commonly used in low Reynolds number particle simulations. Under this approximation the particles instantaneously adjust their velocities to assume a force-free configuration \cite{Kropinski1997}. This allows us to evaluate the  evolution of the particles by solving a sequence of steady problems of the form \eqref{eq:stokes}. 
+
+Splitting the integrals in \eqref{eq:canonical_a} into integrals along the walls and integrals along particles and applying the quasi-static approximation gives
+\begin{subequations}\label{eq:int_split}
+\begin{equation}
+\begin{aligned} 
+-\frac{1}{2}\pmb{\eta}_p(\mathbf{x}) + \mathcal{D}[\pmb{\eta}_p](\mathbf{x}) &+ \mathcal{D}[\pmb{\eta}_w](\mathbf{x}) + \sum\limits_{j=1}^m \biggr(\mathbf{S}(\mathbf{x},\mathbf{c}_j)\pmb{\lambda}_j + \mathbf{R}(\mathbf{x},\mathbf{c}_j)\xi_j\biggr)\\& - \mathbf{U}(\mathbf{x}) - \omega(\mathbf{x}-\mathbf{c}_k)^\perp = 0 \qquad \mathbf{x}\in \Gamma_p,
+\end{aligned}
+\end{equation}
+\begin{equation}
+\begin{aligned} 
+-\frac{1}{2}\pmb{\eta}_w(\mathbf{x}) + \mathcal{D}[\pmb{\eta}_p](\mathbf{x}) &+ \mathcal{D}[\pmb{\eta}_w](\mathbf{x}) + \sum\limits_{j=1}^m \biggr(\mathbf{S}(\mathbf{x},\mathbf{c}_j)\pmb{\lambda}_j + \mathbf{R}(\mathbf{x},\mathbf{c}_j)\xi_j\biggr) \\&= \mathbf{U}(\mathbf{x}) + \omega(\mathbf{x}-\mathbf{c}_k)^\perp \qquad \mathbf{x}\in \Gamma_w,
+\end{aligned}
+\end{equation}
+\begin{equation}
+\begin{aligned} 
+-\frac{1}{2}\pmb{\eta}_w(\mathbf{x}) + \mathcal{D}[\pmb{\eta}_p](\mathbf{x}) &+ \mathcal{D}[\pmb{\eta}_w](\mathbf{x}) + \sum\limits_{j=1}^m \biggr(\mathbf{S}(\mathbf{x},\mathbf{c}_j)\pmb{\lambda}_j + \mathbf{R}(\mathbf{x},\mathbf{c}_j)\xi_j\biggr) \\& + \mathcal{N}_0[\pmb{\eta}_w](\mathbf{x}) = \mathbf{U}(\mathbf{x}) + \omega(\mathbf{x}-\mathbf{c}_k)^\perp \qquad \mathbf{x}\in \Gamma_0.
+\end{aligned}
+\end{equation}
+
+\end{subequations}
+
+\subsection{Discretization}
+
+
+The equations \ref{eq:canonical} and \eqref{eq:int_split} can be written in the compact form
+ \begin{subequations}\label{eq:compact}
+\begin{alignat}{3}
+	\mathbf{V}_{dlp} + \mathbf{V}_{s,r} - \mathbf{V}_{p} &= \mathbf{0} \qquad &&\text{ on } \Gamma_p,\\
+	\mathbf{V}_{dlp} + \mathbf{V}_{s,r} &= \mathbf{V}_{w} \qquad &&\text{ on } \Gamma_w,\\
+	\mathbf{F}_{\pmb{\eta}} - \mathbf{F}_{s,r} &= \mathbf{0} \qquad &&\text{ on } \Gamma_w,
+\end{alignat}
+\end{subequations}
+where $\mathbf{V}_{dlp}$ is the velocity induced by the double layer potential, $\mathbf{V}_{s,r}$ is the velocity induced by the Stokeslets and Rotlets, $\mathbf{V}_p$ is the unknown particle velocity and $\mathbf{V}_w$ is the prescribed wall velocity. $\mathbf{F}_{s,r}$ is the net force and torque generated by the Rotlets and Stokeslets on each of the walls, and $\mathbf{F}_{\pmb{\eta}}$ is the net force and torque generated by the density function $\pmb{\eta}$ on each of the walls. 
+
+To discretize the integrals in the \eqref{eq:compact}, we will use the collocation method discussed in Section \ref{sec:discretization}. Specifically we will use the trapezoid rule, which is spectrally accurate for $C^\infty$ periodic integrands such as ours. The integrals around each of the $n$ particles will be discretized using $J$ points, and the integrals around each of the $M$ walls will be discretized using $L$ points. This leads to $2(NJ + ML)$ unknowns for the density function $\pmb{\eta}$, plus an additional $3$ unknowns (translational and rotational velocities or forces and torques) for each boundary (except $\Gamma_0$). Thus the total number of unknowns is $2(NJ + ML) + 3(N+M - 1)$. 
+
+We first parameterize the walls and particles from $0$ to $2\pi$. The spacing between discretization points on the particles, $h_{p}$, is then $2\pi/J$ and the spacing between points on the walls, $h_w$ is $2\pi/L$. Each point, $\mathbf{y}^k_i$ is associated with an unknown density $\pmb{\eta}^k_i$.
+
+At a point $\mathbf{y}^k_i$ on particle $k$, we can discretize $\mathbf{V}_{dlp}$ as
+\begin{equation}\label{eq:vdlp}
+\begin{aligned}
+\mathbf{V}_{dlp}(\mathbf{y}^k_i) = -\frac{1}{2}\pmb{\eta}^k_i  +h_p\bigg( &\sum_{\substack{j=1\\j\ne i}}^J \mathbf{K}_k(\mathbf{y}^k_j,\mathbf{y}^k_i)\pmb{\eta}_j^k +\frac{\kappa_k(\mathbf{y}^k_i)}{2}(\pmb{\tau}(\mathbf{y}^k_i)\otimes\pmb{\tau}(\mathbf{y}_i^k))\pmb{\eta}_i^k\bigg) \\&+ h_p\sum\limits_{\substack{n=1\\n\ne k}}^N\sum\limits_{j=1}^J  \mathbf{K}_n(\mathbf{y}^n_j,\mathbf{y}^k_i)\pmb{\eta}_j^n  + h_w \sum\limits_{m=1}^M\sum\limits_{\ell=1}^L \mathbf{K}_m(\mathbf{y}^m_\ell,\mathbf{y}^k_i)\pmb{\eta}^m_\ell .
+\end{aligned}
+\end{equation}
+ 
+The first summation in \eqref{eq:vdlp} is the self contribution to the velocity at $\mathbf{y}^k_i$, that is, the velocity due to all other points on particle $k$. The kernel in the double layer potential has a removable singularity at $\mathbf{x}=\mathbf{y}$, so self-self summation skips the entry $j=i$. It is replaced by its limiting value, which involves the curvature of the boundary $\kappa$, and the tangential vectors $\pmb{\tau}$ \cite{Ladyzhenskaya1963}. 
+
+The second summation is the contribution due to all other particles. The last summation is the wall contribution, which is the velocity at $\mathbf{y}^k_i$ due to points on the walls. The kernels have all been modified slightly to account for the mapping from the boundary to the interval $[0,2\pi]$. The modified kernel $\mathbf{K}_n$ is defined to be
+\[ \mathbf{K}_n(\mathbf{x},\mathbf{y}) = \mathbf{K}(\mathbf{x},\mathbf{y})||\mathbf{r}_n'(\mathbf{y})||,\]
+where $\mathbf{r}_n(\mathbf{y})$ is a parameterization of $\Gamma_n$. A similar expression can be given for $\mathbf{V}_{dlp}$ evaluated on the walls, with the addition of $\mathcal{N}_0[\pmb{\eta}]$ on $\Gamma_0$. 
+
+To solve the linear system \eqref{eq:compact} we will use the iterative solver \textit{generalized minimum residual method} (GMRES)~\cite{Saad1986}. This is a Krylov solver that does not require the matrix to have any special properties. GMRES works best for problems arising from compact operators with eigenvalues clustered away from the origin ~\cite{Rasmussen2001}, which due to fact that the completed double layer potential is a Fredholm equation of the second kind, is satisfied by our problem. In this case we expect the number of GMRES iterations to be independent of the mesh resolution. Computing the sums in \eqref{eq:vdlp} directly requires $O(N^2)$  time ($N$ here being the total number of points). This can be sped up to $O(N)$ by using an approximate summation technique known as the \textit{fast multipole method} (FMM)~\cite{Greengard1987, Nishimura2002}. To perform the FMM we use a Fortran library provided by Leslie Greengard and Manas Rachh that can be run in parallel using OpenMP. 
+
+
+\subsection{Near Singular Integration}\label{sec:near_singular}
+
+
+
+Although the kernel of the double layer potential is $C^{\infty}$ continuous, its derivative grows as the source and target points become close.
+
+ Consider the scenario in Figure \ref{fig:near_experiment}. As $x_2$ approaches the top of the unit circle, the integrand becomes more singular. Once $x_2$ hits the top of the circle the integrand becomes smooth as it takes the limiting value which depends on the curvature and the tangential vectors. The errors and convergence rates of the trapezoid rule are in Table \ref{table:near_singular} for various grid resolutions. As expected, the integrand becomes more singular and the error in the trapezoid rule increases.
+
+\begin{figure}[!h]
+\begin{tabular}{cc}
+\begin{tikzpicture}
+	\draw[white](0,-2) -- (1.5,-2);
+	\draw[thick] (0,2) circle(2);
+	\draw[thick] (0,5) node[cross=4pt] {};
+	\draw(3.5,2) node {$\mathbf{r}_1(t) = \begin{pmatrix} \cos(\theta)\\ \sin(\theta)\end{pmatrix}$};
+	\draw(0.5,5.5) node {$\mathbf{x} =\begin{pmatrix}0\\ x_2\end{pmatrix}$};
+\end{tikzpicture}
+&
+\input{../code/singular_kernel.tex}
+\end{tabular}
+\caption[Problem that requires near singular integration.]{A scenario where near singular integration is needed. For the density function $(\sin^2(\theta),\sin^2(\theta))^T$, the value of the integrand in \eqref{eq:dlp_u} vs. $\theta$ is plotted on the right for various values of $x_2$. Despite the large derivatives, the integrand is always $C^\infty$.}\label{fig:near_experiment}
+\end{figure}
+
+\begin{table}[!h]\label{table:near_singular}
+\caption[Discretization errors for regular trapezoid rule applied to near singular problem.]{Discretization errors for the problem shown in Figure \ref{fig:near_experiment} using the standard trapezoid rule. It can be shown using the residue theorem that for this problem $\mathcal{D}[\pmb{\eta}](x_2) = \pi/(4x_2^4)$ if $x_2>1$ and $-\pi/4$ if $x_2=1$.  As $x_2$ approaches 1, the integrand becomes singular and we require more points to obtain a desired accuracy.}
+\begin{center}
+\begin{tabular}{c|c|c|c|c}
+ N& $x_2=1$ & $x_2=1.01$ & $x_2=1.1$ & $x_2=1.5$ \\
+\hline
+16 & 0 &  $1.29\e{0}$  & $6.69\e{-1}$ & $1.82\e{-2}$\\
+32  & 0 &  $1.31\e{0}$  & $2.99\e{-1}$ &  $6.56\e{-5}$\\
+64  & 0 &  $1.19\e{0}$  & $3.24\e{-2}$  & $3.28\e{-10}$ \\
+128  & 0 &   $9.17\e{-1}$  & $1.61\e{-4}$  & 0 \\
+256  & 0 &   $4.63\e{-1}$ & $1.70\e{-9}$ &  0 \\
+512 & 0 &   $7.90\e{-2}$ &  $4.44\e{-16}$  & 0\\
+1024 & 0 &   $1.07\e{-3}$ & 0 & 0\\
+2048 & 0 &   $8.51\e{-8}$ & 0 &  0 
+\end{tabular}
+\end{center}
+\end{table}
+
+
+To accurately compute these integrals we use the near singular integration technique described in ~\cite{Quaife2014, Ying2006}. Assume that a particle with boundary $\Gamma_k$ is discretized with $N$ evenly spaced points and let $h$ be the arclength spacing. Let $d(\mathbf{x},\Gamma_k) = \inf_{\mathbf{y}\in\Gamma_k}||\mathbf{x}-\mathbf{y}||$ be the distance from $\mathbf{x}$ to $\Gamma_k$. We call $\Omega_1 = \{\mathbf{x}\: |\: d(\mathbf{x},\Gamma_k) \geq h\}$ the far zone of $\Gamma_k$, and $\Omega_0 = \{\mathbf{x}\:  |\: d(\mathbf{x},\Gamma_k) < h\}$ the near zone of $\Gamma_k$. 
+
+\begin{figure}[!h]
+\begin{center}
+\input{figures/near_sing.tex}
+\caption{Illustration of the near singular integration technique used.}\label{fig:ns_drawing}
+\end{center}
+\end{figure}
+
+If a target point $\mathbf{x}\in\Omega_1$, we can use the regular trapezoid rule. If $\mathbf{x}\in \Omega_0$, we can find the closest point on the boundary, $\mathbf{x}_0$ using Newton's method. We then add $m$ 
+interpolation points
+	\[ x_j = x_0 + j\beta h\frac{\mathbf{x}-\mathbf{x}_0}{||\mathbf{x}-\mathbf{x}_0||} \qquad j = 0,\cdots m,\]
+where $\beta$ is a constant slightly greater than one to guarantee that all interpolation points are in $\Omega_1$. These points are shown in Figure \ref{fig:ns_drawing}. The layer potential is evaluated at $\mathbf{x}_0$ using a local interpolant of $N_\text{int}$ discretization points on $\Gamma_k$, and also at $\mathbf{x}_j$, $j=1,\cdots,m-1$ using a trapezoid rule with $N^{\sfrac{3}{2}}$ points.  We the use a 1D Lagrange interpolatant to calculate the layer potential at $\mathbf{x}$. When we apply this integration scheme to the double layer potential with a density function in $C^M$, we expect the error to be of $O(h^{\min(N_{\text{int}} - 1, m,  M/2 - 4)})$. In the specific case shown in Figure \ref{fig:near_experiment}, we do not have to iterate to find $\mathbf{x}_0$ since we know that it is at the top of the circle. Taking $m=5$ and noting that $M=\infty$, we expect $O(h^5)$ accuracy, which is demonstrated in Figure \ref{fig:ns_convergence}. 
+
+\begin{figure}[!h]
+\begin{center}
+\input{../code/near_singular_convergence.tex}
+\caption[Convergence of the near singular integration scheme.]{Convergence  study for the near singular integration technique with $m=5$ applied to the problem in figure \ref{fig:near_experiment} with $x_2=1.0005$. We see the desired $O(h^5)$ accuracy. The near singular interpolation significantly outperforms even the upsampled trapezoid quadrature for points in $\Omega_0$. }\label{fig:ns_convergence}
+\end{center}
+\end{figure}
+
+
+
+
+\subsection{Time Stepping}
+
+Once we solve the system \eqref{eq:compact}, we can update the centers $\mathbf{c}_k$ and orientation angle $\theta_k$ of each particle according to
+\begin{subequations}
+	\begin{align}
+		\frac{\text{d} \mathbf{c}_k}{\text{d} t} &= \mathbf{U}_k,\\
+		\frac{\text{d}\theta_k}{\text{d} t} &= \omega_k.
+	\end{align}
+\end{subequations}
+This is a system of ordinary differential equations of size $3n$. We compute a solution using the second order two-step explicit Adams-Bashforth method
+\[ \mathbf{y}_{n+1} = \mathbf{y}_{n} + \frac{3}{2}\Delta t \mathbf{f}(t_{n}) - \frac{1}{2}\Delta t \mathbf{f}(t_{n-1}).\]
+
+\subsection{Preconditioning}
+
+To precondition the system \eqref{eq:compact}, we note that the velocity contributions in \eqref{eq:compact} can be expressed as a matrix of the form
+\begin{equation}\label{eq:matrix}\begin{pmatrix} \mathbf{D}_{pp} & \mathbf{D}_{pw}\\ \mathbf{D}_{wp} & \mathbf{D}_{ww}\end{pmatrix}\begin{pmatrix}\pmb{\eta}_p \\ \pmb{\eta}_w\end{pmatrix}, 
+\end{equation}
+where $\mathbf{D}_{pp}$ represents the particle-particle interactions, $\mathbf{D}_{ww}$ represents the wall-wall interactions and $\mathbf{D}_{pw}$ and $\mathbf{D}_{wp}$ represent the wall-particle or particle-wall interactions. 
+
+We can write $\mathbf{D}_{pp}$ as
+\begin{equation}\label{eq:d_matrix} \begin{pmatrix} \mathbf{D}_{1,1} & \hdots &\mathbf{D}_{1,N} \\ \vdots & \ddots & \vdots \\ \mathbf{D}_{N,1} & \hdots & \mathbf{D}_{N,N}\end{pmatrix},\end{equation}
+where $\mathbf{D}_{i,j}$ represents the contribution from points on particle $i$ to points on particle $j$. The other blocks of \eqref{eq:matrix} have similar representations.
+
+The diagonal blocks $\mathbf{D}_{i,i}$ are full rank and so can be inverted directly, while the non diagonal blocks are all low rank. We will use the preconditioner
+\[ \begin{pmatrix} \mathbf{D}_{1,1}^{-1} &  & \\ & \ddots \\ & & \mathbf{D}^{-1}_{N,N}\end{pmatrix}.\]
+This preconditioner transforms the diagonal blocks into identity matrices. The preconditoned matrix has eigenvalues that are even more clustered than the original, which improves the convergence of GMRES ~\cite{Rasmussen2001}.
+
+\section{Numerical Results}
+
+To test our model, we  run simulations of a Couette apparatus. The inner radius is half the outer radius. The outer wall is stationary and the inner wall has a constant angular velocity. The $N$ particles are parametrized as
+\begin{equation}\label{eq:curve}  r(\phi) = (r_x\gamma(\phi,\alpha) \cos(\phi), r_y\gamma(\phi,\alpha)\sin(\phi),\end{equation}
+where
+\[ \gamma(\phi, \alpha) = (\cos^\alpha(\phi)+\sin^\alpha(\phi))^{\sfrac{1}{\alpha}}.\]
+Here $r_x$ is the length of the fiber, $r_y$ is the width, and $\alpha$ is an even natural number that controls the roundedness of the fiber. As can be seen in Figure \ref{fig:curves}, as $\alpha$ increases, the fiber becomes less rounded. For now we will restrict our attention to circular particles, i.e. those with $r_x=r_y$ and $\alpha=2$. 
+
+
+\begin{figure}[!h]
+\begin{center}
+\begin{tabular}{c c}
+\begin{tikzpicture}
+\draw(0, 1) node {$\alpha = 2$};
+\draw [thick, fill=black,domain=0:2*pi] plot ({2*(cos(\x r)^2 + sin(\x r)^2)^(-1/2)*cos(\x r)},{ 0.5*(cos(\x r)^2 + sin(\x r)^2)^(-1/4)*sin(\x r) });
+\end{tikzpicture}
+&
+\begin{tikzpicture}
+\draw(0, 1) node {$\alpha = 4$};
+\draw [thick, fill=black,domain=0:2*pi] plot ({2*(cos(\x r)^4 + sin(\x r)^4)^(-1/4)*cos(\x r)},{ 0.5*(cos(\x r)^4 + sin(\x r)^4)^(-1/4)*sin(\x r) });
+\end{tikzpicture}\\
+\begin{tikzpicture}
+\draw(0, 1) node {$\alpha = 8$};
+\draw [thick, fill=black,domain=0:2*pi] plot ({2*(cos(\x r)^8 + sin(\x r)^8)^(-1/8)*cos(\x r)},{ 0.5*(cos(\x r)^8 + sin(\x r)^8)^(-1/8)*sin(\x r) });
+\end{tikzpicture}
+&
+\begin{tikzpicture}
+\draw(0, 1) node {$\alpha = 20$};
+\draw [thick, fill=black,domain=0:2*pi] plot ({2*(cos(\x r)^20 + sin(\x r)^20)^(-1/20)*cos(\x r)},{ 0.5*(cos(\x r)^20 + sin(\x r)^20)^(-1/20)*sin(\x r) });
+\end{tikzpicture}
+\end{tabular}
+\caption[Effect of the parameter $\alpha$ on the particle parameterization.]{Effect of the parameter $\alpha$ on the shape of the curve given in \eqref{eq:curve}.}\label{fig:curves}
+\end{center}
+\end{figure}
+
+\begin{figure}[!h]
+\begin{center}
+\input{figures/condition_numbers.tex}
+\caption[Eigenvalues for various levels of refinement.]{Eigenvalues of the matrix from the linear system \eqref{eq:compact}. Top to bottom: $J=8$ and $L=48$, $J=16$ and $L=96$, $J=32$ and $L=192$. Note that at all levels of refinement, the condition number stays bounded and the eigenvalues cluster around -0.5. The number of GMRES iterations is mesh independent.}
+\end{center}\label{fig:eigenvalues}
+\end{figure}
+
+We first demonstrate mesh independence of the condition number, eigenvalue clustering and GMRES iterations. We choose a test problem of two circular particles on opposite sides of the apparatus and placed in the middle of the inner and outer walls. For this problem, $N$ and $M$ are both 2 and we discretize using $N$ and $M$ points along each particle and wall respectively. The matrix from the linear system \eqref{eq:compact} can be constructed explicitly allowing us to directly inspect its condition number and eigenvalues.  As can be seen in Figure \ref{fig:eigenvalues} the condition number does not grow with the number of discretization points $J$ and $L$, nor do the number of GMRES iterations per time step. There are some outlier eigenvalues associated with the rotlets and Stokeslets, but as we refine the mesh all new eigenvalues cluster around -0.5. 
+
+
+
+We are also interested in how the time needed to compute solutions scales with the number of particles $N$. To test this, we vary $N$ as shown in Figure \ref{fig:couette_n}. We  look at the effect of our preconditioner and the total run time needed with and without the FMM for a single time step. As seen in Table \ref{tab:n}, the preconditioner does save a few iterations per time step. The FMM provides a very large advantage over direct summation, in particular as $N$ increases. 
+
+\begin{figure}[!h]
+\begin{center}
+\begin{tabular}{c c}
+\input{figures/n_16.tex} & \input{figures/n_32.tex}\\
+\input{figures/n_64.tex} & \input{figures/n_128.tex}\\
+\end{tabular}
+\caption[Couette apparatus with various numbers of circular particles.]{Different concentrations of circular particles in the Couette apparatus. Top left: 16 particles, volume fraction = 0.0133. Top right: 32 particles, volume fraction = 0.0267. Bottom left: 64 particles, volume fraction = 0.0533. Bottom right: 128 particles, volume fraction = 0.1067. }
+\end{center}\label{fig:couette_n}
+\end{figure}
+
+\begin{center}
+\begin{table}\caption[GMRES iterations and time scaling with the number of particles.]{Impacts of increasing number of particles on GMRES iterations and total runtime. All particles are discretized with 32 points and both walls with 192 points.}\label{tab:n}
+\begin{tabular}{c|c|c|c|c}
+$N$ &\shortstack{ Preconditioned \\ GMRES iterations} & \shortstack{Unpreconditioned \\ GMRES iterations} & Time, with FMM (s) & Time, no FMM (s)\\ \hline 
+16 & 9 & 16 & 2 & 2\\
+32 & 10 & 17 & 2 & 4\\
+64 & 14 & 21 & 6 & 19\\
+128 & 15 & 23 & 10 & 75\\
+\hline
+\end{tabular}
+\end{table}
+\end{center}

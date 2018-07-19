@@ -1,0 +1,72 @@
+% This file was created by matlab2tikz.
+%
+%The latest updates can be retrieved from
+%  http://www.mathworks.com/matlabcentral/fileexchange/22022-matlab2tikz-matlab2tikz
+%where you can also make suggestions and rate matlab2tikz.
+%
+\documentclass[tikz]{standalone}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{pgfplots}
+\usepackage{grffile}
+\pgfplotsset{compat=newest}
+\usetikzlibrary{plotmarks}
+\usepgfplotslibrary{patchplots}
+\usepackage{amsmath}
+\usetikzlibrary{decorations.markings}
+\definecolor{mycolor1}{rgb}{0.00000,0.44700,0.74100}%
+\definecolor{mycolor2}{rgb}{0.85000,0.32500,0.09800}%
+\begin{document}
+
+\begin{tikzpicture}
+
+\begin{axis}[%
+width=8cm,
+height=8cm,
+scale only axis,
+separate axis lines,
+every outer x axis line/.append style={black},
+every x tick label/.append style={font=\color{black}},
+xmode=log,
+xminorticks=true,
+xlabel={$N$},
+ymode=log,
+yminorticks=true,
+ylabel={error},
+axis background/.style={fill=white},
+legend style={legend cell align=left,align=left,draw=black, at={(0.05,0.05)}, anchor=south west}
+]
+\addplot [color=blue,solid,mark=o,mark options={solid}]
+  table[row sep=crcr]{%
+16	0.000480141094436615\\
+32	0.000128263828182429\\
+64	1.80213325182699e-005\\
+128	1.44459028306176e-006\\
+256	7.75015619458586e-008\\
+512	3.2437244001926e-009\\
+1024	1.17619469719443e-010\\
+};
+\addlegendentry{near singular integration};
+
+\addplot [color=green,solid,mark=o,mark options={solid}]
+  table[row sep=crcr]{%
+16	1.50493118489871\\
+32	1.30842630366041\\
+64	1.43097492615635\\
+128	2.75475486289114\\
+256	0.628334046865493\\
+512	0.0345181687159036\\
+1024	3.7168068580673e-006\\
+};
+\addlegendentry{upsampled trapezoid};
+
+\addplot [color=red,solid]
+  table[row sep=crcr]{%
+256	4.51434463456801e-008\\
+1024	4.40853968219532e-011\\
+};
+\addlegendentry{$O(h^5)$};
+
+\end{axis}
+\end{tikzpicture}%
+\end{document}

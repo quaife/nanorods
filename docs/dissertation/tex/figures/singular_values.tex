@@ -1,0 +1,158 @@
+% This file was created by matlab2tikz.
+%
+%The latest updates can be retrieved from
+%  http://www.mathworks.com/matlabcentral/fileexchange/22022-matlab2tikz-matlab2tikz
+%where you can also make suggestions and rate matlab2tikz.
+%
+\documentclass[tikz]{standalone}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{pgfplots}
+\usepackage{grffile}
+\pgfplotsset{compat=newest}
+\usetikzlibrary{plotmarks}
+\usetikzlibrary{arrows.meta}
+\usepgfplotslibrary{patchplots}
+\usepackage{amsmath}
+
+\begin{document}
+\definecolor{mycolor1}{rgb}{0.00000,0.44700,0.74100}%
+\definecolor{mycolor2}{rgb}{0.85000,0.32500,0.09800}%
+\definecolor{mycolor3}{rgb}{0.49400,0.18400,0.55600}%
+%
+\begin{tikzpicture}
+
+\begin{axis}[%
+width=8cm,
+height=8cm,
+at={(0cm,0cm)},
+scale only axis,
+ymode=log,
+ymin=1e-8,
+ymax=100,
+yminorticks=true,
+axis background/.style={fill=white},
+thick,
+xlabel={$r$},
+ylabel={$|\sigma_r|$}
+]
+\addplot [color=blue, draw=none, mark=o, only marks, mark options={solid, blue}]
+  table[row sep=crcr]{%
+1	4\\
+2	4\\
+3	2\\
+4	1\\
+5	0.5\\
+6	0.5\\
+7	0.5\\
+8	0.5\\
+9	0.5\\
+10	0.5\\
+11	0.5\\
+12	0.5\\
+13	0.5\\
+14	0.5\\
+15	0.5\\
+16	0.5\\
+17	0.5\\
+18	0.5\\
+19	0.5\\
+20	0.5\\
+21	0.5\\
+22	0.5\\
+23	0.5\\
+24	0.5\\
+25	0.5\\
+26	0.5\\
+27	0.5\\
+28	0.5\\
+29	0.5\\
+30	0.5\\
+31	0.5\\
+32	0.5\\
+33	0.0625\\
+34	0.0625\\
+35	0.0313\\
+};
+\addlegendentry{$\mathbf{C}_{11}$};
+\addplot [color=red, draw=none, only marks, mark=o, mark options={solid, red}]
+  table[row sep=crcr]{%
+1	0.59\\
+2	0.33\\
+3	0.186\\
+4	0.153\\
+5	0.0913\\
+6	0.0603\\
+7	0.0457\\
+8	0.0248\\
+9	0.0177\\
+10	0.0129\\
+11	0.00621\\
+12	0.00498\\
+13	0.00229\\
+14	0.00195\\
+15	0.000601\\
+16	0.000583\\
+17	0.000183\\
+18	0.000164\\
+19	5.54e-05\\
+20	3.49e-05\\
+21	1.09e-05\\
+22	6.46e-06\\
+23	5.97e-06\\
+24	9.33e-07\\
+25	3.13e-07\\
+26	1.8e-07\\
+27	6.96e-08\\
+28	1.01e-08\\
+29	2.45e-09\\
+30	7.85e-15\\
+31	1.03e-15\\
+32	7.9e-18\\
+33	0\\
+34	0\\
+35	0\\
+};
+\addlegendentry{$\mathbf{C}_{12}$};
+\addplot [color=teal, draw=none, only marks, mark=o, mark options={solid, teal}]
+  table[row sep=crcr]{%
+1	0.201\\
+2	0.0297\\
+3	0.0143\\
+4	0.00477\\
+5	0.00147\\
+6	0.000559\\
+7	0.000283\\
+8	9.61e-05\\
+9	2.14e-05\\
+10	1.05e-05\\
+11	3.69e-06\\
+12	1.73e-06\\
+13	4.31e-07\\
+14	2.18e-07\\
+15	6.56e-08\\
+16	3.44e-08\\
+17	8.36e-09\\
+18	4.58e-09\\
+19	1.18e-09\\
+20	6.65e-10\\
+21	1.62e-10\\
+22	8.22e-11\\
+23	1.87e-11\\
+24	8.32e-12\\
+25	2.84e-12\\
+26	1.11e-12\\
+27	1.27e-13\\
+28	3.64e-14\\
+29	1.59e-14\\
+30	8.22e-18\\
+31	3.81e-18\\
+32	1.48e-18\\
+33	0\\
+34	0\\
+35	0\\
+};
+\addlegendentry{$\mathbf{C}_{19}$};
+\end{axis}
+\end{tikzpicture}%
+\end{document}

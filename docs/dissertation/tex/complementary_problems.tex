@@ -1,0 +1,143 @@
+\chapter{Complementarity Problems}
+
+Complementarity problems appear in many scientific or engineering applications. They are problems that are constrained by a set of complementarity conditions, in other words a requirement that the product of two or more non-negative quantities is zero. For example, in contact mechanics the force between two objects is typically complementarity to the distance between them. That is, the force between two objects is zero, unless the distance between them is zero. This suggests a procedure for preventing contact between particles in our simulation. 
+\begin{enumerate}
+	\item Starting from a contact-free configuration, perform a single time step to obtain a new configuration.
+	\item If the new configuration is contact-free, accept this configuration and move to the next time step. Otherwise, for each particle pair in contact, apply a repulsion force until the distance between them is zero.
+	\item Once the distance between all particle pairs is at least zero the configuration is contact-free. Accept this configuration and move the next time step.
+\end{enumerate}
+
+Before formalizing this procedure, some background on complementarity problems will be provided.
+
+\section{Mathematical description and properties of complementarity problems}
+
+A general linear complementarity problem (LCP) can be phrased as follows: Given $\qq\in\mathbb{R}^n$, $\MM\in\mathbb{R}^{n\times n}$, find $\ww\in\mathbb{R}^n$ and $\zz\in\mathbb{R}^n$ such that
+\begin{equation}\label{eq:lcp} \ww - \MM\zz = \qq,\qquad \ww,\zz\geq \mathbf{0}, \qquad \ww\cdot\zz = 0.\end{equation}
+Often, such a complementarity problem will be written in the compact notation 
+\[ 0 \leq \qq + \MM\zz\perp \zz \geq 0.\] 
+This notation is shorthand for saying that every component of $\zz$ must be positive, every component of $\ww = \qq + \MM\zz$ must be positive and the inner product $\ww\cdot\zz$ must be zero. It follows from these conditions that for each index $i$ at least one of $z_i$ or $w_i$ must be zero.
+
+More generally, there exist \emph{nonlinear} complementarity problems (NCPs). Given a mapping $F~:~\mathbb{R}^n\to\mathbb{R}^n$, we can write a general NCP as: Find $\zz\in \mathbb{R}^n$ such that
+\begin{equation} \label{eq:ncp}\zz \geq \mathbf{0}, \qquad F(\zz) \geq  \mathbf{0}, \qquad \zz\cdot F(\zz) = 0.\end{equation}
+Equivalently,
+\[ 0 \leq F(\zz) \perp \zz\geq 0.\]
+ 
+Any LCP can be converted into a root finding problem by defining the the Fischer-Burmeister function $\phi~:~\mathbb{R}^n\to\mathbb{R}^n$ as 
+\begin{equation}\label{eq:fischer} \phi(\zz) = \phi(\zz,\ww(\zz)) = \begin{pmatrix} \sqrt{\displaystyle z_1^2 + w_1^2} - z_1 - w_1\\ \vdots \\ \sqrt{\displaystyle z_n^2 + w_n^2} - z_n - w_n\end{pmatrix}.\end{equation}
+
+Solving  $\phi(\zz) = \mathbf{0}$ gives a solution to the LCP. 
+
+\section{Solution procedures}
+
+\subsection{Linear complementarity problems}
+
+The are several possible avenues to solve an LCP. These include pivot methods, splitting methods and Newton-type methods. We will focus on a Newton-type method known as the Fischer-Newton method. This method uses Newton's method to solve the Fischer-Burmeister function. Starting from an initial guess $\zz^0$, we solve the linear system
+\[ \JJ\Delta \zz^k = \phi(\zz^k),\]
+to get a descent direction and then update $\zz^k$ according to $\zz^{k+1} = \zz^k + \tau\Delta\zz^k$, where $\tau$ is some step size that can be determined in the usual ways, for example using a line search. Ordinarily $\JJ$ would be the Jacobian of $\phi$, however in our case $\phi$ is not differentiable everywhere. In particular if $z_i = w_i = 0$ for a given $i$, then a classical derivative does not exist.  
+
+Instead of using the classical Jacobian, we will make use of the generalized Jacobian. Before defining the generalized Jacobian, we must first define the B-subdifferential of a function. 
+
+\begin{definition}
+	Given a Lipshitz continuous function $F~:~\mathbb{R}^n\to\mathbb{R}^m$ and assume that $F$ is continuously differentiable on the subdomain $\mathcal{D}\subset\mathbb{R}^n$. The B-subdifferential of $F$ at a point $\xx$ is the set
+\[ \partial_B F(\xx) := \left\{\lim\limits_{\yy\to\xx} \nabla F ~| ~ \forall \yy\in\mathcal{D}\right\}.\]
+\end{definition}
+
+In other words, $\partial_B F(\xx)$ is the set of limiting values of the gradient of $F$ at $\xx$. The generalized Jacobian of $F$ at $\xx$, $\partial F(\xx)$, is the convex-hull of $\partial_B F(\xx)$.  If $F$ is continuously differentiable at $\xx$ this limit is unique and the generalized Jacobian coincides with the classical Jacobian. As an example, consider the function $f(x) = |x|$. This function is continuously differentiable everywhere, except $x=0$. The B-subdifferential of $f(0)$ is the set limiting values of the continuous derivative at $x=0$. This is $+1$ if we are approaching from the right and $-1$ if we are approaching from the left. Therefore the B-subdifferential of $f(0)$ is the set $\{-1, 1\}$. The generalized derivative of $f$ at $x=0$ is the convex hull of this B-subdifferential, namely $\{m~|~|m| \leq 1\}$.
+
+Consider the function $e~:~\mathbb{R}^2\to\mathbb{R}$ given by  $e(\zz) = ||\zz|| = \sqrt{\zz^T \zz}$. This function has the gradient $\nabla e~=~\zz^T/||\zz||$ everywhere except at the origin. At the origin it is not continuously differentiable. Letting $x~=~r\cos\theta$ and $y~=~r\sin\theta$, we can compute the B-subdifferential at the origin as
+\[ \partial_B e(\mathbf{0}) = \left\{\lim\limits_{r\to 0} \left(r\cos\theta/r, ~r\sin\theta/r\right)\right\} = \left\{\cos\theta, ~\sin\theta\right\} = \left\{\vv ~|~||\vv|| = 1\right\}.\]
+The generalized derivative of $e(0)$ is the convex hull of this set,
+\[ \partial e(0) = \left\{ \vv ~|~||\vv||\leq 1\right\}.\]
+
+We can apply this result to determine the generalized Jacobian of the Fischer-Burmeister function \eqref{eq:fischer}. Letting $\yy = [z_i, w_i]$, each component of the range of $\phi$ can be written as
+\[ \phi_i(\yy) = e(\yy) - g(\yy),\]
+where $g(\yy) = [1,1]^T [z_i, w_i] = [1,1]^T \yy$. For $\yy\ne \mathbf{0}$, the gradient of $\phi_i$ is given by
+\[ \nabla\phi_i = \frac{\yy^T}{||\yy||} - [1,1]^T.\] 
+For $\yy=0$, the generalized gradient is given by
+\[ \partial \phi_i = \left\{ \vv - [1,1]~|~||\vv||\leq 1\right\}.\]
+
+Combining this result with the basic chain rule, and recalling that $\ww = \qq + \MM\zz$,  it can be shown that the generalized Jacobian of $\phi(\zz,\ww)$ is given by,
+\[ \JJ = \frac{\partial \phi_i}{\partial z_j} = \begin{dcases}
+			 \left\{ \vv - [1,1]~|~||\vv||\leq 1\right\} & z_i = w_i = 0,\\
+			 \dfrac{z_i}{(z_i + w_i)^{1/2}}\left( z_k\delta_{kj} + 2w_k M_{kj}\right) - M_{ij} - \delta_{ij} & \text{otherwise.}
+			 \end{dcases}
+			 \]
+
+At $z_i = w_i = 0$ the generalized Jacobian is a set of vectors. In order to compute a descent direction at this point, we must choose a particular element from this set. There are several possible choices,
+\begin{itemize}
+	\item \textbf{random}: the gradient is picked randomly from the set of possible directions
+	\item \textbf{zero}: the gradient is taken to always be zero
+	\item \textbf{perturbation}: the gradient can be approximated by perturbing $z_i$ to some small value $\epsilon$
+	\item \textbf{approximation}: the gradient is approximated using finite difference
+\end{itemize}
+
+\subsection{Nonlinear complementarity problems}
+
+To solve the NCP \eqref{eq:ncp}, a common procedure is to generate a sequence of solutions $\{\zz^k\}$, such that $\zz^{k+1}$ is a solution to the LCP 
+\[ 0 \leq \qq^k + \MM^k \zz^{k+1} \perp \zz^{k+1} \geq 0,\]
+where $\qq^k$ and $\MM^k$ in some way approximate $F(\zz)$ near $\zz^k$. There are multiple choices for $\qq^k$ and $\MM^k$. Newton's method gives $\MM^k=\nabla F(\zz^k)$ and $\qq^k= F(\zz^k) - \MM^k\zz^k$. As with Newton's method for nonlinear equations, provided we are in the neighborhood of the solution $\zz^*$, the iterates produced by this method converge quadratically, under certain assumptions on $F$. 
+
+\section{The boundary integral formulation as an NCP}
+
+The boundary integral formulation for $n_p$ rigid particles in an unbounded domain with background flow $\uu^\infty$ can written in compact notation as
+\[ \A \begin{pmatrix} \hat{\uu} \\ \bm{\eta}\end{pmatrix} = \begin{pmatrix} -\uu^{\infty} \\  \hat{\FF}\end{pmatrix}. \]
+If we define $\hat{\qq}^n\in \mathbb{R}^{3n_p}$ to be the centers and orientations of each particle at time step $n$, then $\A$ is a matrix that depends on $\hat{\qq}^n$. In addition, $\hat{\uu}\in \mathbb{R}^{3n_p}$ is a vector of the translational and rotational velocities of each particle and $\hat{\FF}\in\mathbb{R}^{3n_p}$ is a vector of the forces and torques on each particle. If we take $\A$ to a be the block matrix,
+\[ \A = \begin{pmatrix} \BB & \D\\ \mathbf{0} & \BB^T\end{pmatrix},\]
+then the following system can be solved for $\hat{\uu}$
+\[(\BB^T \D^{-1}\BB)\hat{\uu} = \hat{\FF} - \BB^T\D^{-1}\uu^\infty.\]
+Or in an even more compact notation 
+\[ \hat{\uu} =  \bb + \CC\cdot\hat{\FF} ,\]
+where 
+\[ \bb = - (\BB^T \D^{-1}\BB)^{-1}\BB^T\D^{-1}\uu^\infty, \qquad \CC =  (\BB^T \D^{-1}\BB)^{-1}.\]
+
+\begin{claim*} 
+$\BB^T \D^{-1}\BB$ is invertible.
+\begin{proof}
+
+The rank of a product of matrices $\A$ and $\BB$ is equal to $\min\{\text{rank}(\A), \text{rank}(\BB)\}$. Thus the rank of $\BB^T \D^{-1}\BB$ is $\min\{\text{rank}(\D^{-1}), \text{rank}(\BB), \text{rank}(\BB^T)\}$. 
+
+$\D$ is the matrix coming from the discretization of the double layer potential. Assuming each particle has $N_p$ unique discretization points, $\D \in \mathbb{R}^{2N_p n_p\times 2N_p n_p}$ has rank $2N_p n_p$, and so does $\D^{-1}$. \todo[inline]{Is this true? I thought the double layer potential couldn't represent rigid body motion which necessitates the Stokeslets and rotlets} 
+
+$\BB\in \mathbb{R}^{2mn_p\times 3n_p}$ is a block matrix given by
+	\[ \BB = \begin{pmatrix} 1 & 0 & -(y^1_1 - c_1)  & & & & &\\
+				0 & 1 & (x^1_1 - c_1)& & & & & \\
+				\vdots & \vdots & \vdots & & & & & &\\
+				1 & 0 & -(y^1_{N_p}- c_1)& & & & & & \\
+				0 & 1 & (x^1_{N_p} - c_1) & & & & & &\\
+				& & & & 1 & 0 & -(y^2_1 - c_2) & &  \\
+				& & & & 0 & 1 & (x^2_1 - c_2) & &  \\
+				& & & & & & \ddots  & &  \\
+				& & & & & & & 1 & 0 & -(y^{n_p}_{N_p} - c_{n_p})\\
+				& & & & & & & 0 & 1 & (x^{n_p}_{N_p} - c_{n_p})\end{pmatrix}\]
+The columns of $\BB$ are all linearly independent, so $\BB$ has rank $3n_p$.
+
+The rows of $\BB$ (columns of $\BB^T$) are not all linearly independent. However each  $2N_p\times3$ block will have three linearly independent rows. Thus the rank of $\BB^T$ will be  $3n_p$.  \
+
+Thus, $\text{rank}(\BB^T \D^{-1}\BB) = \min\{\text{rank}(\D^{-1}), \text{rank}(\BB), \text{rank}(\BB^T)\} = 3n_p$. Since  $\BB^T \D^{-1}\BB \in \mathbb{R}^{3n_p\times 3n_p}$ and has rank $3n_p$ it is invertible.
+\end{proof}
+\end{claim*}
+
+Starting from an initial configuration $\hat{\qq}^n$, we can update the configuration using an Euler step
+\[ \hat{\qq}^{n+1} = \hat{\qq}^n + \Delta t \hat{\uu} = \hat{\qq}^n + \Delta t\bb + \Delta t \CC\cdot\hat{\FF}.\]
+
+We desire the configuration $\hat{\qq}^{n+1}$ to be contact-free. If we let $\VV(\hat{\qq}^{n+1})$ be a function that measures the contact, we can say that we require
+\[ \VV(\hat{\qq}^{n+1}) \geq 0.\]
+
+The forces and torques $\hat{\FF}$ act to repel particles that have collided. There are $m = \binom{n_p}{2}$ possible collision pairs. Defining $\bm{\lambda}\in \mathbb{R}^m$ to be a scaling factor associated with each possible collision, and $\hat{\FF}_c \in \mathbb{R}^{3n_p}\times \mathbb{R}^m$ to be the repulsion forces associated with each collision region. Then we have,
+\[
+	\hat{\FF} = \hat{\FF}_c\cdot\bm{\lambda} =  \begin{pmatrix} \hat{\FF}_1^1 & \hdots & \hat{\FF}^{m}_1\\  \vdots & \ddots & \vdots \\ \hat{\FF}_{n_p}^1 & \hdots & \hat{\FF}_{n_p}^m\end{pmatrix} \begin{pmatrix} \lambda_1 \\ \vdots \\ \lambda_m\end{pmatrix} = \begin{pmatrix} \lambda_1 \hat{\FF}_1^1 + \hdots + \lambda_m\hat{\FF}_1^m\\ \vdots \\\lambda_1 \hat{\FF}_{n_p}^1 + \hdots + \lambda_m\hat{\FF}_{n_p}^m\end{pmatrix}
+\]
+Since we want the repulsion force not to end up attracting particles, we require $\bm{\lambda}\geq 0$. As discussed in the introduction to this section, we also require that if there is no contact then the magnitude of the repulsion force is zero. Thus we end up with the complementarity problem
+\begin{equation}\label{eq:ncp_mobility}0 \leq  \VV(\hat{\qq}^{n+1}) \perp \bm{\lambda} \geq 0.\end{equation}
+This problem is solvable, since $\hat{\qq}^{n+1}$ depends upon $\bm{\lambda}$. Explicitly,
+\[ \VV(\hat{\qq}^{n+1}) = \VV(\bm{\lambda}) =  \VV( \hat{\qq}^n + \Delta t\bb + \Delta t \CC\cdot(\hat{\FF}_c\cdot\bm{\lambda})).\]
+This is a nonlinear relationship, meaning that \eqref{eq:ncp_mobility} is a nonlinear complementarity problem. This problem can be linearized to a sequence of linear complementarity problems,
+\[ 0\leq \VV(\bm{\lambda}^k) + \nabla_{\bm{\lambda}} \VV(\bm{\lambda}^k)\cdot(\bm{\lambda}^{k+1} - \bm{\lambda}^k) \perp \leq \bm{\lambda}^{k+1}.\]
+Using the chain rule, it follows that
+\[ 0\leq \VV(\bm{\lambda^k}) + \nabla_{\hat{\qq}}\VV\cdot(\Delta t\bb + \Delta t \CC\cdot\hat{\FF}_c) \cdot(\bm{\lambda}^{k+1} - \bm{\lambda}^k) \perp \bm{\lambda}^{k+1} \geq 0.\]
+Finally we arrive at the LCP,
+\[ 0\leq \rr + \N\bm{\lambda}^{k+1} \perp \bm{\lambda}^{k+1} \geq 0,\]
+where
+\[ \rr = \frac{\VV(\bm{\lambda}^k)}{\Delta t} + \bb - \nabla_{\hat{\qq}}\VV \cdot (\CC\cdot(\hat{\FF}_c\cdot\bm{\lambda}^k)),\qquad \N  =\bb+\nabla_{\hat{\qq}}\VV\cdot(\CC\cdot\hat{\FF}_c).\]
+
+It remains to define an algorithm to compute $\hat{\FF}_c$, as well as the contact volume $\VV$ and its gradient $\nabla_{\hat{\qq}} \VV$. This will be discussed in the following section.

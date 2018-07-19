@@ -1,0 +1,71 @@
+% This file was created by matlab2tikz.
+%
+%The latest updates can be retrieved from
+%  http://www.mathworks.com/matlabcentral/fileexchange/22022-matlab2tikz-matlab2tikz
+%where you can also make suggestions and rate matlab2tikz.
+%
+\documentclass[tikz]{standalone}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{pgfplots}
+\usepackage{grffile}
+\pgfplotsset{compat=newest}
+\usetikzlibrary{plotmarks}
+\usetikzlibrary{arrows.meta}
+\usetikzlibrary{spy}
+\usepgfplotslibrary{patchplots}
+\usepackage{amsmath}
+
+\begin{document}
+\definecolor{mycolor1}{rgb}{0.00000,0.44700,0.74100}%
+%
+\begin{tikzpicture}[spy using outlines=
+	{circle, magnification=6, connect spies}]
+
+\begin{axis}[%
+width=12cm,
+height=3cm,
+at={(0cm,0cm)},
+scale only axis,
+xmin=-2.000,
+xmax=10.000,
+ymin=-0.01,
+ymax=0.05,
+axis y line=none,
+axis x line=middle,
+axis background/.style={fill=white},
+title={$N=8$}
+]
+\addplot [color=blue, draw=none, mark=*,mark options={scale=0.1}]
+  table[row sep=crcr]{%
+9.681	0\\
+-0.807	0\\
+-1.002	0\\
+-0.348	0\\
+-1.001	0\\
+-0.999	0\\
+-0.578	0\\
+-0.552	0\\
+-0.193	0\\
+-0.476	0\\
+-0.652	0\\
+-0.500	0\\
+-0.524	0\\
+-0.500	0\\
+-0.446	0\\
+-0.448	0\\
+};
+
+
+  \coordinate (spypoint1) at (axis cs:-0.5,0);
+  \coordinate (magnifyglass1) at (axis cs:-0.5,0.05);
+
+\end{axis}
+
+\spy [blue, size=2.5cm] on (spypoint1)  in node[fill=white] at (magnifyglass1);
+
+\end{tikzpicture}%
+\end{document}
+\end{axis}
+\end{tikzpicture}%
+\end{document}

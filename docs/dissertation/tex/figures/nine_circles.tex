@@ -1,0 +1,38 @@
+% This file was created by matlab2tikz.
+%
+%The latest updates can be retrieved from
+%  http://www.mathworks.com/matlabcentral/fileexchange/22022-matlab2tikz-matlab2tikz
+%where you can also make suggestions and rate matlab2tikz.
+%
+\documentclass[tikz]{standalone}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{pgfplots}
+\usepackage{grffile}
+\pgfplotsset{compat=newest}
+\usetikzlibrary{plotmarks}
+\usepgfplotslibrary{patchplots}
+\usepackage{amsmath}
+\usetikzlibrary{decorations.markings}
+\usetikzlibrary{decorations, decorations.text,backgrounds}
+\usetikzlibrary{spy}
+\usetikzlibrary{shapes.misc}
+\usetikzlibrary{external}
+\usetikzlibrary{backgrounds}
+
+\tikzset{cross/.style={cross out, draw=black, minimum size=2*(#1-\pgflinewidth), inner sep=0pt, outer sep=0pt},cross/.default={1pt}}
+
+\begin{document}
+
+\begin{tikzpicture}[scale=2]
+	\draw[fill=black] (0,0) circle [x radius=0.5, y radius =0.5];
+	\draw[fill=black] (0,1.25) circle [x radius=0.5, y radius =0.5];
+	\draw[fill=black] (0,2.5) circle [x radius=0.5, y radius =0.5];
+	\draw[fill=black] (1.25,0) circle [x radius=0.5, y radius =0.5];
+	\draw[fill=black] (1.25,1.25) circle [x radius=0.5, y radius =0.5];
+	\draw[fill=black] (1.25,2.5) circle [x radius=0.5, y radius =0.5];
+	\draw[fill=black] (2.5,0) circle [x radius=0.5, y radius =0.5];
+	\draw[fill=black] (2.5,1.25) circle [x radius=0.5, y radius =0.5];
+	\draw[fill=black] (2.5,2.5) circle [x radius=0.5, y radius =0.5];
+\end{tikzpicture}
+\end{document}
