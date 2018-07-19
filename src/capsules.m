@@ -1,4 +1,4 @@
-classdef capsules < handle
+classdef capsules < matlab.mixin.Copyable
 % This class implements standard calculations that need to be done to a
 % componenet of the solid wall, or a collection of arbitrary target
 % points (such as tracers).  The main tasks that can be performed
@@ -82,6 +82,68 @@ else
 end
 
 end % capsules: constructor
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+function rotate(o, xc, dtau)
+    
+    oc = curve;
+    for k = 1:o.n
+        
+        [x,y] = oc.getXY(o.X(:,k));
+        
+        x = x - xc(1,k);
+        y = y - xc(2,k);
+        o.X(:,k) = [x*cos(dtau(k)) - y*sin(dtau(k)) + xc(1,k);
+            x*sin(dtau(k)) + y*cos(dtau(k)) + xc(2,k)];
+        
+    end
+    
+    if ~isempty(o.X)
+        [o.sa,o.xt,o.cur] = oc.diffProp(o.X);
+        [~,o.length] = oc.geomProp(o.X);
+    else
+        o.sa = [];
+        o.xt = [];
+        o.cur = [];
+        o.length = [];
+        o.N = 0;
+        o.n = 0;
+        o.center = [];
+    end
+    
+    
+end % rotate
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+function translate(o, dxc)
+    
+    oc = curve;
+    o.center = o.center + dxc;
+    for k = 1:o.n
+        
+        [x,y] = oc.getXY(o.X(:,k));
+        
+        x = x + dxc(1,k);
+        y = y + dxc(2,k);
+        o.X(:,k) = [x;y];
+
+    end
+    
+    if ~isempty(o.X)
+        [o.sa,o.xt,o.cur] = oc.diffProp(o.X);
+        [~,o.length] = oc.geomProp(o.X);
+    else
+        o.sa = [];
+        o.xt = [];
+        o.cur = [];
+        o.length = [];
+        o.N = 0;
+        o.n = 0;
+        o.center = [];
+    end
+    
+    
+end % translate
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function X = getXY(o)

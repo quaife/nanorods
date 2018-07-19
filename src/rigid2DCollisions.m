@@ -99,20 +99,22 @@ if (om.profile)
     profile on;
 end
 
-step_number = 1;
 dt0 = tt.dt;
 disp(['Initial time step: ', num2str(tt.dt)]);
+Up = zeros(2,prams.np);
+wp = zeros(prams.np,1);
 
 % begin time loop
 while time < prams.T
     
-    if mod(step_number,50) == 0 && tt.dt < dt0
+    if mod(iT,50) == 0 && tt.dt < dt0
         tt.dt = dt0;
         om.writeMessage(['Resetting dt to: ', num2str(tt.dt)]);
     end
     
-    tSingleStep = tic;
-    geom = capsules(prams, xc, tau);
+    tSingleStep = tic; 
+    %geom = capsules(prams, xc,tau);
+    
     X = geom.getXY();
     
     %options.display_solution =true;
@@ -178,15 +180,16 @@ while time < prams.T
         torqueP = zeros(1,prams.np);
         
         [xc,tau,densityF,densityW,Up,wp,stokes,rot, ...
-                forceP,torqueP,iter,flag,res] = tt.timeStep(geom, [], walls, ...
+                forceP,torqueP,iter,flag,res,geomNew] = tt.timeStep(geom, [], walls, ...
                 xc, tau, [], [], true, forceP, torqueP, densityF, densityW, time);
     else
         [xc,tau,densityF,densityW,Up,wp,stokes,rot, ...
-            forceP,torqueP,iter,flag,res] = tt.timeStep(geom, geomOld, walls, ...
+            forceP,torqueP,iter,flag,res,geomNew] = tt.timeStep(geom, geomOld, walls, ...
             xc, tau, Up, wp, false, forceP, torqueP, densityF, densityW, time);
     end
     
     geomOld = geom;
+    geom = geomNew;
     
     time = time + tt.dt;
     iT = iT + 1;
@@ -212,7 +215,6 @@ while time < prams.T
         
     om.writeData(time, xc, tau, Up, wp, stokes, rot, densityF, densityW, forceP, torqueP);   
     
-    step_number = step_number + 1;
 end
 
 Xfinal = X;

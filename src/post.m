@@ -54,29 +54,54 @@ end %post : constructor
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function [] = plotFibres(o, iT)
     
-%     geom0 = capsules(o.prams, o.xc(:,:,1), o.tau(1,:));
-%     fill(geom0.X(1:end/2,:), geom0.X(end/2+1:end,:), 'b');
+        geom0 = capsules(o.prams, o.xc(:,:,1), o.tau(1,:));
+        fill(geom0.X(1:end/2,:), geom0.X(end/2+1:end,:), 'b');
+    
+%     ind = [20,10];
+%     theta = -(0:o.prams.Np-1)'*2*pi/o.prams.Np;
+%     X = zeros(2*o.prams.Np, o.prams.np);
+%     for k = 1:o.prams.np
+%         x = 0.5*o.prams.lengths*(1+0.02*cos(ind(k)*theta)).*cos(theta); y = 0.5*o.prams.widths*(1+0.02*cos(ind(k)*theta)).*sin(theta);
+%         X(:,k) = [x*cos(o.tau(iT,k)) - y*sin(o.tau(iT,k)) + o.xc(1,k,iT);
+%             x*sin(o.tau(iT,k)) + y*cos(o.tau(iT,k)) + o.xc(2,k,iT)];
+%     end
+%     
+%     geom = capsules(o.prams, X);
     
     geom = capsules(o.prams, o.xc(:,:,iT), o.tau(iT,:));
+    fill3([geom.X(1:end/2,:);geom.X(1,:)], ...
+            [geom.X(end/2+1:end,:);geom.X(end/2+1,:)],...
+            1*10000000*ones(o.prams.Np+1, 1),'k');
     %plot([geom.X(1:end/2,:); geom.X(1,:)],[geom.X(end/2+1:end,:);geom.X(end/2+1,:)], 'b');
-    %fill(geom.X(1:end/2,:), geom.X(end/2+1:end,:), 'k');
     
-    hold on;
-    counter_particles = find(o.torque_p(:,1) < 0);
-    for i = 1:geom.n
-        if max(counter_particles == i)
-            color = 'b';
-        else
-            color = 'k';
-        end
-        
-        h = fill3([geom.X(1:end/2,i);geom.X(1,i)], ...
-            [geom.X(end/2+1:end,i);geom.X(end/2+1,i)],...
-            1*10000000*ones(o.prams.Np+1, 1),color);
-        
-        %set(h, 'facealpha', 0.25);
-        %plot(geom.X(1,i), geom.X(end/2+1,i), 'mo');
-    end
+%     
+	 x = -12*ones(4,1);
+     y = [-2, -1, 1, 2];
+	 v = zeros(4,1);
+     u = [-2; -1; 1; 2];
+    
+     if o.times(iT) > 10
+         u = -u;
+     end
+     
+     quiver(x,y,u,v)
+     
+%     hold on;
+%     counter_particles = find(o.torque_p(:,1) < 0);
+%     for i = 1:geom.n
+%         if max(counter_particles == i)
+%             color = 'b';
+%         else
+%             color = 'k';
+%         end
+%         
+%         h = fill3([geom.X(1:end/2,i);geom.X(1,i)], ...
+%             [geom.X(end/2+1:end,i);geom.X(end/2+1,i)],...
+%             1*10000000*ones(o.prams.Np+1, 1),color);
+%         
+%         %set(h, 'facealpha', 0.25);
+%         %plot(geom.X(1,i), geom.X(end/2+1,i), 'mo');
+%     end
 
     contact_particles = find(max(abs(o.force_p(:,:,iT))) > 1e-8);
     if ~isempty(contact_particles)
@@ -96,9 +121,9 @@ function plotParticleTracers(o, iT)
     hold on
     T = 1:iT;
     %for i = 1%:geom.n
-       plot(reshape(o.xc(1,1,T),1,length(T)), reshape(o.xc(2,1,T),1,length(T)), 'b', 'linewidth', 2); 
-       plot(reshape(o.xc(1,2,T),1,length(T)), reshape(o.xc(2,2,T),1,length(T)), 'c', 'linewidth', 2); 
-       plot(reshape(o.xc(1,3,T),1,length(T)), reshape(o.xc(2,3,T),1,length(T)), 'm', 'linewidth', 2); 
+       plot3(reshape(o.xc(1,1,T),1,length(T)), reshape(o.xc(2,1,T),1,length(T)), 20000000*ones(length(T)), 'b', 'linewidth', 2); 
+       plot3(reshape(o.xc(1,2,T),1,length(T)), reshape(o.xc(2,2,T),1,length(T)), 20000000*ones(length(T)), 'c', 'linewidth', 2); 
+      % plot(reshape(o.xc(1,3,T),1,length(T)), reshape(o.xc(2,3,T),1,length(T)), 'm', 'linewidth', 2); 
 %        plot(reshape(o.xc(1,4,T),1,length(T)), reshape(o.xc(2,4,T),1,length(T)), 'g', 'linewidth', 2); 
     %end
 end
@@ -118,12 +143,12 @@ function [] = plotWalls(o,iT)
     end
     
 
-%     for i = 3:walls.n
-%         fill3([walls.X(1:end/2,i);walls.X(1,i)], ...
-%             [walls.X(end/2+1:end,i);walls.X(end/2+1,i)],...
-%             10000000*ones(o.prams.Nw+1, 1),'r')
-%     end
-%     
+    for i = 3:walls.n
+        fill3([walls.X(1:end/2,i);walls.X(1,i)], ...
+            [walls.X(end/2+1:end,i);walls.X(end/2+1,i)],...
+            10000000*ones(o.prams.Nw+1, 1),'k')
+    end
+    
     if ~isempty(o.prams.tracker_fnc)
         ptsTrack = o.prams.tracker_fnc(o.times(iT));
         
@@ -223,11 +248,11 @@ for i = irange
     if ~isempty(gif_options.contour_field)
         couette_u = @(x,y) -(y.*(100-x.^2-y.^2))./(99*(x.^2+y.^2));
         if (i > 1)
-            o.plotContourCircle(gif_options.contour_field, i, 0.5, 7, 0, 0, 50, 10, ...
+            o.plotContourCircle(gif_options.contour_field, i, 0.5, 7, 0, 0, 8, 5, ...
                                 true, cmin, cmax, []);
         else
             [~,~,~,cmin,cmax] = o.plotContourCircle(gif_options.contour_field, i, 0.5, 7, ...
-                                    0, 0, 50, 10, true, [], [], []);
+                                    0, 0, 8, 5, true, [], [], []);
         end
         
         %o.plotContourBox('pressure', i, -2, 10, -3, 3, 300, 100, false, @(x,y) 0);
@@ -274,7 +299,7 @@ for i = irange
         
         cleanfigure();
         matlab2tikz([o.OUTPUTPATH_GIFS, gif_options.file_name, '/', ...
-                 gif_options.file_name, '-', sprintf('%04d', i + 239), '.tikz'],...
+                 gif_options.file_name, '-', sprintf('%04d', i), '.tikz'],...
                  'height', '10cm', 'width', '12cm', 'standalone', true, 'floatFormat', '%.3f');
         
     else if strcmp(gif_options.file_type, 'gif')
@@ -852,8 +877,8 @@ shading interp
 %colorbar
 axis equal
 
-cmin = -4;
-cmax = 1;
+cmin = 2;
+cmax = 8;
 % cmin = min(min(zgrid))-0.1*min(min(zgrid));
 % cmax = max(max(zgrid))+0.1*max(max(zgrid));
 

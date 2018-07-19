@@ -193,7 +193,7 @@ end
 end % constructor: tstep
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function [xc_new,tau_new,etaP,etaW,uP,omega,forceW,torqueW,forceP,....
-                torqueP,iter,iflag,res] = timeStep(o,geom,geomOld,walls,...
+                torqueP,iter,iflag,res,geomProv] = timeStep(o,geom,geomOld,walls,...
                 xc,tau,uP_m1,omega_m1,first_step,forceP_old, torqueP_old,...
                 etaP_old,etaW_old, time)
 % timeStep(geom, walls, xc, tau) takes a single time step and returns the
@@ -368,13 +368,17 @@ if np > 0
         tau_new = tau + (3/2)*o.dt*omega - (1/2)*o.dt*omega_m1;
     end
     
-    geomProv = capsules(o.prams, xc_new, tau_new);
+    geomProv = copy(geom);
+    geomProv.rotate(xc, tau_new - tau);
+    geomProv.translate(xc_new - xc);
+    
+    %geomProv = capsules(o.prams, xc_new, tau_new);
     
     % RESOLVE COLLISIONS
     if o.resolve_collisions
         
         % REASSEMBLE OLD CONFIGURATION
-        geomOld = geom;
+        geomOld = copy(geom);
         
         solution.xc_old = xc;
         solution.tau_old = tau;
@@ -418,6 +422,11 @@ if np > 0
         torqueW = solution.torqueW;
         forceP = solution.forceP;
         torqueP = solution.torqueP;
+        
+        geomProv = copy(geom);
+        geomProv.rotate(xc, tau_new - solution.tau_old);
+        geomProv.translate(xc_new - solution.xc_old);
+        
     else
         if o.confined
             if nw > 1
@@ -874,7 +883,7 @@ function rhs = assembleRHS_explicit(o, geom, geomOld, walls, forceP, ...
 np = geom.n;
 Np = geom.N;
 
-if ~isempty(walls)
+if ~isempty(walls) && o.confined
     nw = walls.n;
     Nw = walls.N;
 else
@@ -882,29 +891,28 @@ else
     Nw = 0;
 end
 
-if ~preprocess
-    if o.confined
-        ff = o.far_field(walls.X, time);
+if o.confined
+    ff = o.far_field(walls.X, time);
+else
+    ff = -o.far_field(geom.X, time);
+end
+
+
+if o.confined
+    if ~preprocess
+        rhs = [zeros(2*Np*np,1); ff(:); forceP(:); ...
+            torqueP'; zeros(3*(nw-1),1)];
     else
-        ff = -o.far_field(geom.X, time);
+        rhs = [zeros(2*Np*np,1); forceP(:); torqueP'];
     end
-    
-    
-    if o.confined
-        if ~preprocess
-            rhs = [zeros(2*Np*np,1); ff(:); forceP(:); ...
-                torqueP'; zeros(3*(nw-1),1)];
-        else
-            rhs = [zeros(2*Np*np,1); forceP(:); torqueP'];
-        end
+else
+    if ~preprocess
+        rhs = [ff(:); forceP(:); torqueP(:)];
     else
-        if ~preprocess
-            rhs = [ff(:); forceP(:); torqueP(:)];
-        else
-            rhs = [zeros(2*Np*np,1); forceP(:); torqueP(:)];
-        end
+        rhs = [zeros(2*Np*np,1); forceP(:); torqueP(:)];
     end
 end
+
 
 % APPLY VELCOITY FROM OLD DENSITY FUNCTION TO ALL OTHER BODIES
 if ~preprocess && np > 0
@@ -1444,7 +1452,7 @@ while iv(end) < 0
     
     % ASSEMBLE NEW RHS WITH CONTACT FORCES
     if o.explicit
-        rhs = o.assembleRHS_explicit(geomOld, walls, forceP, torqueP, ...
+        rhs = o.assembleRHS_explicit(geomOld, geomOld, walls, forceP, torqueP, ...
             solution.etaP_old, 1:np, false, time);
     else        
         rhs = o.assembleRHS(geomOld, walls, forceP, torqueP, forceW(:,2:end), ...
@@ -1542,11 +1550,11 @@ while iv(end) < 0
 end
 
 % INCREASE TIME STEP SIZE IF DESIRED
-if colCount <= 3 && o.dt < o.max_dt && o.tstep_order == 1
-    o.om.writeMessage(['Increasing time step size to:', ...
-        num2str(min(o.max_dt, 1.2*o.dt))]);
-    o.dt = min(o.max_dt, 1.5*o.dt);
-end
+% if colCount <= 3 && o.dt < o.max_dt && o.tstep_order == 1
+%     o.om.writeMessage(['Increasing time step size to:', ...
+%         num2str(min(o.max_dt, 1.2*o.dt))]);
+%     o.dt = min(o.max_dt, 1.5*o.dt);
+% end
 
 
 end % resolveCollision
@@ -1695,7 +1703,7 @@ for i = 1:nivs
     
     % ASSEMBLE NEW RHS WITH CONTACT FORCES
     if o.explicit 
-        rhs = o.assembleRHS_explicit(geomTmp, wallsTmp, forceP, torqueP, ...
+        rhs = o.assembleRHS_explicit(geomTmp, geomOld, wallsTmp, forceP, torqueP, ...
                 [], 1:length(S(S<=np)), true, 0);
     else
         rhs = o.assembleRHS(geomTmp, wallsTmp, forceP, torqueP, forceW,...
@@ -2105,13 +2113,13 @@ if options.confined
 else
     switch options.far_field
         case 'shear'
-            vInf = 2*[y;zeros(N,n)];
+            vInf = -1*[y;zeros(N,n)];
 
         case 'shear_reverse'
             if time < 10
-                vInf = [20*y;zeros(N,n)];
+                vInf = [3*y;zeros(N,n)];
             else
-                vInf = -[20*y;zeros(N,n)];
+                vInf = -[3*y;zeros(N,n)];
             end
             
         case 'extensional'
