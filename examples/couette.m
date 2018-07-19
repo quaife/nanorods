@@ -1,21 +1,27 @@
-close all
-load ../output/data/couette_010_3_1.mat
+function [] = couette(base_name, np, lengths, widths, rotation_speed, n_revolutions, restart)
 
+%load(['../output/data/', fname, '.mat']);
+
+%MODIFY THESE PARAMETERS
+prams.np = np; % number of bodies
+prams.lengths = lengths;
+prams.widths = widths;
+options.couette_speed = rotation_speed;
+prams.T = n_revolutions*2*pi/options.couette_speed;  
+%prams.tracker_fnc = [];
+prams.tracker_fnc = @(t) [10*cos(1*t),10*sin(1*t);5,0];
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 prams.Np = 32; % points per body
-prams.np = 160; % number of bodies
 prams.Nw = prams.Np*8;
 prams.nw = 2;
 
-prams.T = 3*pi; % time horizon
-prams.number_steps = 1000; % number of time steps
-prams.lengths = 0.75;
-prams.widths = 0.25;
+prams.number_steps = n_revolutions*500; % number of time steps
 prams.rounding_order = 2;
 prams.minimum_separation = 1e-1;
 
 options.far_field = 'couette';
 options.save = true;
-options.file_base = 'couette_010_3_1_tmp';
 options.append = false;
 options.near_singular = true;
 options.use_precond = true;
@@ -26,26 +32,34 @@ options.tstep_order = 1;
 options.confined = true;
 options.resolve_collisions = true;
 options.display_solution = true;
-options.couette_speed = 2; % each revolution takes pi
 options.explicit = false;
 options.debug = false;
-
-prams.tracker_fnc = @(t) [10*cos(2*t),10*sin(2*t);5,0];
+options.sedementation = false;
 
 [options,prams] = initRigid2D(options,prams);
+options.file_base = 'couette_einstein_80';
+disp(['COUETTE SPEED: ', num2str(options.couette_speed)]);
+
+options.file_base = base_name;
+ 
 
 oc = curve;
-xWalls = oc.createWalls(prams.Nw, options);
-
-restart = true;
 animation = true;
 
 if ~animation
     if restart
-        xc = xc(:,:,end);
-        tau = tau(end,:);
-    else
+        load(['../output/data/',base_name,'.mat']);
+        prams.minimum_separation = 1e-1;
         
+        prams.Np = 32; % points per body
+        prams.Nw = prams.Np*8;
+
+        xWalls = oc.createWalls(prams.Nw, options);
+        xc = xc(:,:,1:end);
+        tau = tau(1:end,:);
+
+    else
+        xWalls = oc.createWalls(prams.Nw, options);
         xc = zeros(2,0);
         tau  = [];
         r_in = 5;
@@ -92,20 +106,17 @@ if ~animation
             end
             
         else % ADD FIBERS BY MONTE CARLO
-            seed = 1000;
+            seed = 1001;
             rng(seed);
             
             total_np = prams.np;
+            walls = capsules([], xWalls);
+            prams_test = prams;
+            prams_test.np = 1;
             
-            xc = [5;5];
-            tau = 2*pi*rand(1,1);
-            prams.np = 1;
-            
-            geom = capsules(prams, xc, tau);
-            
-            for i = 2:total_np
+            for i = 1:total_np
                 
-                max_attempts = 1000;
+                max_attempts = 5000;
                 attempt = 0;
                 prams.np = i;
                 
@@ -116,21 +127,32 @@ if ~animation
                     r = r_in + (r_out-r_in)*rand(1,1);
                     theta = 2*pi*rand(1,1);
                     
-                    xc_test = [xc, [r*cos(theta);r*sin(theta)]];
-                    tau_test = [tau, 2*pi*rand(1,1)];
+                    xc_test = [r*cos(theta);r*sin(theta)];
+                    tau_test = 2*pi*rand(1,1);
                     
-                    geom_test = capsules(prams, xc_test, tau_test);
+                    particle_test = capsules(prams_test, xc_test, tau_test);
+                    [~, nearw] = walls.getZone(particle_test,2);
                     
+                    rx = sqrt(particle_test.X(1:end/2,end).^2+particle_test.X(end/2+1:end,end).^2);
                     
-                    [near,~] = geom_test.getZone(geom_test,1);
-                    
-                    rx = sqrt(geom_test.X(1:end/2,end).^2+geom_test.X(end/2+1:end,end).^2);
-                    
-                    for j = 1:prams.np
+                    if max(rx) > r_out || min(rx) < r_in
+                        add = false;
+                    else
                         
-                        if (length(near.nearFibers{j}) > 0 || min(rx) < r_in + buffer || max(rx) > r_out - buffer)
-                            add = false;
+                        if i > 1
+                            
+                            [~, nearp] = particle_test.getZone(geom,2);
+                            
+                            if length(nearp.nearFibers{1}) > 0 || length(vertcat(nearw.nearFibers{:})) > 0
+                                add = false;
+                            end
+                        else
+                            
+                            if  length(nearw.nearFibers{1}) > 0
+                                add = false;
+                            end
                         end
+                        
                     end
                     
                     attempt = attempt + 1;
@@ -144,13 +166,15 @@ if ~animation
                 end
                 
                 if (attempt == max_attempts)
-                    add = false;
-                    disp('Failed to insert fibre, try increasing maximum number of iterations');
+                    disp('Failed to insert desired number of fibres, try increasing maximum number of iterations');
+                    break;
                 end
                 
                 if add
-                    xc = xc_test;
-                    tau = tau_test;
+                    xc = [xc, xc_test];
+                    tau = [tau, tau_test];
+                    
+                   geom = capsules(prams, xc, tau);
                 end
                 
             end
@@ -162,26 +186,30 @@ if ~animation
     % tau = pi/4;
     
     %compute volume fraction
-    prams.np = length(tau);
+    prams.np = size(tau,2);
     vol_frac = prams.np*(prams.lengths/2*prams.widths/2)/(10^2-5^2);
     disp(['np = ', num2str(prams.np), ', volume fraction = ' num2str(vol_frac)]);    
     
-    Xfinal = rigid2DCollisions(options, prams, xc, tau, xWalls);
+    Xfinal = rigid2DCollisions(options, prams, xc, tau, xWalls, zeros(1,prams.np));
 end
 
-pp = post(['../output/data/',options.file_base, '.mat']);
+if animation
+    pp = post(['../output/data/',options.file_base, '.mat']);
 
-gif_options.file_name = 'couette_010_3_1';
-gif_options.file_type = 'gif';
-gif_options.plot_fluid = false;
-gif_options.xmin = -10.5;
-gif_options.xmax = 10.5;
-gif_options.ymin = -10.5;
-gif_options.ymax = 10.5;
-gif_options.axis = false;
-gif_options.itmax = 'all';
-gif_options.stride = 1;
-gif_options.contour_field = [];
-gif_options.velocity_quiver = false;
-pp.animatedGif(gif_options);
-
+    pp.prams.tracker_fnc = @(t) [10*cos(1*t),10*sin(1*t);5,0];
+    gif_options.file_name = options.file_base;
+    gif_options.file_type = 'tikz';
+    gif_options.plot_fluid = false;
+    gif_options.xmin = -10.5;
+    gif_options.xmax = 10.5;
+    gif_options.ymin = -10.5;
+    gif_options.ymax = 10.5;
+    gif_options.axis = false;
+    gif_options.itmax = 'all';
+    gif_options.stride = 1;
+    gif_options.contour_field = [];
+    gif_options.velocity_quiver = false;
+    gif_options.dt = [];
+    gif_options.tracers = false;
+    pp.animatedGif(gif_options);
+ end
