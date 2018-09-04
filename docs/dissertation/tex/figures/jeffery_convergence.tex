@@ -1,0 +1,74 @@
+% This file was created by matlab2tikz.
+%
+%The latest updates can be retrieved from
+%  http://www.mathworks.com/matlabcentral/fileexchange/22022-matlab2tikz-matlab2tikz
+%where you can also make suggestions and rate matlab2tikz.
+%
+\documentclass[tikz]{standalone}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{pgfplots}
+\usepackage{grffile}
+\pgfplotsset{compat=newest}
+\usetikzlibrary{plotmarks}
+\usepgfplotslibrary{patchplots}
+\usepackage{amsmath}
+\usetikzlibrary{decorations.markings}
+\begin{document}
+\begin{tikzpicture}
+
+\begin{axis}[%
+at={(0cm,0cm)},
+width=8cm,
+height=8cm,
+scale only axis,
+xmode=log,
+xmin=0.005,
+xmax=0.1,
+xminorticks=true,
+xlabel style={font=\color{white!15!black}},
+xlabel={$\Delta t$},
+ymode=log,
+ymin=0.0001,
+ymax=0.05,
+yminorticks=true,
+ylabel style={font=\color{white!15!black}},
+ylabel={error in $\theta(0.125)$},
+axis background/.style={fill=white},
+legend style={legend cell align=left, align=left, draw=white!15!black, at={(0.98,0.02)}, anchor=south east}
+]
+\addplot [color=blue,only marks, draw=none, mark=o, mark options={solid, blue}]
+  table[row sep=crcr]{%
+0.0625	0.0301667155008514\\
+0.03125	0.0153871826573746\\
+0.015625	0.00773637113077186\\
+0.0078125	0.00387593336309955\\
+};
+\addlegendentry{forward Euler}
+
+\addplot [color=red, only marks, draw=none, mark=o, mark options={solid, red}]
+  table[row sep=crcr]{%
+0.0625	0.0185803992220035\\
+0.03125	0.00453865975245682\\
+0.015625	0.00112809688215432\\
+0.0078125	0.000280808565527479\\
+};
+\addlegendentry{Adams Bashforth}
+
+\addplot [color=blue]
+  table[row sep=crcr]{%
+0.0625	0.0301667155008514\\
+0.0078125	0.00377083943760642\\
+};
+\addlegendentry{$O(\Delta t)$}
+
+\addplot [color=red]
+  table[row sep=crcr]{%
+0.0625	0.0185803992220035\\
+0.0078125	0.000290318737843805\\
+};
+\addlegendentry{$O(\Delta t^2)$}
+
+\end{axis}
+\end{tikzpicture}%
+\end{document}

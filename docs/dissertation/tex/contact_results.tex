@@ -1,0 +1,493 @@
+\chapter{Results}
+
+We use our new time stepping method to simulate bounded and unbounded
+suspensions of two-dimensional rigid bodies in a viscous fluid.  The
+main parameters are the minimum separation distance $d_m$, the number
+of discretization points of each rigid body, $N_p$, and each solid wall,
+$N_w$, and the initial time step size $\Delta t$. We perform convergence
+studies and investigate the effect of the STIV algorithm on the
+reversibility of the flow.  To further demonstrate the consequence of
+STIV, we include plots of streamlines that cross whenever the collision
+detection algorithm is applied.  The particular experiments we perform
+are now summarized.
+\begin{itemize}
+  \item {\bf Shear Flow}: We consider the standard problem of two
+  identical rigid circles in the shear flow $\uu = (y,0)$ with the left
+  body slightly elevated from the right body.  We report similar results
+  to those presented in~\cite{Lu2017}, but we are able to take smaller
+  initial displacements and minimum separation distances.  The contact
+  algorithm breaks the reversibility of the flow, and this effect is
+  illustrated and quantified.
+
+  \item {\bf Taylor-Green Flow}: We simulate a concentrated suspension
+  of 48 rigid ellipses in an unbounded Taylor-Green flow. At the
+  prescribed separation distance, our new time stepping method is able
+  to stably reach the time horizon, while the locally semi-implicit time
+  integrator proposed by Lu et al.~\cite{Lu2017} results in the STIV
+  algorithm stalling, even with $\Delta t = 10^{-8}$.
+
+  \item {\bf Porous Monolayer Injection}: We consider a suspension of
+  confined rigid circular bodies motivated by an experiment by MacMinn
+  et al.~\cite{MacMinn2015}.  The geometry is an annulus with an inflow
+  at the inner boundary and an outflow at the outer boundary.  We again
+  examine the effect of contact force on the reversibility of the flow, and compute
+  the shear strain rate and make qualitative comparisons to results for
+  deformable bodies~\cite{MacMinn2015}.
+
+  \item {\bf Taylor-Couette Flow}: With the ability to do high area
+  fraction suspensions without imposing a large non-physical minimum
+  separation distance, we simulate rigid bodies of varying aspect ratios
+  inside a Taylor-Couette device.  We examine the effect of the rigid
+  body shape and area fraction on the effective viscosity and the
+  alignment angles.
+\end{itemize}
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Shear Flow}
+\label{sec:shear}
+We consider two rigid circular bodies in the shear flow ${\uu}(\xx) =
+(y,0)$.  One body is centered at the origin, while the other body is
+placed to the left and above of the origin.  With this
+initial condition, the particles come together, interact, and then
+separate.  Both bodies are discretized with $N=32$ points and the arc
+length spacing $h = 2\pi/32 \approx 0.196$.  This experiment was also
+performed by Lu et al.~\cite{Lu2017}, and we compare the two time
+stepping methods.
+
+We start by considering the time step size $\Delta t = 0.4$ and
+minimum separation distance $\delta = 0$ (no contact algorithm). 
+Our new globally implicit method successfully reaches the time
+horizon without requiring a repulsion force.  However, with the same
+$\Delta t$, the local explicit time stepping results in a collision
+between the bodies, so the collision algorithm is required to reach the
+time horizon.  Alternatively, the time step size can be reduced, but, as
+we will see, for sufficiently dense suspensions, even an excessively
+small time step size results in collisions.  Next, in
+Figure~\ref{fig:shear_experiment}, we investigate the effect of the
+minimum separation distance on the position of the rigid bodies.  The
+top plot shows the trajectory of the left body as it approaches,
+interacts, and finally separates from the body centered at the origin.
+In this simulation, we use our new globally implicit time integrator,
+but the STIV contact algorithm is not applied.  The bottom left plot
+shows the trajectory of the particle when the contact algorithm is
+applied with varying levels of separation.  Notice that the trajectories
+are identical until near $x=0$ when the particle separation first falls
+below the minimum separation distance.  Finally, in the bottom right
+plot, the final vertical displacement of the body initially on the left is
+plotted.  These results are computed for the locally implicit time
+stepping method~\cite{Lu2017}, and the general trend of the trajectories
+are similar.
+\begin{figure}[!h]
+  \begin{center}
+    \includegraphics{figures/shear_setup1.pdf}
+    \begin{tabular}{c c}
+      \includegraphics{figures/shear_displacement1.pdf} &
+      \includegraphics{figures/separation_displacement1.pdf}
+    \end{tabular}
+  \end{center}
+\caption[Displacement caused in a shear flow experiment as a function of minimum separation distance]{\label{fig:shear_experiment} Shear experiment. Top: The initial
+setup and trajectory of the left body.   Bottom left: The left body's
+trajectory for varying minimum separation distances.  Notice how
+the trajectories are identical until shortly before $x=0$ when the
+contact algorithm is first applied.  Bottom right: The final vertical
+displacement of the left particle for varying minimum separation
+distances.}
+\end{figure}
+
+We next investigate the effect of the collision algorithm on the time
+reversibility of the flow. We reverse the shear direction at $t=10$ and
+measure the error between the body's center at $t=0$ and $t=20$.  We
+expect an error that is the sum of a first-order error caused by time
+stepping, and a fixed constant caused by the minimum separation
+distance.  The results for various values of $d_m$ are reported in
+Table~\ref{tab:reverse}. The contact algorithm is not applied
+when $d_m=0$ and $d_m=h$, and we observe the expected
+first-order convergence.  When $d_m \geq 2h$, the bodies are
+deflected onto contact-free streamlines when their proximity reaches the
+minimum separation distance.  After the flow is reversed, the bodies
+again pass one another, but they are now on contact-free streamlines, so
+the initial deflection is not reversed.  For these larger values of
+$d_m$, we see in Table~\ref{tab:reverse} that the error eventually
+plateaus as $\Delta t$ is decreased indiciating that the error due to the contact algorithm dominates.
+
+\begin{table}[!h]
+\caption[Demonstration of the breaking of reversibility after repulsion forces added]{A study of time reversibility of the shear flow example. At
+$t=10$, the flow direction is reversed and we calculate the relative
+error in the initial and final positions. When the collision constraint
+is active and force is needed to keep the bodies apart the contact algorithm dominates the error in
+the reversibility.}\label{tab:reverse}
+\begin{center}
+\begin{tabular}{c| c c c c c}
+$ $ & & & $\Delta t$ & &\\
+$d_m$ & $4\e{-2}$ &$ 2\e{-2}$ & $1\e{-2}$ & $5\e{-3}$ & $2.5\e{-3}$\\
+\hline
+0 & $1.35\e{-1}$ & $7.32\e{-2}$ & $3.74\e{-2}$ & $2.00\e{-2}$ & $1.01\e{-2}$\\
+$h$ & $1.35\e{-1}$ & $7.32\e{-2}$ & $3.74\e{-2}$ & $2.00\e{-2}$ & $1.01\e{-2}$\\
+$2h$ & $1.88\e{-1}$ & $1.41\e{-1}$ & $1.17\e{-1}$ & $1.08\e{-1}$ &
+$1.02\e{-1}$\\
+$2.25h$ & $2.55\e{-1}$ & $2.08\e{-1}$ & $1.87\e{-1}$ & $1.78\e{-1}$ &
+$1.73\e{-1}$\\
+$2.50h$ & $3.05\e{-1}$ & $2.69\e{-1}$ & $2.52\e{-1}$ & $2.45\e{-1}$ &
+$2.40\e{-1}$\\
+$2.75h$ & $3.64\e{-1}$ & $3.31\e{-1}$ & $3.13\e{-1}$ & $3.07\e{-1}$ &
+$3.03\e{-1}$\\
+$3.00h$ & $4.12\e{-1}$ & $3.88\e{-1}$ & $3.72\e{-1}$ & $3.67\e{-1}$ &
+$3.63\e{-1}$
+\end{tabular}
+\end{center}
+
+\end{table}
+
+The break in reversibility is further demonstrated by examining
+individual streamlines.  In Figure~\ref{fig:shear_cross}, we compute the
+streamline of the left body for three different initial placements.  We
+set $d_m=3h$ for all the streamlines.  With this threshold, only the
+bottom-most streamline falls below $d_m$.  Therefore, as the bodies approach, the streamlines behave as expected---they do
+not cross.  However, when the contact algorithm is applied to the blue
+streamline, the streamlines cross.
+
+\begin{figure}[!h]
+\begin{center}
+\includegraphics{figures/shear_streamlines_cross.pdf}
+\end{center}
+\caption[Crossing of streamlines after application of repulsion forces]{\label{fig:shear_cross} The contact algorithm causes
+streamlines to cross. Keeping the minimum separation fixed at
+$d_m=3h$, we vary the starting $y$ location of the left body. The
+teal and red streamlines do not require a repulsion force to enforce the
+minimum separation between the bodies, but the blue streamline does.
+Once the contact algorithm is applied, the blue streamline crosses the
+other streamlines (middle inset). This crossing of the streamlines
+breaks the reversibility of the simulation.}
+\end{figure}
+
+
+\section{Taylor-Green}
+
+For planar flows, we can separate suspensions into dilute and
+concentrated regimes by comparing the number of bodies per unit area,
+$\nu$, to the average body length $\ell$. If $\nu < 1/\ell^2$, the suspension is
+ dilute, otherwise it is concentrated
+(in 2D planar suspensions, unlike 3D suspensions, there is no
+semi-dilute regime).  We consider the suspension of 75 rigid bodies in
+the Taylor-Green flow $\mathbf{u}^\infty = (\cos(x)\sin(y),
+-\sin(x)\cos(y))$.  The number of bodies per unit area is $\nu \approx
+3.1$ which is greater than $1/\ell^2=1.1$.  Therefore, this suspension
+is well within the concentrated regime. 
+
+We discretize the bodies with $N=32$ points and select the minimum
+separation distance $d_m=0.05h$. Snapshots of the simulation are
+shown in Figure \ref{fig:taylor_green}.  In this concentrated
+suspension, the bodies frequently come into contact.  If
+the interactions between these nearly touching bodies are treated
+explicitly, this leads to stiffness.  Our time stepper controls this
+stiffness by treating these interactions implicitly, and the simulation
+successfully reaches the time horizon.  We performed the same
+simulation, but with the locally implicit time stepping
+method~\cite{Lu2017}.  Because of the near-contact, smaller time step
+sizes must be taken.  We took time step sizes as small as $10^{-8}$, and
+the method was not able to successfully reach the time horizon.  This
+exact behavior has also been observed for vesicle
+suspensions~\cite{Quaife2014}.  In the bottom right plot of
+Figure~\ref{fig:taylor_green}, we show the trajectory of one body for
+different time step sizes.  The dots denote locations where the contact
+algorithm is applied.  For this very complex flow, the trajectories are
+in good agreement with different time step sizes.
+
+\begin{figure}[!h]
+  \begin{center}
+    \begin{tabular}{c c }
+      \includegraphics[width=6cm]{figures/taylor_green0.pdf} &
+      \includegraphics[width=6cm]{figures/taylor_green1.pdf}\\
+      \includegraphics[width=6cm]{figures/taylor_green2.pdf} &
+      \includegraphics[width=6cm]{figures/taylor_green_tracks_new.pdf}
+    \end{tabular}
+  \end{center}
+  \caption[Snapshots of particles suspended in a Taylor-Green flow]{\label{fig:taylor_green} Snapshots of a dense suspension in
+  an unbounded Taylor-Green flow.  The number of bodies per unit area
+  $\nu$ is approximately 3.1. This is greater than $1/\ell^2 = 1.1$,
+  which puts the simulation well within the concentrated regime.  Bodies
+  are discretized with 32 points and the minimum separation is
+  $\delta=0.05h$.  The bottom right plot shows the trajectory of the
+  center of the colored body for different step sizes. Each line in that
+  plot is marked where a contact force is applied to the colored body to enforce the minimum
+  separation. }
+\end{figure}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Fluid Driven Deformation}
+A recent experiment considers a dense monolayer packing of soft
+deformable bodies~\cite{MacMinn2015}.  Motivated by this experiment, we
+perform numerical simulations of rigid bodies in a similar device.  We
+pack rigid bodies in a Couette device, but with a very small inner
+boundary.  The boundary conditions are an inflow or outflow of rate $Q$
+at the inner boundary with an outflow or inflow at the outer cylinder.
+This boundary condition corresponds to injection and suction of fluid
+from the center of the experimental microfluidic device.  In the
+experimental setting, the soft bodies are able to reach the outer
+boundary, and the resulting boundary condition would not be uniform at
+the outer wall.  So that we can apply the much simpler uniform inflow or
+outflow at the outer boundary, we force the rigid bodies to remain
+well-separated from the outer wall.  We accomplish this by placing a
+ring of {\em fixed} rigid bodies halfway between the inner and outer
+cylinders (Figure~\ref{fig:radial}).  The spacing between these fixed
+bodies is sufficiently small that the mobile bodies are not able to
+pass.  Since the outer boundary is well-separated from the fixed bodies,
+the outer boundary condition is justifiably approximated with a uniform
+flow.
+
+\begin{figure}[h!]
+\begin{center}
+\includegraphics{figures/injection_plate_setup.pdf}
+\end{center}
+\caption[Sketch of the geometry for a confined monolayer suspension]{\label{fig:radial} The geometry used in our numerical
+experiment that is motivated by the experimental setup of MacMinn et
+al.~\cite{MacMinn2015}.  The fixed solid bodies are shaded in black.}
+\end{figure}
+
+We start by examining the effect of the contact algorithm on the
+reversibility of the flow.  We again reverse the flow at time $T$ and
+run the simulation until time $2T$. The rigid bodies are in contact for
+much longer than the shear example in Section~\ref{sec:shear}, so
+maintaining reversibility is much more challenging.
+Figure~\ref{fig:macminn} shows several snapshots of the simulation, and
+the bottom right plot superimposes the initial and final configurations.
+We observe only a minor violation of reversibility, and it is largest
+for bodies that were initially near the fixed bodies---the contact
+algorithm is applied to these bodies most frequently.
+
+\begin{figure}[h!]
+  \begin{tabular}{c c c}
+    \includegraphics{figures/injection_plate0.pdf}&
+    \includegraphics{figures/injection_plate2.pdf}&
+    \includegraphics{figures/injection_plate4.pdf}\\
+    \includegraphics{figures/injection_plate6.pdf}&
+    \includegraphics{figures/injection_plate8.pdf}&
+    \includegraphics{figures/injection_plate8_overlay.pdf}\\
+  \end{tabular}
+  \caption[Snapshots of a confined monolayer suspension]{\label{fig:macminn} Snapshots of a rigid body suspension
+  motivated by an experiment for deformable bodies~\cite{MacMinn2015}.
+  Fluid is injected at a constant rate starting at $t=0$. At $t=4$ the
+  flow direction is reversed. Fixed bodies are colored in red, while
+  bodies subject to a repulsion force are colored in green. The initial
+  configuration has been superimposed on the final configuration at
+  $t=8$ to show the effect of the repulsion forces on reversibility.}
+\end{figure}
+
+In~\cite{MacMinn2015}, the shear strain rate is measured to better
+characterize the flow.  In Figure~\ref{fig:macminn_stress}, we  plot the shear strain rate for the simulation in
+Figure~\ref{fig:macminn}.  A qualitative comparison of the numerical and
+experimental results are in good agreement.  In particular, the
+petal-like patterns in Figure~\ref{fig:macminn_stress} are also observed
+in the experimental results.
+
+\begin{figure}[h!]
+  \begin{tabular}{c c c}
+    \includegraphics{figures/shear_stress1.pdf}&
+    \includegraphics{figures/shear_stress2.pdf}&
+    \includegraphics{figures/shear_stress3.pdf}\\
+    \includegraphics{figures/shear_stress6.pdf}&
+    \includegraphics{figures/shear_stress5.pdf}&
+    \includegraphics{figures/shear_stress4.pdf}
+  \end{tabular}
+  \begin{center}
+    \includegraphics{figures/colorbar.pdf}
+  \end{center}
+  \caption[Shear strain rate for a confined monolayer suspension]{ The shear strain rate
+  $\log_{10}(|\sigma_{xy}|)$  of the suspension in
+  Figure~\ref{fig:macminn}.  The formation of the petal-like patterns is
+  also observed experimentally for a suspension of deformable
+  bodies~\cite{MacMinn2015}.}\label{fig:macminn_stress}
+\end{figure}
+
+\section{Taylor-Couette}
+In many industrial applications, for example pulp and paper manufacturing, suspensions of rigid elongated fibers are encountered. Motivated by these suspensions we investigate rheological and statistical
+properties of confined suspensions.  We consider suspensions of varying
+area fraction and body aspect ratio; specifically we consider 5, 10,
+and 15 percent area fractions and elliptical bodies of aspect ratio,
+$\lambda$ of 1, 3, and 6.  In all the examples, $\nu < 1/\ell^2$, so all the
+suspensions are in the dilute regime.  The bodies initial locations are
+random, but non-overlapping (Figure \ref{fig:couette_setup}).  The flow
+is driven by rotating the outer cylinder at a constant angular velocity
+while the inner cylinder remains fixed. 
+
+
+\begin{figure}[!h]
+\begin{center}
+\begin{tabular}{c c c c}
+\includegraphics[width=3cm]{figures/couette_005_3_1.pdf} &
+\includegraphics[width=3cm]{figures/couette_005_6_1.pdf} &
+\includegraphics[width=3cm]{figures/couette_010_3_1.pdf} &
+\includegraphics[width=3cm]{figures/couette_010_6_1.pdf}
+\end{tabular}
+\end{center}
+\caption[Initial fiber configurations inside a Couette apparatus]{Four initial configurations for Taylor-Couette flow with
+varying volume fraction $\phi$ and aspect ratio $\lambda$. From left to
+right: 1) $\phi=5\%$, $\lambda= 3$, 2) $\phi=5\%$, $\lambda=6$, 3)
+$\phi=10\%$, $\lambda=3$, 4) $\phi=10\%$,
+$\lambda=6$.}\label{fig:couette_setup}
+\end{figure}
+
+Before measuring any rheological properties, the outer wall completes one full
+revolution so that the bodies are well-mixed and
+approaching a statistical equilibrium.  We start by considering the
+alignment of the bodies. The alignment is particularly insightful since
+many industrial processes involve fibers suspended in a flow, and the
+alignment affects the material properties~\cite{Larson1999}.  One way to
+measure the alignment is the order parameter, $S$, defined as,
+\begin{align*}
+  S = \left\langle \frac{d \cos^2\tilde{\theta} - 1}{d - 1} \right\rangle,
+\end{align*}
+where $d$ is the dimension of the problem ($2$ in our case),
+$\tilde{\theta}$ is the deviation from the expected angle, and $\langle
+\cdot\rangle$ averages over all bodies.  If $S=1$, all bodies are
+perfectly aligned with the shear direction, $S=0$ corresponds to a
+random suspension (no alignment), and $S=-1$ means that all bodies are
+perfectly aligned perpendicular to the shear direction.  In our
+geometric setup, a body centered at $(x,y)$ has an expected angle of
+$\tilde{\theta}\tan^{-1}(y/x) + \pi/2$, and the average alignment of the
+bodies will be in the direction of the shear, which is also
+perpendicular to the radial direction.
+
+Since the initial condition is random, the initial configurations in
+Figure~\ref{fig:couette_setup} have an order parameter $S\approx 0$. As
+the outer cylinder rotates, we see in Figure~\ref{fig:angles} that $S$
+increases rapidly. The area fractions $\phi$ we consider have a
+minor effect on $S$; however, the aspect ratio has a large effect.  In
+particular, suspensions with slender bodies align much better with the
+flow.
+
+\begin{figure}[!h]
+\begin{center}
+\includegraphics{figures/order_parameter.pdf}\\
+\end{center}
+\caption[Simulated order parameters for fibers inside a Couette apparatus]{ The order parameter of different fiber
+concentrations and aspect ratios. We see that the 6:1 fibers align
+better. The 6:1 fibers rotate through the angle perpendicular to
+the shear direction more quickly than the 3:1 fibers and thus spend more
+time approximately aligned with the shear direction. The dashed lines
+represent the order parameter for a suspension in an unbounded shear
+flow with bodies that do not interact hydrodynamically. The red line
+shows $\lambda=3$, while the blue line shows $\lambda=6$. }\label{fig:angles}
+\end{figure} 
+
+This matches the known dynamics of a single body in an unbounded shear
+flow, where the body will align with the shear direction on
+average. Bodies with a high aspect ratio rotate quickly when then they are
+perpendicular to the shear direction and spend more time nearly aligned
+with the shear direction. We compare our results to the time averaged
+order parameter of a single elliptical body in an unbounded shear flow.
+If the shear rate is $\dot{\gamma}$, a single elliptical body rotates with period $\tau
+= \pi/(2| \dot{\gamma}|)(\lambda + \lambda^{-1})$~\cite{Jeffery1922}
+according to 
+\begin{align*}
+  \varphi(t) ~=~ \tan^{-1}\left(\frac{1}{\lambda}\tan\left(
+    \frac{\lambda \dot{\gamma}t}{\lambda^2 + 1}\right)\right).
+\end{align*}
+The time average order parameter is then,
+\begin{align*}
+  \langle S\rangle ~=~ \frac{1}{\tau}\int_0^\tau\left( 
+    2\cos^2(\varphi(t)) - 1\right)~\text{d}t ~=~ \frac{\lambda -1}{\lambda+1}.
+\end{align*}
+Independent of the shear rate, for $\lambda= 3$ the theoretical $\langle
+S\rangle$ is 1/2 and for $\lambda=6$ it is  5/7. Table \ref{tab:order}
+shows the time and space averaged order parameter for the Couette
+apparatus. We see that in all cases our computed time averaged order
+parameter is higher than the theoretical single fiber case. This could
+be due to the hydrodynamic interactions between the bodies, or the
+effect of the solid walls.
+
+In the absence of solid walls and hydrodynamic interactions between
+bodies, a suspension will align and disalign. The period of the order
+parameter in this case is the same as the rotational period for a single
+fiber. In Figure \ref{fig:angles} the theoretical order parameter is
+shown for a suspension of non-hydrodynamically interacting fibers in an
+unbounded shear flow.  Hydrodynamic interactions prevent the suspension
+from disaligning completely.
+
+
+
+\begin{table}[!h]
+\caption[Time averaged order parameter in a Couette apparatus]{The time averaged order parameter during the second revolution of the Couette apparatus. The higher aspect ratio fibers align better on average. The alignment is in all cases higher than predicted for a single Jeffery orbit.
+}\label{tab:order}
+\begin{center}
+\begin{tabular}{c |c |c |c}
+area fraction, $\phi$ & aspect ratio, $\lambda$ & computed $ \langle S \rangle$ & theoretical
+$\langle S \rangle$ (single fiber)\\
+\hline
+5\%  & 3 & 0.52 & 0.50 \\
+10\% & 3 & 0.60 & 0.50 \\
+15\% & 3 & 0.65 & 0.50 \\
+5\%  & 6 & 0.91 & 0.71 \\
+10\% & 6 & 0.89 & 0.71
+\end{tabular}
+\end{center}
+
+\end{table} 
+
+Another quantity of interest in rheology is the effective viscosity of a
+suspension. The shear viscosity $\mu$ relates the bulk shear stress
+$\sigma_{xy}$ of a Newtonian fluid to the bulk shear rate
+$\dot{\gamma}$, 
+\begin{align*}
+  \sigma_{xy} = \mu\dot{\gamma}.
+\end{align*}
+Adding bodies increases the bulk shear stress of a suspension.  The
+proportionality constant relating the increased $\sigma_{xy}$ to the
+shear rate is the {\em apparent viscosity}, and the ratio between the
+apparent viscosity and the bulk viscosity is the effective viscosity
+$\mu_{\text{eff}}$.  Experimentally, the bulk shear stress is often
+computed by measuring the torque on the inner cylinder~\cite{Koos2012}.
+Numerically, this is simply the strength of the rotlet corresponding to the
+inner cylinder.  By computing the ratio of the torque on the inner
+cylinder with bodies to the torque without bodies we determine the
+effective viscosity of a suspension.  Figure~\ref{fig:torque} shows the
+effective viscosity increases with $\phi$, but is generally lower for
+bodies with aspect ratio $\lambda=6$. This is because higher aspect ratio
+bodies align themselves better, and thus contribute less to the bulk
+shear stress. The spikes in \ref{fig:torque} occur when a repulsion
+force is added to the system. Similar spikes were observed 
+in Lu \emph{et al.}~\cite{Lu2017}. To smooth the results we use a multiscale local polynomial transform to smooth the data shown in Figure \ref{fig:torque}.
+\begin{figure}[!h]
+\begin{center}
+\includegraphics{figures/couette_torque_smooth_005.pdf}\\
+\includegraphics{figures/couette_torque_smooth_010.pdf}\\
+\includegraphics{figures/couette_torque_smooth_015.pdf}
+\end{center}
+\caption[Simulated bulk viscosity for a Couette apparatus]{Instantaneous bulk effective viscosity for various volume
+fractions and body aspect ratios. The inner
+cylinder is fixed, while the outer one rotates at a constant angular velocity. The transparent lines represent the raw data, while the solid lines have been smoothed using a multiscale local polynomial transform. }\label{fig:torque}
+\end{figure} 
+
+Finally, instead of computing the instantaneous effective viscosity,
+experimenters are interested in the time averaged effective viscosity of
+a suspension. In Table~\ref{tab:viscosity}, we report the average
+instantaneous effective viscosity over the second revolution of the
+outer cylinder
+\begin{table}[!h]
+\caption[Time averaged effective viscosity in a Couette apparatus]{Time averaged effective viscosity for various area fractions
+and aspect ratios. The time average is done between the first and second
+revolutions of the outer cylinder. As $\phi$ increases the effective
+viscosity increases as expected. In general higher aspect ratio bodies
+increase the viscosity less than lower aspect bodies. }\label{tab:viscosity}
+\begin{center}
+\begin{tabular}{c| c | c |  c}
+$\lambda$ & 5\% area fraction  & 10\% area fraction  & 15\% area fraction\\
+\hline
+1 & 1.12 & 1.22 & 1.42 \\
+3 & 1.10 & 1.23 & 1.36 \\
+6 & 1.08 & 1.18 & 
+\end{tabular}
+\end{center}
+
+\end{table}
+
+
+%\begin{figure}[!h]
+%\begin{center}
+%\includegraphics{figures/pressure_contour.pdf}
+%\end{center}
+%\caption{Pressure distribution inside a Couette device. The outer cylinder is spinning while the
+%inner cylinder is fixed. }\label{fig:dissipation}
+%\end{figure}

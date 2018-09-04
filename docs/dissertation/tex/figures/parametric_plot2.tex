@@ -1,0 +1,19 @@
+\documentclass[tikz]{standalone}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{pgfplots}
+\usepackage{grffile}
+\pgfplotsset{compat=newest}
+\usetikzlibrary{plotmarks}
+\usetikzlibrary{arrows.meta}
+\usepgfplotslibrary{patchplots}
+\usepackage{amsmath}
+
+\begin{document}
+\begin{tikzpicture}
+\node at (0,2) {$a = 0.2,~k=5$};
+\node at (0,-1) {};
+ \draw [thick, fill=black,domain=0:360,samples=500] plot 
+        ({(1+ 0.2*cos(5*\x))*cos(\x)},{(1+ 0.2*cos(5*\x))*sin(\x)}); 
+\end{tikzpicture}%
+\end{document}

@@ -1,0 +1,71 @@
+% This file was created by matlab2tikz.
+%
+%The latest updates can be retrieved from
+%  http://www.mathworks.com/matlabcentral/fileexchange/22022-matlab2tikz-matlab2tikz
+%where you can also make suggestions and rate matlab2tikz.
+%
+\documentclass[tikz]{standalone}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{pgfplots}
+\usepackage{grffile}
+\pgfplotsset{compat=newest}
+\usetikzlibrary{plotmarks}
+\usetikzlibrary{arrows.meta}
+\usepgfplotslibrary{patchplots}
+\usepackage{amsmath}
+
+\begin{document}
+\definecolor{mycolor1}{rgb}{0.00000,0.44700,0.74100}%
+%
+\begin{tikzpicture}
+
+\begin{axis}[%
+width=11.411cm,
+height=12cm,
+at={(0cm,0cm)},
+scale only axis,
+xmin=-2.000,
+xmax=10.000,
+ymin=1.000,
+ymax=3.000,
+axis background/.style={fill=white}
+]
+\addplot [color=mycolor1, draw=none, mark=*, mark options={solid, mycolor1}, forget plot]
+  table[row sep=crcr]{%
+9.688	2.000\\
+-0.806	2.000\\
+-1.000	2.000\\
+-1.000	2.000\\
+-1.000	2.000\\
+-0.350	2.000\\
+-0.194	2.000\\
+-0.650	2.000\\
+-0.566	2.000\\
+-0.556	2.000\\
+-0.434	2.000\\
+-0.472	2.000\\
+-0.444	2.000\\
+-0.528	2.000\\
+-0.511	2.000\\
+-0.490	2.000\\
+-0.489	2.000\\
+-0.510	2.000\\
+-0.496	2.000\\
+-0.502	2.000\\
+-0.502	2.000\\
+-0.504	2.000\\
+-0.498	2.000\\
+-0.499	2.000\\
+-0.499	2.000\\
+-0.499	2.000\\
+-0.500	2.000\\
+-0.500	2.000\\
+-0.501	2.000\\
+-0.501	2.000\\
+-0.500	2.000\\
+-0.500	2.000\\
+};
+\end{axis}
+\end{tikzpicture}%
+\end{document}

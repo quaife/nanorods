@@ -1,0 +1,532 @@
+\chapter{Numerical Methods}\label{chap:numerics}
+
+The canonical equations \eqref{eq:canonical_velocity} or \eqref{eq:canonical_unbounded}, along with the closure formula \eqref{eq:canonical_closure} can be solved analytically only for very simple geometries. To simulate general rigid body suspensions we must discretize the equations and efficiently solve the resulting linear system. There are multiple spatial discretizations we could employ. One approach is a Galerkin-based boundary element method \cite{Karrila1991, Hsiao2006}, the integral equation analogue of the finite element method. Here, the geometry's boundary is split into elements and the density function $\bm{\eta}$ is approximated by a linear combination of basis functions with support over a few elements. An alternative method, that we use, is the Nystr\"{o}m method (Section \ref{sec:discretization}), where the value of the density function is approximated at a discrete set of points. The method begins by enforcing the boundary integral equation at a set of $N$ points $\{\xx_i\},~i=1,\hdots,N$. These points double as quadrature points to discretize the integral operator. This technique is discussed in detail for the Stokes equations in Section \ref{sec:stokes_disc} and we demonstrate that the trapezoid rule is an excellent choice for the quadrature in most cases. However, when bodies are close, the quality of the trapezoid rule deteriorates and specialized quadrature must be applied (Section \ref{sec:near_singular}). 
+
+The resulting linear system is dense and changes at each time step, so a direct linear solver is not appropriate. However, an iterative solver is appropriate, since the behavior of the eigenvalues of the linear system guarantees a bound on the number of required  Generalized Minimum Residual Method (GMRES) iterations (Section \ref{sec:linear_solve}). Therefore, the overall cost to solve the $N\times N$ linear system is proportional to the cost of a single matrix-vector product. A dense matrix-vector product ordinarily requires $\mathcal{O}(N^2)$, however, the structure of our specific linear system allows us to take advantage of a fast summation method to reduce the matrix-vector product to an $\mathcal{O}(N)$ operation. Finally, a block-diagonal preconditioner is used to reduce the number of GMRES iterations.
+
+The solution of the governing equations includes the translational velocity $\UU$, and the rotational velocity $\omega$ of each rigid body. To advance the simulation in time, we must solve the ODEs
+\[ \frac{d}{dt}\cc = \UU(t), \qquad \frac{d}{dt}\theta = \omega(t),\]
+where $\cc$ and $\theta$ are the center of the rigid body and its inclination angle, respectively. The time stepping can be done in a variety of ways, and in Section \ref{sec:time_stepping} we investigate first-order forward Euler and second-order Adams-Bashforth. 
+
+\section{Spatial Discretization}\label{sec:discretization}
+
+Consider the general boundary integral equation (BIE)
+\begin{equation}\label{eq:bie_example} \lambda \eta(\xx) + \int_S K(\xx,\yy)\eta(\yy)~\text{d}S(\yy) = g(\xx),\qquad \xx\in S.\end{equation}
+A Nystr\"{o}m method begins by choosing $N$ collocation points $\{\xx_i \}_{i=1}^N \subset S$ and enforcing the boundary integral equation \label{eq:bie_example} at these points
+\[  \lambda \eta(\xx_i) + \int_S K(\xx_i,\yy)\eta(\yy)~\text{d}S(\yy) = g(\xx_i), \qquad i = 1,\hdots, N.\]
+Next, by approximating the integral  using the quadrature points $\{\xx_i\}$ with corresponding weights $\{w_i\}$, the result is the $N\times N$ linear system
+\begin{equation}\label{eq:bie_discrete} \lambda \eta(\xx_i) + \sum\limits_{j=1}^N  K(\xx_i, \xx_j)\eta(\xx_j)w_j = g(\xx_i),\qquad i = 1,\hdots, N,\end{equation}
+or in matrix notation
+\[ \left(\lambda \mathbf{I} + \mathbf{A}\right)\hat{\bm{\eta}} = \hat{\mathbf{g}},\]
+where 
+\[ A_{ij} = K(\xx_i,\xx_j)w_j,\qquad \hat{g}_i = g(\xx_i), \qquad \hat{\eta}_i = \eta(\xx_i).\]
+ Note that the quadrature weights $\{w_i\}$ depend on the geometry of $S$. If the original integral equation is solvable for any $g$, then the resulting linear system will be full rank.
+
+We must choose the collocation points $\{\xx_i\}$ and weights $\{w_i\}$ in \eqref{eq:bie_discrete}.  This choice directly affects the accuracy of the quadrature routine. Let $S$ be parameterized by $\bm{\phi}(s)$, $s\in [0,2\pi]$. We use this parameterization to transform the boundary integral over $S$ to one over the interval $[0,2\pi]$,
+\[ \int_S f(\yy)~\text{d}S = \int_0^{2\pi} f(\bm{\phi}(s))|\bm{\phi}'(s)|~\text{d}s.\]
+Since $S$ is a closed boundary, $\bm{\phi}(s)$ is periodic over $[0,2\pi]$. In addition, we assume that $S$ is smooth, so $\bm{\phi}\in\textbf{C}^\infty([0,2\pi])$.  The collocation points are chosen to be equally spaced in parameter space $s$, that is $\xx_j =\bm{\phi}(s_j)$, where
+\[  s_j = (j-1) h,\qquad h = \frac{2\pi}{N}.\] 
+
+A particularly attractive choice for quadrature in this case is the trapezoid rule. That is
+\[ \int_S f(\yy)~\text{d}S \approx h\sum\limits_{j=1}^{N} f(\bm{\phi}(s_j))|\bm{\phi}'(s_j)|.\]
+The trapezoid rule is used because it is spectrally accurate when applied to smooth, periodic functions \cite{Trefethan2014}. As a demonstration of the spectral accuracy for periodic functions, consider numerically integrating two functions, $f_1(x) = e^x$ and $f_2(x)=e^{\cos(x)}$ from 0 to $2\pi$. The first integral is $e^{2\pi}-1$, and the second is $2\pi I_1(0)$, where $I_1(x)$ is the first-order first-kind modified Bessel function. As shown in Table \ref{tab:trap}, by applying the trapezoid rule, we achieve second-order accuracy when evaluating the non-periodic integral, and spectral accuracy when evaluating the periodic integral. 
+\begin{table}[!h]
+\caption[Convergence of the trapezoid rule]{Convergence study using the trapezoid rule for a non-periodic and a periodic function over the interval $x\in [0,2\pi]$. $E_1$ is the relative error of the $N$ point trapezoid rule applied to $f(x) = e^x$, and $E_2$ is the relative error of the $N$ point trapezoid rule applied to $f(x)=e^{\cos(x)}$. In the first case, the trapezoid rule is second-order accurate, while in the second case it is spectrally accurate.}\label{tab:trap}
+\begin{center}
+	\begin{tabular}{c | c | c}
+	$N$ & $E_1$ & $E_2$\\
+	\hline
+	4 & 1.98\e{-1} & 4.32\e{-3}\\
+	8 & 5.09\e{-2} & 1.57\e{-7}\\
+	16 & 1.28\e{-2}& 2.23\e{-16}\\
+	32 & 3.21\e{-3} & 3.25\e{-16}\\
+	64 & 8.03\e{-4} & 0
+	\end{tabular}
+\end{center}
+\end{table}
+
+As a final step to applying quadrature, we require the arclength term $\bm{\phi}'(s_j)$. This is computed by using the Fourier representation 
+\[ \bm{\phi}(s_j) = \sum\limits_{k=1}^{N} \hat{\bm{\phi}}_k e^{i(k-1)s_k},\qquad j=1,\hdots,N.\]
+Then 
+\[ \bm{\phi}'(s_j) = \sum\limits_{k=1}^N i(k-1)\hat{\bm{\phi}}_k e^{i(k-1)s_k}, \qquad j=1,\hdots, N.\]
+Computing the Fourier coefficients $\bm{\hat{\phi}}_k$ requires a discrete Fourier transform, and computing $\bm{\phi}'(s_j)$ requires an inverse discrete Fourier transform. Both of these operations can be done na\"{i}vely in $\mathcal{O}(N^2)$ operations. However, we accelerate each calculation to $\mathcal{O}(N\log N)$ operations by using the fast Fourier transform (FFT). 
+
+\section{Discretization of Stokes  Boundary Integral Equation}\label{sec:stokes_disc}
+
+Discretizing the boundary integral equation \eqref{eq:bie_example} depends on the kernel $K$ and the constant $\lambda$. Here, we focus on the Stokes double-layer potential boundary integral equation, where the integral kernel is given by \eqref{eq:dlp_kernel} and $\lambda = -1/2$. The kernel, density function, and boundary conditions are all vector-valued, but this does not change the discretization approach outlined in Section \ref{sec:discretization}.
+
+\subsection{Interior Flow}\label{sec:simply_connected}
+
+
+Considering the Stokes equations in a bounded simply-connected domain, we have to solve \eqref{eq:interior_complete} for the density function $\bm{\eta}$. Denoting $\bm{\eta}_i$ to be $\bm{\eta}(\bm{\phi}(s_i))$, the $N$-point trapezoid results in the linear system
+\[ -\frac{1}{2} \bm{\eta}_i + h \sum\limits_{j=1}^N \mathbf{K}(\bm{\phi}(s_i), \bm{\phi}(s_j))\bm{\eta}_j|\bm{\phi}'(s_j)| + h\nn(\bm{\phi}(s_i))\sum\limits_{j=1}^N \nn(\bm{\phi}(s_j))\bm{\eta}_j = \mathbf{g}(\bm{\phi}(s_i)),\qquad i=1,\hdots,N,\]
+where $h=2\pi/N$ and $\mathbf{g}(\xx)$ is the prescribed Dirichlet boundary condition on the velocity.
+
+At first glance the kernel $\mathbf{K}$ is singular when $i = j$, and it appears that specialized quadrature is required. However, the singularity is removable and its limiting value can be used instead of $\mathbf{K}(\bm{\phi}_i,\bm{\phi}_i)$. In particular, in $\mathbb{R}^2$  the kernel of  double-layer potential has the limiting value
+\begin{equation}\label{eq:curvature}
+\lim\limits_{\substack{\yy\to\xx \\ \yy\in S}} K_{ij}(\xx,\yy) = \frac{\kappa(\xx) \tau_i(\xx) \tau_j(\xx)}{2\pi},\qquad \xx\in S,\end{equation}
+where $\kappa(\xx)$ is the curvature of $S$ at $\xx$ and $\bm{\tau}(\xx)$ is the tangent vector of $S$ at $\xx$. Replacing  the diagonal terms in the discretization  with the limiting value \eqref{eq:curvature}, the linear system we must solve is
+\begin{equation}\label{eq:interior_discrete}
+\begin{aligned}\mathbf{g}(\bm{\phi}(s_i)) &= \biggr(-\frac{1}{2} + h \bigg(\frac{\kappa(\bm{\phi}(s_i)) \bm{\tau}(s_i)\otimes\bm{\tau}(s_i)}{2\pi} + \nn(\bm{\phi}(s_i))\otimes\nn(\bm{\phi}(s_i)\bigg)\biggr)\bm{\eta}_i |\bm{\phi}'(s_i)|\\&+ h\sum_{\substack{j=1\\ j\ne i}}^{N}\left(\left( \mathbf{K}(\bm{\phi}(s_i),\bm{\phi}(s_j))+ \nn(\bm{\phi}(s_i))\otimes\nn(\bm{\phi}(s_j))\right)\bm{\eta}_j|\bm{\phi}'(s_j)| \right),\qquad i=1,\hdots,N.
+\end{aligned}
+\end{equation}
+This is a full rank dense linear system of size $2N\times 2N$, and its solution approximates the values of $\bm{\eta}$ at the collocation points on $S$ with spectral accuracy. Techniques for efficiently solving this system are discussed in Section \ref{sec:linear_solve}. 
+
+We have computed the density function values $\{\bm{\eta}(\xx_i)\}_{i=1}^N$, but these values have no physical meaning. We are actually interested in computing the velocity $\uu(\xx)$ for $\xx\in V$. This can be approximated with the trapezoid rule
+\begin{equation}\label{eq:dlp_discrete} \uu(\xx) = h\sum\limits_{i=1}^N \mathbf{K}(\xx, \bm{\phi}(s_i))\bm{\eta}_i|\phi'(s_i)|,\qquad \xx\in V.\end{equation}
+For a fixed $\xx\in V$, $\mathbf{K}(\xx,\yy)$ is a smooth, periodic function. Therefore we expect the trapezoid rule to approximate $\uu(\xx)$ with spectral accuracy, which we now demonstrate.
+
+Consider the Stokes equations inside an ellipse with semi-major axis 2 and semi-minor axis 1 (Figure \ref{fig:near_experiment}). Inside this geometry $V$ we consider the Stokes equations with boundary conditions $\mathbf{g}(\xx) = ( x, -y), ~\xx\in S$. This problem has the exact solution $\uu(\xx) = (x, -y),~\xx\in V$. We perform a convergence study by solving the linear system \eqref{eq:interior_discrete} at various levels of refinement and then computing $\uu(\xx)$ using \eqref{eq:dlp_discrete} at a set of target points $\xx\in V$. The results in Table \ref{tab:near_error} show spectral accuracy, but some target points result in larger error constants. In particular, at a fixed resolution $N$, the error grows as $\xx$ approaches $S$. This increase in the error occurs because the derivative of the double-layer kernel grows as the target point approaches the boundary. Because of this, the trapezoid rule requires an unfeasible number of points to accurately integrate the kernel. A near singular integration technique is needed in this case and is discussed in Section \ref{sec:near_singular}. 
+
+
+\begin{table}[!h]
+\caption[Errors using the trapezoid rule]{We solve the linear system \eqref{eq:interior_discrete} with boundary conditions $\mathbf{g}(\xx) = ( x, -y )$ on the geometry shown in Figure \ref{fig:near_experiment}. When evaluating the velocity using the computed double-layer density according to \eqref{eq:dlp_discrete}, the error between the computed solution and the exact solution is very small at $\xx= (0,0)$ with as few as 8 quadrature points. For $\xx=(0,1)$ and $\xx=(0,1.9)$ we see spectral accuracy, but the convergence is delayed for $\xx=(0,1.9)$. At $\xx= (0,1.99)$ even 512 points gives only a single digit of accuracy.}\label{tab:near_error}
+\begin{center}
+\begin{tabular}{c | c | c | c | c }
+$N$  & error at (0,0) & error at (0,1) & error at (0,1.9) & error at (0,1.99)\\
+\hline
+8    & $8.75\times 10^{-16}$ & $2.80\times 10^{-1}$ & $7.41\times 10^0$ & $8.89\times 10^1$ \\
+16  & $3.82\times 10^{-16}$ & $8.45\times 10^{-3}$ & $2.75\times 10^0$ & $4.32\times 10^1$ \\
+32  & $9.93\times 10^{-16}$ & $1.01\times 10^{-6}$ & $6.04\times 10^{-1}$ & $2.07\times 10^1$ \\
+64  & $1.95\times 10^{-16}$ & $1.25\times 10^{-13}$ & $2.90\times 10^{-2}$ & $9.45\times 10^0$ \\
+128 & $4.12\times 10^{-16}$ & $3.90\times 10^{-16}$ & $4.17\times 10^{-5}$ & $3.84\times 10^0$\\
+256 & $4.23\times 10^{-16}$ & $1.11\times 10^{-15}$ & $4.59\times 10^{-11}$ & $1.13\times 10^{0}$\\
+512 & $4.66\times 10^{-16}$ & $2.41\times 10^{-16}$ & $4.37\times 10^{-17}$ & $1.30\times 10^{-1}$
+\end{tabular}
+\end{center}
+\end{table}
+
+
+\subsection{Exterior Flow}
+
+For an unbounded geometry, the discretization of the boundary integral equation is similar to the bounded case. We no longer require the $\mathcal{N}_0$ term, however, to complete the double-layer potential (Section \ref{sec:exterior}), we must add on a Stokeslet and a rotlet with strength $\FF$ and $L$, respectively. Then, these strengths must be related to the density function by \eqref{eq:dlp-closure}. The discretized Stokes equations \eqref{eq:dlp-complete} in this case are
+\begin{equation}\label{eq:exterior_discrete}
+\begin{aligned} \biggr(-\frac{1}{2} &+ h \bigg(\frac{\kappa(\bm{\phi}(s_i)) \bm{\tau}(s_i)\otimes\bm{\tau}(s_i)}{2\pi}\bigg)\biggr)\bm{\eta}_i |\bm{\phi}'(s_i)|+ h\sum_{\substack{j=1\\ j\ne i}}^{N}\left( \mathbf{K}(\bm{\phi}(s_i),\bm{\phi}(s_j))\bm{\eta}_j|\bm{\phi}'(s_j)| \right) \\&+ \UU + \omega(\bm{\phi}(s_i) - \cc)^\perp + \mathbf{S}[\FF,\cc](\bm{\phi}(s_i)) + \mathbf{R}[L,\cc](\bm{\phi}(s_i)) = -\uu^\infty, \qquad i=1,\hdots,N.\end{aligned}
+\end{equation}
+The closure formulas \eqref{eq:dlp-closure} involve a periodic integral, so we discretize them also with the trapezoid rule
+\begin{equation}\label{eq:closure_discrete}
+	h\sum\limits_{k=1}^N \bm{\eta}_k|\bm{\phi}'(s_k)| =\FF, \qquad  h\sum\limits_{k=1}^N \bm{\eta}\cdot(\bm{\phi}(s_k) - \cc)^\perp|\bm{\phi}'(s_k)| = L.
+\end{equation}
+
+For a mobile rigid body, $\FF$ and $L$ are known and so are moved to the right hand side of \eqref{eq:exterior_discrete}. The result is the full rank linear system
+\[ \begin{pmatrix} -\frac{1}{2}\mathbf{I} + \mathbf{D} & \mathbf{B} \\ \mathbf{B}^T & \mathbf{0}\end{pmatrix} \begin{pmatrix} \bm{\eta} \\ \hat{\mathbf{U}}\end{pmatrix}  = \begin{pmatrix} -\mathbf{u}^\infty\\ \hat{\FF}\end{pmatrix},\]
+where $\mathbf{D}\in \mathbb{R}^{2N\times 2N}$ represents the contributions of the double-layer potential to the velocity, $\hat{\UU}$ is shorthand for the vector $(\UU, \omega)$, $\hat{\FF}$ is shorthand for the vector $(\FF, L)$, and $\BB^T\in\mathbb{R}^{3\times 2N}$ is the discrete closure relation \eqref{eq:closure_discrete}. This leaves a $\mathbb{R}^{(2N+3)\times (2N+3)}$ dense linear system to solve. 
+
+Once we have computed $\{\bm{\eta}(\xx_i)\}_{i=1}^N$, we can again use it along with $\FF$ and $L$ to compute the velocity with spectral accuracy at any point $\xx \in V$ by using the trapezoid rule
+\[ \uu(\xx) = \sum\limits_{i=1}^N \mathbf{K}(\xx, \bm{\phi}(s_i))\bm{\eta}_i | \bm{\phi}'(s_i)| + \mathbf{S}[\FF,\cc](\xx) + \mathbf{R}[L,\cc](\xx), \qquad \xx \in V.\]
+
+As discussed in Section \ref{sec:exterior}, for a bounded solution to exist at infinity, $\FF=\mathbf{0}$ and $L=0$. We have included them in this formulation for clarity. In the following section, we will discuss simulations involving more than one rigid body, and in those cases $\FF$ and $L$ need not be zero.
+
+\subsection{Multiply-Connected Geometry}
+
+For multiply-connected domains (Figure \ref{fig:multiply_connected}), we must  consider not only the contributions between points on the same body (intra-body effects), but also contributions between points on different bodies (inter-body effects). Consider a collection of mobile rigid bodies inside a bounded or an unbounded multiply-connected domain. Denote the number of rigid bodies as $n_p$ and the number of interior fixed walls as $n_w$. Let rigid body $k$ be parameterized by $\bm{\phi}^k(s)$ and wall $k$ by $\bm{\varphi}^k(s)$, $s\in [0,2\pi)$. 
+
+Denote the density function on rigid body $k$ as $\bm{\eta}^k$ and on solid wall $k$ as $\bm{\zeta}^k$, and consider evaluating the velocity at a point $\xx$ on rigid body $q$, i.e. $\xx\in S^p_q$. There are four terms that contribute to this:
+\begin{enumerate}
+	\item The contribution to the double-layer potential due to rigid body $q$: 
+	\begin{align*}
+		&-\frac{1}{2}\bm{\eta}^q(\xx) + \mathcal{D}[\bm{\eta}^q](\xx),
+		\intertext{\item  The contribution from all other rigid bodies:}
+		&\sum\limits_{\substack{k=1 \\ k\ne q}}^{n_p}\mathcal{D}[\bm{\eta}^k](\xx),
+		\intertext{\item The contribution from all solid walls (including the bounding wall $S^w_0$ if it exists):}
+		&\sum\limits_{k=0}^{n_w} \mathcal{D}[\bm{\zeta}^k](\xx),
+		\intertext{\item The contribution from Stokeslets and rotlets:}
+		&\sum\limits_{k=1}^{n_p} \left(\mathbf{S}[\FF^p_k,\cc](\xx) + \mathbf{R}[L^p_k,\cc](\xx)\right) +  \sum\limits_{k=1}^{n_w} \left(\mathbf{S}[\FF^w_k,\cc](\xx) + \mathbf{R}[L^w_k,\cc](\xx)\right).\end{align*}
+\end{enumerate}
+The velocity at a point $\xx\in S^p_q$ is thus 
+\begin{align*} \uu(\xx) =  &-\frac{1}{2}\bm{\eta}^q(\xx) +  \sum\limits_{k=1}^{n_p}\mathcal{D}[\bm{\eta}^k](\xx) + \sum\limits_{k=0}^{n_w} \mathcal{D}[\bm{\zeta}^k](\xx) \\&+  \sum\limits_{k=1}^{n_p} \left(\mathbf{S}[\FF^p_k,\cc](\xx) + \mathbf{R}[L^p_k,\cc](\xx)\right) +  \sum\limits_{k=1}^{n_w} \left(\mathbf{S}[\FF^w_k,\cc](\xx) + \mathbf{R}[L^w_k,\cc](\xx)\right),\qquad \xx\in S^p_q.\end{align*}
+Similarly, the velocity at a point $\xx\in S^w_m$ is
+\begin{align*} \uu(\xx) =  &-\frac{1}{2}\bm{\zeta}^m(\xx) +  \sum\limits_{k=1}^{n_p}\mathcal{D}[\bm{\eta}^k](\xx) + \sum\limits_{k=0}^{n_w} \mathcal{D}[\bm{\zeta}^k](\xx) \\&+  \sum\limits_{k=1}^{n_p} \left(\mathbf{S}[\FF^p_k,\cc](\xx) + \mathbf{R}[L^p_k,\cc](\xx)\right) +  \sum\limits_{k=1}^{n_w} \left(\mathbf{S}[\FF^w_k,\cc](\xx) + \mathbf{R}[L^w_k,\cc](\xx)\right),\qquad \xx\in S^w_m.\end{align*}
+ 
+We now disctetize the canonical equations \eqref{eq:canonical_velocity} using the trapezoid rule. The discretization depends on the location of the target point $\xx$ and we consider the three cases: 1) $\xx\in S_0^w$, 2) $\xx\in S^w_k,~k\ne 0$, and 3) $\xx\in S^p_k$. Wall $k$ is discretized as in Section \ref{sec:simply_connected}, using $N_w$ points equally spaced in the parameter $s$, $\{\bm{\varphi}^k(s_i)\}_{i=1}^{N_w}$ (with spacing $h_w = 2\pi/N_w$), and rigid body $k$ is discretized with $N_p$ points equally spaced in the parameter $q$ (with spacing $h_p = 2\pi/N_p$).  The discrete version of \eqref{eq:canonical_outer} is 
+\begin{subequations}\label{eq:velocity_discrete}
+\begin{equation}\label{eq:canonical_outer_discrete}
+\begin{aligned}\biggr(-\frac{1}{2} &+ h_w\bigg(\frac{\kappa^0(\bm{\varphi}^0(s_\ell)) \bm{\tau}^0(\bm{\varphi}^0(s_\ell))\otimes\bm{\tau}^0(\bm{\varphi}^0(s_\ell))}{2\pi} +  \nn(\bm{\phi}(s_\ell))\otimes\nn(\bm{\phi}(s_\ell))\bigg)\biggr)\bm{\zeta}^0_\ell |(\bm{\varphi}^{0})'(s_\ell)|\tikzmark{a}\\
+	 &+ h_w\sum_{\substack{k=1\\ k\ne \ell}}^{N_w}\left( \mathbf{K}(\bm{\varphi}^0(s_\ell),\bm{\varphi}^0(s_k))+ \nn(\bm{\varphi}^0(s_\ell))\otimes\nn(\bm{\varphi}^0(s_k))\right)\bm{\zeta}^0_k|(\bm{\varphi}^{0})'(s_k)| \tikzmark{b}\\
+	& +\sum\limits_{m=1}^{n_w} \mathcal{D}[\bm{\zeta}^m](\bm{\varphi}^0(s_\ell)) \tikzmark{c} \\
+	&+ \sum\limits_{r=1}^{n_p} \mathcal{D}[\bm{\eta}^r](\bm{\varphi}^0(s_\ell)) \tikzmark{d}\\
+	&+ \sum\limits_{m=1}^{n_w} \left(\Ss[\FF^w_m,\cc^w_m](\bm{\varphi}^0(s_\ell)) + \RR[L^w_m,\cc^w_m](\bm{\varphi}^0(s_\ell))\right)\tikzmark{e} \\
+	 &= \mathbf{g}(\bm{\varphi}^0(s_\ell)) - \sum\limits_{r=1}^{n_p} \left(\Ss[\FF^p_r,\cc^p_r](\bm{\varphi}^0(s_\ell)) + \tikzmark{f}\RR[L^p_r,\cc^p_r](\bm{\varphi}^0(s_\ell))\right) ,\qquad \ell=1,\hdots,N_w.
+	 \end{aligned}
+\end{equation}
+\begin{tikzpicture}[overlay, remember picture]
+	\node (Intra) [below = 4.2em of a.north] {Intra-body contributions};
+	\draw[->] (Intra) -- (a.south);
+	\draw[->] (Intra) -- (b.north);
+	
+	\node (Inter-walls) [right=2.5em of c.north] {Contributions from other walls};
+	\draw[->] (Inter-walls) -- (c.north);
+	
+	\node (Inter-particles) [right=2.5em of d.north] {Contributions from rigid bodies};
+	\draw[->] (Inter-particles) -- (d.north);
+	
+	\node (Rot) [above right=1em and 1em of e.north]{Rotlet and Stokeslet contributions};
+	\node (f)[above=0.5em of f.north]{};
+	\draw[->] (Rot) -- (e.north);
+	\draw[->] (Rot) -- (f);
+\end{tikzpicture}
+Since we are prescribing the force and torque on the rigid bodies, the contributions from the rigid body Stokeslets and rotlets are a known quantity and can be moved to the right hand side. The net force and torque on the interior walls is unknown however, so the contribution from the wall Stokeslets and rotlets remain on the left hand side. 
+
+For interior fixed walls, the discretization is almost identical, except that we no longer need the $\mathcal{N}_0$ term (see \eqref{eq:canonical_wall}). The discretization on wall $j$ is
+\begin{equation}\label{eq:canonical_outer_discrete}
+\begin{aligned}\biggr(-\frac{1}{2} &+ h_w\bigg(\frac{\kappa^j(\bm{\varphi}^j(s_\ell)) \bm{\tau}^j(\bm{\varphi}^j(s_\ell))\otimes\bm{\tau}^j(\bm{\varphi}^j(s_\ell))}{2\pi} \bigg)\biggr)\bm{\zeta}^j_\ell |(\bm{\varphi}^{j})'(s_\ell)| \tikzmark{a}\\
+	 &+ h_w\sum_{\substack{k=1\\ k\ne \ell}}^{N_w}\left( \mathbf{K}(\bm{\varphi}^j(s_\ell),\bm{\varphi}^j(s_k))s\right)\bm{\zeta}^j_k|(\bm{\varphi}^{j})'(s_k)|\tikzmark{b}\\
+	& +\sum\limits_{\substack{m=0\\m\ne j}}^{n_w} \mathcal{D}[\bm{\zeta}^m](\bm{\varphi}^j(s_\ell)) \tikzmark{c} \\
+	&+ \sum\limits_{r=1}^{n_p} \mathcal{D}[\bm{\eta}^r](\bm{\varphi}^j(s_\ell)) \tikzmark{d}\\
+	&+ \sum\limits_{m=1}^{n_w} \left(\Ss[\FF^w_m,\cc^w_m](\bm{\varphi}^j(s_\ell)) + \RR[L^w_m,\cc^w_m](\bm{\varphi}^j(s_\ell))\right)\tikzmark{e} \\
+	 &= \mathbf{g}(\bm{\varphi}^j(s_\ell)) - \sum\limits_{r=1}^{n_p} \left(\Ss[\FF^p_r,\cc^p_r](\bm{\varphi}^j(s_\ell)) + \tikzmark{f}\RR[L^p_r,\cc^p_r](\bm{\varphi}^j(s_\ell))\right) ,\qquad \ell=1,\hdots,N_w.
+	 \end{aligned}
+\end{equation}.
+\begin{tikzpicture}[overlay, remember picture]
+	\node (Intra) [below = 4.2em of a.north] {Intra-body contributions};
+	\draw[->] (Intra) -- (a.south);
+	\draw[->] (Intra) -- (b.north);
+	
+	\node (Inter-walls) [right=2.5em of c.north] {Contributions from other walls};
+	\draw[->] (Inter-walls) -- (c.north);
+	
+	\node (Inter-particles) [right=2.5em of d.north] {Contributions from rigid bodies};
+	\draw[->] (Inter-particles) -- (d.north);
+	
+	\node (Rot) [above right=1em and 1em of e.north]{Rotlet and Stokeslet contributions};
+	\node (f)[above=0.5em of f.north]{};
+	\draw[->] (Rot) -- (e.north);
+	\draw[->] (Rot) -- (f);
+\end{tikzpicture}
+
+For rigid body $j$ the translational velocity $\UU_j$ and rotational velocity $\omega_j$ are unknowns. The velocity on the boundary $S^p_j$ is $\UU_j + \omega_j(\xx - \cc^p_j)^\perp$. This replaces the given boundary condition $\mathbf{g}(\xx)$ and put on the left hand side (see \eqref{eq:canonical_particle}). The resulting discretization is
+\begin{equation}\label{eq:canonical_outer_discrete}
+\begin{aligned}\biggr(-\frac{1}{2} &+ h_p\bigg(\frac{\kappa^j(\bm{\phi}^j(q_\ell)) \bm{\tau}^j(\bm{\phi}^j(q_\ell))\otimes\bm{\tau}^j(\bm{\phi}^j(s_\ell))}{2\pi} \bigg)\biggr)\bm{\eta}^j_\ell |(\bm{\phi}^{j})'(q_\ell)| \tikzmark{a}\\
+	 &+ h_p\sum_{\substack{k=1\\ k\ne \ell}}^{N_p}\left( \mathbf{K}(\bm{\phi}^j(q_\ell),\bm{\phi}^j(q_k))s\right)\bm{\eta}^j_k|(\bm{\phi}^{j})'(q_k)| \tikzmark{b}\\
+	& +\sum\limits_{m=0}^{n_w} \mathcal{D}[\bm{\zeta}^m](\bm{\phi}^j(q_\ell)) \tikzmark{c} \\
+	&+ \sum\limits_{\substack{r=1\\r\ne j}}^{n_p} \mathcal{D}[\bm{\eta}^r](\bm{\phi}^j(q_\ell)) \tikzmark{d}\\
+	&+ \sum\limits_{m=1}^{n_w} \left(\Ss[\FF^w_m,\cc^w_m](\bm{\phi}^j(q_\ell)) + \RR[L^w_m,\cc^w_m](\bm{\phi}^j(q_\ell))\right)\tikzmark{e} \\
+	&-\UU_j - \omega_j(\bm{\phi}^j(q^\ell) - \cc^p_j)^\perp\\
+	 &=- \sum\limits_{r=1}^{n_p} \left(\Ss[\FF^p_r,\cc^p_r](\bm{\phi}^j(q_\ell)) + \tikzmark{f}\RR[L^p_r,\cc^p_r](\bm{\phi}^j(q_\ell))\right) ,\qquad \ell=1,\hdots,N_w.
+	 \end{aligned}
+\end{equation}
+\begin{tikzpicture}[overlay, remember picture]
+	\node (Intra) [below = 4.2em of a.north] {Intra-body contributions};
+	\draw[->] (Intra) -- (a.south);
+	\draw[->] (Intra) -- (b.north);
+	
+	\node (Inter-walls) [right=2.5em of c.north] {Contributions from walls};
+	\draw[->] (Inter-walls) -- (c.north);
+	
+	\node (Inter-particles) [right=2.5em of d.north] {Contributions from other rigid bodies};
+	\draw[->] (Inter-particles) -- (d.north);
+	
+	\node (Rot) [above right=1em and 1em of e.north]{Rotlet and Stokeslet contributions};
+	\node (f)[above=0.5em of f.north]{};
+	\draw[->] (Rot) -- (e.north);
+	\draw[->] (Rot) -- (f);
+\end{tikzpicture}
+\end{subequations}
+Note that we have not yet discretized the inter-body contributions. As we saw in Section \ref{sec:simply_connected} (and in particular Table \ref{tab:near_error}), the error of the trapezoid rule is unacceptable if $\xx$ is close to the boundary of the domain. For multiply-connected domains, this is also problematic if two disconnected components of the geometry's boundary are sufficiently close. If the target point $\xx$ is far from rigid body $\ell$ (or wall $\ell$) then the double-layer potential due to that rigid body or wall can be accurately evaluated using the standard trapezoid rule, 
+\begin{align*} \mathcal{D}[\bm{\zeta}^\ell](\xx)  &\approx  h_w\sum\limits_{k=1}^{N_w} \mathbf{K}(\xx, \bm{\varphi}^\ell(s_k))\bm{\zeta}^\ell_k|(\bm{\varphi}^{\ell})'(s_k)|,\\
+	\mathcal{D}[\bm{\eta}^\ell](\xx)  &\approx  h_p\sum\limits_{k=1}^{N_p} \mathbf{K}(\xx, \bm{\phi}^\ell(q_k))\bm{\eta}^\ell_k|(\bm{\phi}^{\ell})'(q_k)|.\end{align*}
+ If, however, the target point is close to another body, then a different integration technique is required. This is discussed in the following section.
+
+\section{Near Singular Integration}\label{sec:near_singular}
+
+We have observed that the trapezoid rule does a poor job of approximating the double-layer potential when the target point is close to the boundary, which includes both solid walls and rigid bodies. This loss of accuracy is caused by a large derivative in the kernel of the double-layer potential when the distance between the target point and the boundary is small. In dense suspensions this situation is inevitable, and we must modify the quadrature to maintain stability. There are many near singular integration methods, including quadrature by expansion \cite{Klinteberg2016,Siegel2018}, barycentric formulae \cite{Helsing2008, Barnett2014}, or asymptotic based methods \cite{Mammoli2006}.  
+
+In Figure \ref{fig:near_experiment}, we revisit the example in Section \ref{sec:simply_connected} and consider evaluating the velocity at $\xx=(0,x_2)$. For a fixed $x_2$, the double-layer kernel is smooth. As seen in the right plots however, as the target point approaches $S$, the kernel's derivative becomes larger and larger. However, if $\xx\in S$, the singularity is removable, the kernel the takes limiting value \eqref{eq:curvature}, and its derivative is no longer large. This is observed in the bottom right plot of Figure \ref{fig:near_experiment}.
+
+\begin{figure}[!h]
+\begin{minipage}{0.25\textwidth}
+\includegraphics{figures/near_singular_case1.pdf}
+\end{minipage}
+\begin{minipage}{0.75\textwidth}
+\begin{center}
+\begin{tabular}{c c}
+	\includegraphics{figures/kernel1.pdf} & \includegraphics{figures/kernel2.pdf}\\ 
+	\includegraphics{figures/kernel3.pdf} & \includegraphics{figures/kernel5.pdf}
+\end{tabular}
+\end{center}
+\end{minipage}
+\caption[Problem that requires near singular integration.]{A scenario where near singular integration is needed. The point $\xx$ is inside an ellipse with semi-major axis 2 and semi-minor axis 1. The two components of the kernel of the double-layer potential as a function of the parameterization variable $s$ are plotted on the right for four values of $x_2$. Despite the large derivatives, the integrand is always $C^\infty$. If $x_2$ is far from the boundary, then the derivatives are small and the kernel can be integrated accurately using the trapezoid rule. As $x_2$ approaches 2, the kernel becomes sharply peaked and requires more and more quadrature points for the trapezoid rule to maintain accuracy. However, when $x_2=2$, the target point is on the boundary and once again the trapezoid rule accurately approximates the integral. }\label{fig:near_experiment}
+\end{figure}
+
+We take advantage of this by adopting the near singular integration technique described in~\cite{Quaife2014, Ying2006}. When compared to other near singular integration schemes, this scheme is simpler to implement, and is relatively non-intrusive to the code base, yet still delivers high-order accuracy.  Assume that the boundary $S$ is discretized with $N$ evenly spaced points, with $h$ being the maximum arclength spacing, and let $d(\mathbf{x},S) = \inf_{\mathbf{y}\in S}||\mathbf{x}-\mathbf{y}||$ be the distance between a target point $\mathbf{x}$ and $S$. We partition $V$ into two regions: the far zone of $S$, $V_1 = \{\mathbf{x}\: |\: d(\mathbf{x},S) \geq h\}$, and the near zone of $S$, $V_0 = \{\mathbf{x}\:  |\: d(\mathbf{x},S) < h\}$. 
+
+\begin{figure}[!h]
+\begin{center}
+\includegraphics{figures/near_sing.pdf}
+\caption[Near singular integration scheme]{Schematic of the near singular integration technique used to evaluate the double-layer potential at a point $\xx\in V_0$. By construction, the points $\{\xx_i\}$, $i=1,\hdots m$, are in $V_1$, where the layer potential can be accurately evaluated with the trapezoid rule. At $\xx_0\in S$ the double-layer potential is approximated with a local interpolant of the the DLP using collocation points on $S$. Then, a one-dimensional interpolation can be used to approximate $\mathcal{D}[\bm{\eta}](\xx)$.}\label{fig:ns_drawing}
+\end{center}
+\end{figure}
+
+For target points $\mathbf{x}\in V_1$, the kernel is sufficiently smooth for the trapezoid rule to be appropriate. However, if $\mathbf{x}\in V_0$ the error of the trapezoid rule is too large. Instead of applying the trapezoid rule, we first find the closest point on $S$ to $\xx$, i.e. the point $\xx_0\in S$ that minimizes $||\xx-\xx_0||^2$, using Newton's method. We then define the $m$ interpolation points
+	\[ \xx_j = \xx_0 + j\beta h\frac{\mathbf{x}-\mathbf{x}_0}{||\mathbf{x}-\mathbf{x}_0||} \qquad j = 1,\cdots m,\]
+where $\beta$ is a constant slightly greater than one, and it guarantees that all interpolation points are in $V_1$. These points are shown in Figure \ref{fig:ns_drawing}. Next, we evaluate the double-layer potential at $\xx_j$, $j=0,\hdots, m$. Since $\{\xx_i\}_{i=1}^m\in V_1$, the layer potential at these points can be accurately evaluated with the trapezoid rule. A local Lagrange interpolant of the smooth function $\mathcal{D}[\bm{\eta}](\xx),~\xx\in S$ is used to evaluate the layer potential at $\xx_0$. Finally, the value of the layer potential at the target point $\xx$ is evaluated using a one-dimensional Lagrange interpolant. The accuracy of the method depends on $m$ and $N$. Convergence rates and efficiently estimates are given in \cite{Ying2006, Quaife2014}. 
+
+%\todo[inline]{Plots of error throughout domain at fixed resolution}
+
+We apply this scheme with $m=5$ to the problem in Figure \ref{fig:near_experiment}. As  seen in Figure \ref{fig:ns_convergence}, the error is much smaller when compared to the trapezoid rule.
+
+\begin{figure}[!h]
+\begin{center}
+\includegraphics{figures/near_singular_convergence1.pdf}
+\caption[Convergence of the near singular integration scheme.]{Convergence  study for the near singular integration technique with $m=5$ applied to the problem in Figure \ref{fig:near_experiment} with $x_2=1.99$. The near singular interpolation significantly outperforms the trapezoid quadrature for points in $V_0$. }\label{fig:ns_convergence}
+\end{center}
+\end{figure}
+
+
+\section{Solving the Linear System}\label{sec:linear_solve}
+
+Consider a  suspension of $n_p$ rigid bodies in an unbounded domain. In symbolic notation, we can write the linear system associated with  \eqref{eq:canonical_velocity} and the closures \eqref{eq:canonical_closure} as
+ \begin{equation}\label{eq:symbolic} \begin{pmatrix}-\frac{1}{2}\mathbf{I} + \DD_{11} & \hdots & \DD_{1n} & \\ \vdots & \ddots & \vdots & \BB\\ \DD_{n 1} & \hdots &-\frac{1}{2}\mathbf{I} +\DD_{nn} & \\  & \BB^T & & \mathbf{0} \end{pmatrix}\begin{pmatrix} \bm{\eta} \\ \hat{\UU}\end{pmatrix} = \begin{pmatrix} -\uu^{\infty} \\ -\hat{\FF}\end{pmatrix},\end{equation}
+where $\mathbf{D}_{i,j}$ represents the hydrodynamic interactions between body $i$ and body $j$ and $\BB\in \mathbb{R}^{2Nn_p\times 3n_p}$ is the block matrix 
+	\begin{equation}\label{eq:b_matrix}\BB = \begin{pmatrix} 1 & 0 & -(y^1_1 - c_1)  & & & & &\\
+				0 & 1 & (x^1_1 - c_1)& & & & & \\
+				\vdots & \vdots & \vdots & & & & & &\\
+				1 & 0 & -(y^1_{N_p}- c_1)& & & & & & \\
+				0 & 1 & (x^1_{N_p} - c_1) & & & & & &\\
+				& & & & 1 & 0 & -(y^2_1 - c_2) & &  \\
+				& & & & 0 & 1 & (x^2_1 - c_2) & &  \\
+				& & & & & & \ddots  & &  \\
+				& & & & & & & 1 & 0 & -(y^{n_p}_{N_p} - c_{n_p})\\
+				& & & & & & & 0 & 1 & (x^{n_p}_{N_p} - c_{n_p})\end{pmatrix}.\end{equation}
+Equation \eqref{eq:symbolic} is a dense linear system  of size $N\times N$, where $N = 2(N_p n_p + N_w n_w) + 3(n_p + n_w)$. Solving this system directly using Gaussian elimination or an LU factorization would require $\mathcal{O}(N^3)$ operations. Traditionally this was seen as the major limitation of boundary integral equations. However, the matrices associated with second-kind Fredholm integral equations have a special properties that allow us to significantly reduce this cost.
+
+Instead of a direct solver that requires building and storing the entire matrix, we use an iterative solver. The Generalized Minimal Residual method (GMRES) \cite{Saad1986} is a Krylov method, and requires computing a sequence of matrix vector products to compute an approximate solution to the linear system. The total cost of an iterative solve is $\mathcal{O}(\text{n}_\text{iter} C)$, where $n_{\text{iter}}$ is the number of iterations and $C$ is the cost of a single matrix-vector product. An ordinary matrix-vector product requires $\mathcal{O}(N^2)$ operations, meaning the cost of a GMRES solve is $\mathcal{O}(n_{\text{iter}} N^2)$. 
+
+The following theorem allows us  to estimate how quickly GMRES converges \cite{Trefethen1997}. 
+\begin{theorem}\label{them:gmres}
+Let $P_n$ be the following space of polynomials
+\[ P_n := \{\text{polynomials of degree $\leq$ $n$, with $p(0) = 1$}\}.\]
+Assume $\mathbf{A}\in \mathbb{C}^{m\times m}$ is diagonalizable, that is $\mathbf{A} = \mathbf{V}\bm{\Lambda}\mathbf{V}^{-1}$, where the columns of $\mathbf{V}$ are the eigenvectors of $\mathbf{A}$ and $\bm{\Lambda}$ is a diagonal matrix of the eigenvalues of $\mathbf{A}$. Then at GMRES iteration $n$, the residual $r_n$ satisfies 
+\[ \frac{||\mathbf{r}_n||}{||\bb||} \leq \text{cond}(\mathbf{V})\inf\limits_{p\in P_n}\sup\limits_{z\in \Lambda(\mathbf{A})} |p(z)|,\]
+where $\Lambda(\mathbf{A})$ is the set of the eigenvalues of $\mathbf{A}$ and $||~\cdot~||$ is the $\ell^2$ norm. In other words the norm of the residual depends upon the condition number of $\mathbf{V}$ and the how closely we can construct a polynomial of degree $n$, such that $p(0) = 1$ and $p(z)=0$ for every eigenvalue of $\mathbf{A}$. 
+\end{theorem}
+
+Since $\mathcal{K}$ is a compact operator, the eigenvalues of a discretization of the second-kind Fredholm integral equation $(\lambda - \mathcal{K})z = g$ cluster at $\lambda$. Figure \ref{fig:eigenvalues} shows the eigenvalues of the discretized BIE for the problem in Figure \ref{fig:near_experiment}. As $N$ increases, the new eigenvalues cluster around $\lambda = -0.5$. Because of this, the number of GMRES iterations required to solve the system to a desired tolerance is independent of $N$ \cite{Campbell1996}. Therefore, the cost of solving the linear system using GMRES is $\mathcal{O}(N^2)$. 
+
+
+\begin{figure}[!h]
+\begin{center}
+\begin{tabular}{c}
+\includegraphics{figures/eig1.pdf}\\
+\includegraphics{figures/eig3.pdf}\\
+\includegraphics{figures/eig5.pdf}\\
+\end{tabular}
+\end{center}
+\caption[Eigenvalue clusters]{The eigenvalues of the discrete linear system associated with the problem shown in Figure \ref{fig:near_experiment} are plotted along the real axis. As $N$ increases all the new eigenvalues cluster around $x=-0.5$. The is a single eigenvalue between 9 and 10.}\label{fig:eigenvalues}
+\end{figure}
+
+
+The structure of the matrix $\mathbf{A}$ allows us to accelerate the solver in two ways.  The rows in the symbolic representation \eqref{eq:symbolic} can be permuted into the new system $\mathbf{A}\xx = \bb$, where
+\begin{equation}\label{eq:system_permute} \mathbf{A} =  \begin{pmatrix} \mathbf{C}_{11} & \hdots & \mathbf{C}_{1n} \\ \vdots & \ddots & \vdots\\ \mathbf{C}_{n1} & \hdots & \mathbf{C}_{nn}\end{pmatrix}, \qquad \bb = \begin{pmatrix} \bm{\eta}^1 \\ \hat{\UU}_1 \\  \vdots \\\bm{\eta}_n \\ \hat{\UU}_n\end{pmatrix}, \qquad \xx = \begin{pmatrix} -\uu^\infty_1 \\ -\hat{\FF}_1 \\ \vdots \\ -\uu^\infty_n \\ -\hat{\FF}_n \end{pmatrix},\end{equation}
+and 
+\[ \CC_{ij} = \begin{pmatrix} -\frac{1}{2}\mathbf{I}\delta_{ij} + \mathbf{D}_{ij} & \BB_{ij} \\ \BB_{ij}^T & \mathbf{0}\end{pmatrix}, \]
+where $\mathbf{B}_{ij}$ is the block $i$-$j$th block in the \eqref{eq:b_matrix}; this will be all zeros if $i\ne j$.
+
+The singular values of $\mathbf{C}_{ij}$ are largest when $i=j$ (self-interactions). However, the the off-diagonal blocks are not full rank (since $\mathbf{B}_{ij} = \mathbf{0}$), and the singular values decay very rapidly. Therefore, when applying GMRES to \eqref{eq:system_permute}, the majority of the iterations are due to the diagonal blocks. Therefore we use a block-diagonal preconditioner, where the diagonal blocks $\mathbf{C}_{ii}$ are inverted directly. Thus we define the preconditioner matrix $\mathbf{P}$
+\[ \mathbf{P} = \begin{pmatrix} \mathbf{C}_{11} & \hdots & \mathbf{0} \\ \vdots & \ddots & \vdots\\\mathbf{0} & \hdots & \mathbf{C}_{nn}\end{pmatrix}.\]
+Instead of the original linear system, we now solve $\mathbf{P}^{-1}\mathbf{A}\xx = \mathbf{P}^{-1}\bb$. 
+
+To investigate the block-diagonal preconditioner, we consider the setup of nine circles depicted in Figure \ref{fig:nine_circles}. After discretizing with $N_p=16$ points per circle, we investigate the singular values of the blocks $\mathbf{C}_{11}$ (intra-body interactions), $\mathbf{C}_{12}$ (neighboring body interactions), and $\mathbf{C}_{19}$ (separated body interactions).  These singular values are plotted in Figure \ref{fig:svd}. The singular values of the diagonal block are much larger than the other two blocks. In particular, the off-diagonal singular values decay quickly to $10^{-8}$. GMRES can quickly resolve the off-diagonal interactions, typically in very few iterations, however the diagonal interactions require many more iterations. This justifies the use of a block-diagonal preconditioner, where the diagonal blocks are inverted directly.
+
+\begin{figure}[!h]
+\begin{center}
+\includegraphics{figures/singular_values.pdf}
+\end{center}
+\caption[Singular values of blocks in linear system]{Singular values of the blocks $\CC_{11}$, $\CC_{12}$ and $\CC_{19}$. For the diagonal block $\CC_{11}$, the singular values do not decay quickly. For the off-diagonal blocks the singular values decay quickly, so GMRES can resolve these interactions in a small number of iterations.}\label{fig:svd}
+\end{figure}
+
+The eigenvalues of the unpreconditioned and the preconditioned system are shown in Figure \ref{fig:eigenvalues_circles}. For the unpreconditioned system they cluster around $-1/2$, as expected. For the preconditioned system the diagonal blocks have been turned into identity matrices, so the eigenvalues cluster around 1. The unpreconditioned system requires 26 GMRES iterations to solve to a tolerance of $10^{-12}$, and the preconditioned system requires 16 iterations.
+
+\begin{figure}[!h]
+\begin{center}
+\includegraphics{figures/nine_circles.pdf}
+\end{center}
+\caption[Test setup for preconditioner]{A setup to test our block-diagonal preconditioner. Here we have nine circular bodies placed in an unbounded background flow.}\label{fig:nine_circles}
+\end{figure}
+
+\begin{figure}[!h]
+\begin{center}
+\includegraphics{figures/eig16_unbounded.pdf}
+\end{center}
+\caption[Eigenvalues of preconditioned and unpreconditioned linear system]{Eigenvalues of the linear system \eqref{eq:system_permute} for the geometry shown in Figure \ref{fig:nine_circles} using $N_p =16$ points per circle. In the unpreconditioned cas,  the eigenvalues cluster around $-1/2$, while in the preconditioned case they cluster around 1. Solving the linear system whose eigenvalues are the blue points requires 26 GMRES iterations, while solving the linear system whose eigenvalues are the red points requires 16 GMRES iterations.}\label{fig:eigenvalues_circles}
+\end{figure}
+
+Theorem \ref{them:gmres} helps us understand speedup the convergence of GMRES after applying the preconditioner. To estimate $\inf_{p\in P_n}\sup_{z\in \Lambda(\mathbf{A})} |p(z)|$, we perform a least squares fit of a polynomial of degree $n$ through the point $(0,1)$ and with roots at the eigenvalues of $\mathbf{A}$ (or $\mathbf{P}^{-1}\mathbf{A}$ in the preconditioned case).  In Figure \ref{fig:eigenvalues_polynomial}, we plot the maximum value this polynomial takes at one of the eigenvalues of the matrix $\mathbf{A}$ and $\mathbf{P}^{-1}\mathbf{A}$. We see that as $n$ increases, $\sup_{z\in \Lambda(\mathbf{A})} |p(z)|$ decreases much faster for the preconditioned matrix than for the original matrix. 
+
+
+\begin{figure}[!h]
+\begin{center}
+\includegraphics{figures/eig16_unbounded_conv.pdf}
+\end{center}
+\caption[Values of $\sup_{z\in \Lambda(\mathbf{A})} |p(z)|$ vs $n$ ]{Plots of $\sup_{z\in \Lambda(\mathbf{A})} |p(z)|$ vs $n$ for the original and preconditioned case with eigenvalues as shown in Figure \ref{fig:eigenvalues_circles}. At $n=20$,  $\sup_{z\in \Lambda(\mathbf{A})} |p(z)| = 4.3\e{-7}$ for the preconditoned matrix, while $\sup_{z\in \Lambda(\mathbf{A})} |p(z)| =3.2\e{-4}$ for the unpreconditioned matrix.   }\label{fig:eigenvalues_polynomial}
+\end{figure}
+
+%\todo[inline]{Plot of eigenvalues before and after preconditioning for a multiply connected domain}
+
+We can also speed up the matrix-vector products by noticing that double-layer kernel \eqref{eq:dlp_kernel} decays as $r^{-1}$. This means that far field points can be represented by a multipole expansion. The Fast Multipole Method (FMM) \cite{Greengard1987, Greenbaum1992} uses these multipole expansions along with local expansions to reduce matrix multiplication from an $\mathcal{O}(N^2)$ procedure to $\mathcal{O}(N)$. 
+
+%\todo[inline]{Timings for a single time step with and without FMM for a multiply connected domain}
+\section{Time Stepping}\label{sec:time_stepping}
+
+The solution of  \eqref{eq:symbolic} includes the translational and angular velocities of the bodies. The quasi-static approximation lets us update the centers and orientations according to the ordinary differential equations (ODEs):
+\begin{subequations}\label{eq:odes_rbm}
+\begin{alignat}{2}
+	\frac{\text{d}}{\text{d}t}\mathbf{c}^p_k &= \UU_k, &&\qquad k=1,\hdots,n_p,\\
+	\frac{\text{d}}{\text{d}t}\theta^p_k &= \omega_k,&&\qquad k=1,\hdots, n_p.
+\end{alignat}
+\end{subequations}
+After solving \eqref{eq:odes_rbm} for a specified time interval, the fluid instantaneously adjusts its velocity according to this new geometry. 
+These ODEs \eqref{eq:odes_rbm} are quite simple and can be solved numerically by standard methods. We will investigate the forward Euler method 
+\begin{alignat*}{2}
+	 \cc^p_k(t^{n+1}) &= \cc^p_k(t^n) + \Delta t \UU_k(t^n),\qquad &&k=1,\hdots,n_p,\\
+	\theta^p_k(t^{n+1}) &= \theta^p_k(t^n) + \Delta t\omega_k(t^n),\qquad &&k=1,\hdots,n_p,
+\end{alignat*}
+and the second order Adams-Bathforth method
+\begin{alignat*}{2}
+	 \cc^p_k(t^{n+1}) &= \cc^p_k(t^n) + \frac{3\Delta t}{2} \UU_k(t^n) - \frac{\Delta t}{2}\UU_k(t^{n-1}),\qquad&& k=1,\hdots,n_p,\\
+	\theta^p_k(t^{n+1}) &= \theta^p_k(t^n) + \frac{3\Delta t}{2} \omega_k(t^n) - \frac{\Delta t}{2}\omega_k(t^{n-1}),\qquad&& k=1,\hdots,n_p.
+\end{alignat*}
+Higher-order methods such as spectral deferred correction \cite{Quaife2015, Quaife2016} or Runge-Kutta methods \cite{Klinteberg2014} can also be applied. However, when bodies get very close, even high-order time stepping may not be accurate enough to prevent non-physical overlap between rigid bodies. A method to avoid overlap between rigid bodies is discussed in Chapter \ref{chap:repulsion}.
+
+\subsection{Locally Implicit}
+
+The spatial discretization discussed above is known as \emph{globally implicit} as the density function on all bodies are solved for simultaneously at each time step. An alternative discretization \cite{Rahimian2010, Lu2017} lags the density function for inter-body interactions. This is known as a \emph{locally implicit} discretization. Instead of a dense linear system, a locally implicit discretization leads to a block-diagonal linear system, and each block can be inverted directly. This linear system is computationally cheaper to solve, is trivial to parallelize, and works very well for dilute suspensions. However, as we will see, for dense suspensions locally implicit methods suffer from stability restrictions, particularly for concentrated suspensions. A globally implicit time stepper remains stable for larger time steps, and the added cost of solving a full dense linear system can be more than offset by the allowable larger time steps. 
+
+
+\section{Examples}
+
+\subsection{Jeffery Orbit}
+
+As mentioned in the introduction, the motion of a single ellipse in a shear flow has an analytic solution \cite{Jeffery1922}. In $\mathbb{R}^2$, an elliptical rigid body with aspect ratio $\lambda$ suspended in a shear flow with shear rate $\dot{\gamma}$ rotates with period $2\pi|\dot{\gamma}|(\lambda + \lambda^{-1})$ according to
+\[ \theta(t) = \tan^{-1}\left( \lambda^{-1}\tan\left(\frac{\lambda \dot{\gamma} t}{\lambda^2 + 1}\right)\right).\]
+To test the time stepping routine, Figures \ref{fig:jeffery} shows a convergence study comparing the numerical solution to the exact solution. We find that forward Euler converges with accuracy $\mathcal{O}(\Delta t)$ and Adams-Bashforth converges with accuracy $\mathcal{O}(\Delta t^2)$. 
+
+\begin{figure}
+\begin{center}
+\begin{tabular}{c c}
+\includegraphics[height=8cm]{figures/jeffery.pdf} &
+\includegraphics[height=8cm]{figures/jeffery_convergence.pdf}
+\end{tabular}
+\end{center}
+\caption[Numerical simulation of a Jeffery orbit]{Numerical simulation of a single rigid body in shear flow. Left: The angle and angular velocity as a function of time (marks), compared to the analytic result (lines). Right: A convergence study of the error between the numerical approximation of the angle and the analytic angle after half a period. As expected the forward Euler method converges with first-order accuracy, while Adams-Bashforth converges with second-order accuracy.}\label{fig:jeffery}
+\end{figure}
+
+\subsection{Multiple Bodies}
+
+One of the advantages of BIEs over Stokesian dynamics is the ability to simulate suspensions of arbitrarily smooth bodies. Consider a rigid body with a boundary parameterized by 
+\begin{equation}\label{eq:par}\bm{\phi}(s) = ( (1 + a\cos(k s))\cos(s), (1 + a\cos(k s))\sin(s) ), \qquad s\in [0,2\pi).\end{equation}
+Here $k\in\mathbb{Z}$ determines the number of bumps on the surface of the body, and $a\in[0,1]$ the magnitude of these bumps. These boundaries are shown for multiple values of $k$ and $a$ in Figure \ref{fig:parameterization}.
+
+\begin{figure}[!h]
+\begin{center}
+\begin{tabular}{c c c c}
+\includegraphics{figures/parametric_plot4.pdf} & 
+\includegraphics{figures/parametric_plot3.pdf} &
+\includegraphics{figures/parametric_plot2.pdf} & 
+\includegraphics{figures/parametric_plot1.pdf} 
+\end{tabular}
+\end{center}
+\caption[Parameterization of rigid bodies]{Plots of the parameterization \eqref{eq:par} for various values of $k$ and $a$.}\label{fig:parameterization}
+\end{figure}
+
+To test our algorithms with multiple bodies, we perform a simulation of eight rigid bodies parameterized according to \eqref{eq:par}. We take $a=0.2$ for all the bodies, and several values of $k$. Snapshots of the simulation are shown in Figure \ref{fig:shear_snapshots}. As in the case of a single elliptical body, the rigid bodies rotate. However, hydrodynamic interactions push the bodies either above or below the stationary plane, so they also translate either to the right or to the left. 
+
+\begin{figure}[!h]
+\begin{center}
+\begin{tabular}{c}
+\includegraphics[height=0.17\textheight]{figures/weird_curves0.pdf}\\ \\
+\includegraphics[height=0.17\textheight]{figures/weird_curves10.pdf}\\ \\
+\includegraphics[height=0.17\textheight]{figures/weird_curves20.pdf}\\ \\
+\includegraphics[height=0.17\textheight]{figures/weird_curves30.pdf}
+\end{tabular}
+\end{center}
+\caption[Snapshots of fibers in a shear flow]{Snapshots of eight rigid bodeis in an unbounded shear flow. All the bodies are parameterized according to \eqref{eq:par}, with $a=0.2$. From left to right, $k = 2, 3, 4, 5, 5, 4, 3, 2$.  Instead of rotating in place like a single body, hydrodynamic interactions cause the bodies to shift vertically from $y=0$ and therefore translate.}\label{fig:shear_snapshots}
+\end{figure}
+
+As the rigid bodies become close, near singular integration needs to be used if the discretization is not fine enough. Table \ref{tab:shear_convergence} shows the error at the time horizon for a range of discretization levels compared to an overrefined solution generated with 512 points per rigid body. Taking $\Delta t$ to be 0.4, without near singular integration, $N_p = 16$ is not enough to prevent overlap between rigid bodies. Even with near singular integration, $N_p=8$ is not enough to prevent overlaps. However, using near singular integration we are able to prevent overlap with $N_p = 16$. For $N_p >16$ we do not require near singular integration to prevent collisions. The error from this point decay spectrally, up to the tolerance of GMRES.
+
+
+\begin{table}[!h]\caption[Convergence study of multiple fibers in shear flow]{Study of a refinement in $N_p$ for eight bodies in an unbounded shear flow. Snapshots of the simulation are shown in Figure \ref{fig:shear_snapshots}. The errors reported are the difference between the rigid body centers at the time horizon and an overrefined solution generated with $N_p = 512$ points. Simulations in bold indicate that a collision between rigid bodies occured before the time horizon. With a time step size of $\Delta t = 0.4$, and without near-singular integration (NSI), we require at least 32 points to avoid collisions between rigid bodies. Using NSI, we require only 16 points to avoid collisions. Note that for $N_p \geq 256$ the rigid bodies never get within an arclength of each other, so the NSI and the trapezoid rule solutions coincide.}\label{tab:shear_convergence}
+\begin{center}
+\begin{tabular}{c | c | c  }
+	$N_p$ & error (without NSI) & error (with NSI)
+     	 \\
+	\hline
+	8 & $\mathbf{2.90\e{1}}$ & $\mathbf{1.48\e{1}}$\\
+	16 & $\mathbf{1.14\e{2}}$ & $1.06\e{1}$\\
+	32 &  $2.25\e{0}$  & $3.63\e{0}$\\
+	64 & $3.30\e{-2}$ & $9.22\e{-1}$\\
+	128 &  $7.53\e{-4}$ & $8.85\e{-2}$\\
+	256 &   $1.55\e{-9}$ & $1.55\e{-9}$
+\end{tabular}
+\end{center}
+\end{table}
+
+
+We can also use this test case to examine the efficiency of the block-diagonal preconditioner and the FMM. Tables \ref{tab:shear_time_no_fmm} and \ref{tab:shear_time_fmm} show the CPU times with and without the preconditioner using regular matrix-vector products and the FMM, respectively. In both cases the preconditioner significantly reduces the total number of required GMRES iterations. Even though constructing the block-diagonal preconditioner requires inverting eight $N_p\times N_p$ matrices per time step, this still results in computational savings. Without using the FMM, the CPU time scales as $\mathcal{O}(N_p^2)$ for large $N$, while the FMM reduces this to a method that is roughly $\mathcal{O}(N_p)$. Figure \ref{fig:cpu_times} illutstrates the timings in Tables \ref{tab:shear_time_no_fmm} and \ref{tab:shear_time_fmm}.
+
+\begin{table}[!h]\caption[Time comparison of multiple fibers in shear flow without using FMM]{CPU timings for eight rigid bodies in an unbounded shear flow at various resolutions. The GMRES matrix-vector products are computed directly. As predicted, the number of GMRES iterations does not grow with $N_p$. For large $N_p$, the cost of the linear solve is dominant and the runtime scales as  $\mathcal{O}(N_p^2)$. Using a block-diagonal significantly preconditioner decreases the number of required GMRES iterations each time step, and also reduces the CPU runtime.}\label{tab:shear_time_no_fmm}
+\begin{center}
+\begin{tabular}{c | c| c | c  | c}
+	\multirow{2}{*}{$N_p$} &
+	\multicolumn{2}{c}{No preconditioner} &
+      	\multicolumn{2}{c}{Preconditioner}\\
+      & \# matvecs & CPU time (s)  & \# matvecs & CPU time (s) \\
+	\hline
+	8 & 9771 & 51 & 1832 & 17 \\
+	16 & 10678 & 64 &  3129 & 27\\
+	32 &  11631& 97& 3169 & 31\\
+	64 & 9593& 117 &  4187& 66\\
+	128 & 8217 & 291&  3312& 137\\
+	256 & 7572 & 1075 &  3323&536\\
+	512 & 7260 & 6653 &  3390& 3413
+\end{tabular}
+\end{center}
+\end{table}
+
+\begin{table}[!h]\caption[Time comparison of multiple fibers in shear flow using FMM]{CPU timings for eight rigid bodies in an unbounded shear flow at various resolutions. The GMRES matrix-vector products are accelerated using FMM. As predicted, the number of GMRES iterations does not grow with $N_p$. For large $N_p$, the cost of the linear solve is dominant and the runtime scales as $\mathcal{O}(N_p)$. Using a block-diagonal significantly preconditioner decreases the number of required GMRES iterations each time step, and also reduces the CPU runtime.}\label{tab:shear_time_fmm}
+\begin{center}
+\begin{tabular}{c | c| c | c  | c}
+	\multirow{2}{*}{$N_p$} &
+	\multicolumn{2}{c}{No preconditioner} &
+      	\multicolumn{2}{c}{Preconditioner}\\
+      & \# matvecs & CPU time (s)  & \# matvecs & CPU time (s) \\
+	\hline
+	8 & 10801& 168 & 4441 & 75  \\
+	16  & 9857 & 200 &  3395 & 61\\
+	32 &  7693& 144& 3125 & 75\\
+	64 & 7367&  221&  3238 & 118\\
+	128 & 7346 & 436&  3264 & 233\\
+	256 & 7357& 1116 &  3317 &593\\
+	512 & 7375& 3245&  3380 & 1692
+\end{tabular}
+\end{center}
+\end{table}
+
+
+\begin{figure}[!h]
+\begin{center}
+\begin{tabular}{c c}
+\includegraphics{figures/code_time_no_fmm.pdf}&
+\includegraphics{figures/code_time_fmm.pdf}
+\end{tabular}
+\end{center}
+\caption[Code scaling]{Code timings to advance eight rigid bodies in unbounded shear flow to the time horizon. For large enough $N_p$, the timing scales as $\mathcal{O}(N_p^2)$ when GMRES uses full matrix-vector products, while it scales as $\mathcal{O}(N_p)$ using the FMM accelerated GMRES. In both cases, preconditioning speeds up the computation by a constant factor.}\label{fig:cpu_times}
+\end{figure}
+
+\subsection{Rotors}
+
+We are also interested in modeling rigid, active, particles. Active particles are particles that move by a net force or torque. These can be living cells, for example, bacteria, or non-living matter subject to an external force or torque coming from, for example, a magnetic field. One class of active particles are rotors, whose motion is driven by an external torque. Rotors have been observed experimentally, where the torque comes from chemicals, light, or magnetic or electric fields. These particles can demonstrate complicated behaviors, from periodic and chaotic motion \cite{Lushi2015} to large scale collective organization \cite{Yeo2015}. To adopt our method to handle rotors, we must simply specify the net torque on each rotor in equation \eqref{eq:canonical_particle}.
+
+In Figure \ref{fig:rotors}, we simulate four circular bodies, each undergoing an identical positive (clockwise) net torque. If the four bodies are initially placed at the corners of a rectangle, they move in a periodic orbit around the center of the rectangle. If however, the bodies start in a random initial configuration, the demonstrate chaotic motion. This replicates a result from \cite{Lushi2015}.
+
+ 
+\begin{figure}[!h]
+\begin{center}
+\begin{tabular}{c c}
+	\includegraphics[width=0.3\textwidth]{figures/rectangle_initial.pdf} & \includegraphics[width=0.3\textwidth]{figures/rectangle_tracks.pdf}\\
+	\includegraphics[width=0.3\textwidth]{figures/rectangle_initial_chaotic.pdf} & \includegraphics[width=0.3\textwidth]{figures/rectangle_tracks_chaotic.pdf}
+\end{tabular}
+\end{center}
+\caption[Rotor simulation]{Four rotors in quiescent background flow. The particle are all undergoing a net torque in the same direction. This causes them to spin. As they spin they interact hydrodynamically with all the other particles. These hydrodynamic interactions can cause a periodic motion if the four particles are initially arranged in a rectangle, or chaotic motion if the particles are initially placed at random. This matches the results in \cite{Lushi2015}.} \label{fig:rotors}
+\end{figure}

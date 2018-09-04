@@ -1,0 +1,60 @@
+\chapter{The mobility matrix}
+
+The goal of this chapter is to determine the relationship between the force and torque on a particle and its transnational and rotational velocity. We will see that in the absence of a background flow, for $N$ particles undergoing force and torque $\{\mathbf{F}_i, \mathbf{T}_i\}_{i=1}^N$ the transnational and rotational velocities $\{\mathbf{U}_i, \bm{\Omega}_i\}_{i=1}^N$ can determined by,
+\[ \begin{pmatrix} \mathbf{U}_1 \\ \bm{\Omega}_1 \\ \vdots \\ \mathbf{U}_N \\ \bm{\Omega}_N\end{pmatrix} = \mathcal{M} \begin{pmatrix} \mathbf{F}_1 \\ \mathbf{T}_1 \\ \vdots \\ \mathbf{F}_N \\ \mathbf{T}_N\end{pmatrix},\]
+where $\mathcal{M}$ is known as the \emph{mobility matrix}. The entries in $\mathcal{M}$ depend upon the shape and location of the particles. 
+
+\section{Motion of a single particle}
+
+We will begin with the simplest case, that of a single particle. The velocity of the fluid near a point $\xx_0$ can be expanded as a Taylor series,
+\[ \uu^\infty(\xx) = u^\infty(\xx_0) + \nabla \uu^\infty(\xx_0)\cdot(\xx - \xx_0) + \cdots.\]
+
+Thus to first order, taking $\xx_0$ as the origin we can write the velocity of the fluid as 
+\[ \uu^\infty(\xx) = \UU^{\infty} + \bm{\Omega}^\infty\cdot\xx + \EE^\infty\cdot\xx,\]
+where 
+\[ \UU^\infty = \uu^\infty(\xx_0), \quad \bm{\Omega}^\infty = \frac{1}{2}\left(\frac{\partial u_i}{\partial x_j} - \frac{\partial u_j}{\partial x_i}\right), \quad \EE^\infty = \frac{1}{2}\left(\frac{\partial u_i}{\partial x_j} + \frac{\partial u_j}{\partial x_i}\right).\]
+
+Note that $\nabla\uu^{\infty} = \bm{\Omega}^{\infty} + \EE^\infty$. $\bm{\Omega}^\infty$ is called the rate-of-rotation tensor and $\EE^\infty$ is called the rate-of-strain tensor at the origin.
+
+\section{Forces, torque and stresslet}
+
+The fluid force on a particle results in a hydrodynamic force $\FF^h$ on the particle,
+\[ \FF^h = \int_{S_p} \bm{\sigma}\cdot\nn~\text{d}S.\]
+In low Reynolds number flow, the forces on each particle must vanish, so $\FF^h = \FF^e$, where $\FF^e$ is some external force. This force could be for example, gravity in sedimentation problems, or a repulsion force as will be the case later on. Stokes law gives the hydrodynamic force on a sphere of radius $a$ being held fixed in a uniform translational flow $\UU^\infty$,
+\[ \FF^h = 6\pi \mu a \UU^\infty.\]
+
+The hydrodynamic torque on a particle generates angular momentum. It can be computed from the tractions on the particle surface according to
+\[ \TT^h = \int_{S_p} (\xx - \cc)\times \bm{\sigma}\cdot\nn~\text{d}S,\]
+where $\cc$ is the center of force of the particle. The torque on a sphere of radius $a$ being held fixed in a rotational flow $\bm{\omega}^\infty\times \xx$ is given by
+\[ \TT^h = 8\pi \mu a^3 \bm{\omega}^\infty.\]
+
+The moment of the surface traction on the surface of a particle is given by
+\[ M_{ij} = \int_{S_p} \sigma_{ik}n_k x_j~\text{d}S.\]
+It can be split into a symmetric and anitsymmetric tensor, $S_ij$ and $A_ij$ respectively given by
+\[ S_{ij} = \frac{1}{2}\int_{S_p} \sigma_{ik}n_k x_j + \sigma_{jk}n_k x_i~\text{d}S,\qquad A_{ij} = \frac{1}{2}\int_{S_p} \sigma_{ik}n_k x_j - \sigma_{jk}n_k x_i~\text{dS}.\]
+The symmetric part $S_{ij}$ is called the \emph{stresslet}. Using the identity $\epsilon_{ijk}\epsilon_{imn} = \delta_{jm}\delta{km}-\delta_{jn}\delta_{km}$ it can be verified that $\epsilon_{ijk}T_k = 2A_{ij}$. Thus the torque and the stresslet together determine the complete first moment of the surface tractions. The stresslet results fromt the fact that rigid particles  cannot deform and thus resist straining motion. 
+
+For a sphere of radius $a$ held fixed in a straining flow $\EE^\infty\cdot \xx$ the stresslet is 
+\[ S_{ij} = \frac{20\pi}{3}\mu a^3 E^\infty_{ij}.\]
+
+\section{Resistance and mobility matrices}
+
+Consider a single rigid particle suspended in a bulk linear shear flow
+\[ \uu^\infty(\xx) = \UU^\infty + \bf{\Omega}^\infty\cdot\xx + \EE^\infty\cdot\xx.\]
+As we have seen, this is a first order approximation to any general flow. In particular, if the particle is small enough, at the particle surface this should be a good approximation for most background flows.
+
+In this case the force, torque and stresslet of the particle are related linearly to its translational, rotational velocity and the background strain rate. This relationship can be expressed as
+\[ \begin{pmatrix} \FF^h\\ \TT^h\\ \Ss^h\end{pmatrix} = \begin{pmatrix} \RR^{\FF\UU} & \RR^{\FF\bf{\Omega}} & \RR^{\FF\EE}\\
+														\RR^{\TT\UU} & \RR^{\TT\bf{\Omega}} & \RR^{\TT\EE}\\
+														\RR^{\Ss\UU} & \RR^{\Ss\bf{\Omega}} & \RR^{\Ss\EE}\end{pmatrix}
+										\begin{pmatrix} \UU - \UU^\infty\\ \bf{\Omega} - \bf{\Omega}^\infty\\ -\EE^\infty\end{pmatrix} = \mathcal{R\begin{pmatrix} \UU - \UU^\infty\\ \bf{\Omega} - \bf{\Omega}^\infty\\ -\EE^\infty\end{pmatrix} .}\]
+$\mathcal{R}$ is often called the \emph{grand resistance matrix}. Each block of $\mathcal{R}$ relates one component of the motion of the particle to either the force, torque or stresslet. The entries of $\mathcal{R}$ depend on the shape of the particle. For simple shapes it has an exact analytic expression, though for particles of arbitrary shape it does not. The inverse of $\mathcal{R}$ is called the \emph{grand mobility matrix} $\mathcal{M}$ and relates the force, torque and stresslet of the particle to its translational and rotational velocity as well as the background strain rate,
+\[ \begin{pmatrix} \UU - \UU^\infty\\ \bf{\Omega} - \bf{\Omega}^\infty\\ -\EE^\infty\end{pmatrix}  = \mathcal{M}\begin{pmatrix} \FF^h\\ \TT^h\\ \Ss^h\end{pmatrix} .\]
+Thus once we know the force, torque and stresslet on a particle, we can determine it's translational and rotational velocity. It can be shown that $\mathcal{R}$ and thus $\mathcal{M}$ are symmetric. 
+
+For multiple particles suspended in a bulk linear shear flow, the grand resistance matrix must now take into account hydrodynamic interactions between particles. Thus for $n$ particles, the grand resistance matrix takes the form
+\[ \mathcal{R} = \begin{pmatrix} \mathcal{R}^{11} & \hdots & \mathcal{R}^{1n}\\ \vdots & \ddots &\vdots \\ \mathcal{R}^{n1} & \hdots & \mathcal{R}^{nn}\end{pmatrix}.\]
+where $\mathcal{R}^{ij}$ represents the hydrodynamic interactions between particle $i$ and particle $j$. Each block of this grand resistance matrix itself a block matrix relating the translational and rotational velocity, as well as the local strain rate on particle $i$ to the force, torque and stresslet on particle $j$. Even for spherical particles, if $n >2$, $\mathcal{R}$ does not have an analytic expression. Defining the vectors $\hat{\UU}$ as $\{\UU_1 - \UU^\infty, \bf{\Omega}_1 - \bf{\Omega}^\infty, \hdots, \UU_n - \UU^\infty, \bf{\Omega}_n - \bf{\Omega}^\infty\}$ and $\hat{\FF} = \{\FF_1 ,\TT_1, \hdots, \FF_n, \TT_n\}$ we can write the mobility problem in the compact notation
+\[ \begin{pmatrix} \hat{\UU} \\ -\EE^\infty\end{pmatrix} = \mathcal{M} \begin{pmatrix} \hat{\FF} \\ \Ss^h\end{pmatrix}.\]
+
+

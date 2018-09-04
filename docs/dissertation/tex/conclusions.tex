@@ -1,0 +1,61 @@
+\chapter{Conclusion}
+
+We have developed numerical methods to simulate the motion of two-dimensional rigid particles in a Stokesian fluid. The method makes no assumptions on the particle shape, nor on the particle concentration. Moreover, it works in bounded and unbounded flows. One challenge when simulating suspensions is that numerical errors can cause bodies to overlap. To avoid overlap we introduce a modification of the repulsion force in \cite{Lu2017}. This repulsion force ensures separation between particles, and is completely free of any tuning parameters. In the original contact algorithm, all inter-body hydrodynamic interactions are discretized explicitly by lagging them from the previous time step. This results in a block-diagonal system to solve at each time step. Unfortunately, discretizing the  inter-body interactions explicitly necessitates a small time size, particularly for concentrated suspensions. The approach taken by Lu \emph{et al.}~\cite{Lu2017} was to maintain a sufficiently large minimum separation distance to control the stiffness. Instead, we have taken the approach of using a globally-implicit time stepper to simulate concentrated two-dimensional suspensions without requiring  a large minimum separation distance nor an excessively small time step size. The disadvantage of the new globally-implicit time stepper is that a full dense linear system must be solved at every time step since all the bodies are coupled. In certain simulations, the additional cost of performing this dense matrix solve every time step is more than offset by the ability to take larger time steps. We use our stable algorithm to investigate the rheological properties of various suspensions and study the effect of the contact force on the time reversibility of the simulation. We investigate the effect of the concentration and aspect ratio of rigid fibers on the alignment angle and effective viscosity of a suspension confined inside a Couette apparatus. 
+
+
+\section{Limitations}
+
+Physically, in order to use a boundary integral representation, the method requires that the steady Stokes equations are valid. Therefore, it is assumed  that both the Reynolds number and the Strouhal number are very small. This means that the length scale is small, the velocity is slow, the viscosity of the solvent is large, and the time scale is large. In addition to these assumptions, it is also necessary that the solvent is Newtonian. If any of these assumptions are not valid, then boundary integral equations become much more difficult or impossible to implement. It is possible to still use an integral equation formulation, however the formulation often includes computationally expensive volume integrals.
+
+Another limitation is that the suspended bodies are assumed to be completely rigid. The formulation for non-rigid bodies is slightly different, and BIEs have been used to simulate different particle suspensions, including vesicles \cite{Quaife2014, Quaife2015, Rahimian2010}, drops \cite{Sorgentone2018}, and flexible fibers \cite{Tornberg2004}. The repulsion force described in Chapter \ref{chap:repulsion} does not require the bodies to be rigid, and in the fact the original paper by Lu \emph{et al.}~\cite{Lu2017} demonstrated the robustness of the method for vesicles suspensions.
+
+\section{Future Work}
+
+There are many avenues for future work. Mathematically, since the linear complementarity problems that need to be solved are not positive definite, there is no guarantee that solutions exist or are unique. This may lead to a non-convergent sequence of solutions to the nonlinear complementarity problem, and is believed to cause problems in simulations involving solid walls. We attempt to circumvent this issue by reducing the time step size if the number of NCP iterations is too large. However, this is a heuristic and contradicts our goal to avoid heuristics and tuning parameters. The robustness of the contact algorithm can be improved by using a different measure for contact. In \cite{Yan2017}, instead of the STIV, the signed distance between bodies is used to measure overlap. This method results in a sequence of symmetric, positive definite LCPs, where solutions are guaranteed to exist and be unique. This choice of metric, however, only detects contact at the end of each time step. Unlike STIVs, if contact occurs at an intermediate time (i.e. one body passes completely through another) this contact will not be detected. 
+
+\subsection{Three-dimensional Simulations}
+
+The method as it stands has only been implemented for two dimensional (planar) flows. For a fixed number of unknowns, two-dimensional simulations allow us to simulate far more rigid bodies. That said, three-dimensional simulations are more realistic and would allow us to properly investigate certain physical features that only show up in three dimensions. The Stokes paradox, that in two-dimensions prevents us from simulating particles undergoing a net force in an unbounded domain, does not exist in three dimensions where the fundamental solution decays as $r^{-1}$. This would allow us to simulate  other important problems such as sedimentation, without introducing a bounding wall.
+
+Three-dimensional computations involving boundary integrals to simulate rigid body suspensions are well- developed  \cite{Mammoli2006, Corona2017 }. After replacing the two-dimensional kernels with their three-dimensional counterparts, the formulation described in Chapter \ref{chap:stokes} is identical. The three-dimensional double-layer kernel is singular, so different quadrature techniques must be used to evaluate the intra-body interactions \cite{Bremer2012}. The space-time interference volume required to compute the repulsion force  as discussed in Chapter \ref{chap:repulsion} was originally developed in three dimensions \cite{Harmon2011}. In addition, the near singular integration technique described in Section \ref{sec:near_singular} has been implemented in three dimensions \cite{Ying2006} and other methods to compute the interactions between nearly touching bodies in three dimensions exist \cite{Klinteberg2016,Siegel2018}.
+
+\subsection{Periodic Boundary Conditions}
+
+Although we have used our method to compute the viscosity of a suspension inside a Couette apparatus, in reality wall effects play a large role in the viscosity of a confined suspension. One remedy is to enlarge the size of the computational domain and compute the viscosity based on a representative region far from the walls. However, the discretization of the solid walls and the extra particles not in the representative region increases the size of the resulting linear system. To more accurately and efficiently compute quantities like the effective viscosity, periodic boundary conditions should be used. Single and double periodic boundary conditions been implemented in a boundary integral setting \cite{Klinteberg2014,Marple2015}. Periodic fast summation methods like the Ewald summation \cite{Ewald1921} and the periodic FMM \cite{Marple2015, Yan2018} are used to accelerate the linear solve. 
+
+For unbounded shear flow however, the background flow is periodic in the shear direction but grows in the direction normal to the shear plane. The Lees-Edward boundary conditions \cite{Lees1972} have been used in molecular dynamics simulations to model a sheared system without introducing any solid walls. These boundary conditions are illustrated in Figure \ref{fig:le1}. 
+
+As with regular periodic simulations, a master cell of dimensions $H\times H$ is replicated vertically and horizontally. The cells above and below the master cell translate with constant velocity $V = \dot{\gamma}\bar{y}$, where $\dot{\gamma}$ is the shear rate and $\bar{y}$ is the $y$ component of the center of the cell. In the $x$ direction the periodicity is enforced as usual. That is, if the body leaves the master cell from one side it reappears on the other (green body in Figure \ref{fig:le1}). In the vertical direction however, we need to take into account the relative movement of the cells. 
+
+
+\begin{figure}[!h]
+\begin{center}
+\begin{tabular}{c c}
+\includegraphics[height=5cm]{figures/lees-edwards.pdf}&
+\includegraphics[height=5cm]{figures/lees-edwards1.pdf}
+\end{tabular}
+\end{center}
+\caption[Sketch of the Lees-Edwards boundary condition]{Sketch of the Lees-Edwards boundary condition for unbounded shear flow. A master cell is replicated vertically and horizontally. The cells above and below the master cell translate relative to it with velocity $V = \dot{\gamma}\bar{y}$, where $\dot{\gamma}$ is the shear rate and $\bar{y}$ is the $y$ component of the center of the cell.}\label{fig:le1}
+\end{figure}
+
+Consider the blue body in Figure \ref{fig:le1} and Figure \ref{fig:le2}. By time $t+\Delta t$, the cell directly above the master cell at $t=t_0$ has shifted by $V\Delta t$ units. Therefore instead of the blue body exiting from the bottom and reentering at the top with the same $x$ component, it must reenter from its horizontal position in the shifted cell. In addition, the velocity of the blue body changes to match the cell it is entering from. Instead of moving at velocity $(u,v)$ it will now be moving with velocity $(u+V, v)$. 
+
+\begin{figure}[!h]
+\begin{center}
+\includegraphics[width=0.3\textwidth]{figures/lees-edwards_zoom.pdf}
+\end{center}
+\caption[Enforcement of the Lees-Edwards boundary conditions]{Sketch of just the blue body in Figure \ref{fig:le1}. The blue body exits the master cell from the bottom (A). Because the cell on top has shifted by $V\Delta t$, instead of reentering from the top (B) as in normal periodic boundary conditions, the body reenters from its horizontal location in the shifted cell (C). }\label{fig:le2}
+\end{figure}
+
+Thus the Lee-Edwards boundary conditions for a body attempting to move to $(x,y)$ with velocity $(u,v)$ can be summarized as follows:
+\begin{itemize}
+	\item Body exits from the left edge of master cell:
+		\[ (x,y) \rightarrow (x - H, y),\qquad (u,v)\rightarrow (u,v).\]
+	\item Body exits from right edge of master cell:
+		\[(x,y) \rightarrow (x+H, y) \qquad (u,v)\rightarrow(u,v).\]
+	\item Body exits from bottom of master cell:
+		\[(x,y) \rightarrow (x + V\Delta t, y + H), \qquad (u,v)\rightarrow (u + V, v).\]
+	\item Body exits from top  of master cell:
+		\[(x,y) \rightarrow (x - V\Delta t, y - H), \qquad (u,v)\rightarrow (u - V, v).\]	
+\end{itemize}
+These boundary conditions have been used to simulate rigid body suspensions using the finite element method \cite{Hwang2006}, the lattice Boltzmann method \cite{Lorenz2009}, and Stokesian dynamics \cite{Satoh1998}, however they not been investigated using BIEs.  To implement a repulsion force using the methods described in Chapter \ref{chap:repulsion} would require a periodized computation of the STIV, something that is not yet implemented.

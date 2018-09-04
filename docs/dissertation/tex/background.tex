@@ -1,0 +1,115 @@
+\chapter{Background}
+
+In everything from pharmaceuticals to ceramics, we often encounter particles suspended in viscous fluids. It is therefore very important to develop techniques that allow us to accurately and efficiently model these particle suspensions. The aim of this dissertation is to use a numerical method known as \textit{boundary integral equations} (BIEs) to predict quantities of interest, such as the viscosity of a suspension in a Stokesian fluid and, when the suspended particles are elongated fibers, the orientation of these fibers. 
+
+
+\section{Stokes Flow}\label{sec:stokes}
+
+Here we present a brief discussion of some important concepts in fluid mechanics. For more details see any standard textbook on fluid mechanics, e.g.~\cite{Kundu2008, Landau1959}. This particular discussion follows \cite{Karrila1991}. 
+
+When modeling fluid flow problems we must always conserve both mass and momentum. For a fluid with density $\rho(\mathbf{x},t)$ and velocity $\mathbf{u}(\mathbf{x},t)$ conservation of mass means that
+\begin{equation}\label{eq:mass_conservation}
+	\frac{D\rho}{D t} + \rho\nabla\cdot\mathbf{u} = 0,
+\end{equation}
+where $\frac{D}{D t}$ is the material derivative defined by:
+\[ \frac{D(\cdot)}{D t} = \frac{\partial (\cdot)}{\partial t} +(\mathbf{u}\cdot)\nabla(\cdot).\]
+If we assume that the density is constant, then \eqref{eq:mass_conservation} reduces to
+\begin{equation}\label{eq:incompressible}
+	\nabla\cdot\mathbf{u} = 0.
+\end{equation}
+Fluids that have a constant density are known as incompressible fluids. At low speeds and constant temperature many common fluids, for example water, are very close to incompressible. In this work we will consider only incompressible fluids. 
+
+The momentum balance for a fluid is given by
+\begin{equation}\label{eq:momentum_conservation} \rho\frac{D\mathbf{u}}{D t} = \nabla\cdot\mathbf{\pmb{\sigma}} + \rho\mathbf{f},\end{equation}
+where $\pmb{\sigma}$ is the \textit{stress tensor} and $\mathbf{f}$ is the external body force per unit mass. To complete the mathematical description of fluids we must relate the stress tensor $\pmb{\sigma}$ to the state of the fluid, namely the velocity and the pressure $p(\mathbf{x},t)$.
+
+In two dimensions, the stress tensor $\pmb{\sigma}$ is
+\[ \pmb{\sigma} = \begin{pmatrix} \sigma_{xx} & \sigma_{xy} \\ \sigma_{yx} & \sigma_{yy}\end{pmatrix}.\]
+The stress (force per unit area) a fluid exerts on a surface with unit normal $\mathbf{n}$ is given by $\pmb{\sigma}\mathbf{n}$. The components $\sigma_{xx}$ and $\sigma_{yy}$ are known as normal stresses, while the components $\sigma_{xy}$ and $\sigma_{yx}$ are known as shear stresses. In almost all cases, conservation of angular momentum implies that this stress tensor is symmetric and $\sigma_{xy} = \sigma_{yx}$. For a fluid at rest, the stress acting on a surface with normal $\mathbf{n}$ is due exclusively to the pressure and is just $-p\mathbf{n}$. This means that for a fluid at rest the stress tensor is given by $\pmb{\sigma} = -p\mathbf{I}$. 
+
+For a moving viscous fluid, the stress tensor includes a viscous component $\pmb{\sigma}^{\text{viscous}}$, i.e.
+\begin{equation}\label{eq:stress_viscous} \pmb{\sigma} = -p\mathbf{I} + \pmb{\sigma}^{\text{viscous}}.\end{equation}
+The viscous stresses come from the strain rate tensor $\mathbf{e}$ given by
+\begin{equation}\label{eq:strain_rate}
+\mathbf{e} = \frac{1}{2}\left(\nabla\mathbf{u} + \left(\nabla\mathbf{u}\right)^T\right).
+\end{equation}
+
+The simplest relationship between the viscous stresses and the strain rate tensor is a linear one,
+\begin{equation}\label{eq:newtonian} \pmb{\sigma}^\text{viscous} =2\mu\mathbf{e}.\end{equation}
+Fluids that have such a relationship between the viscous stress and the strain rate are called \textit{Newtonian fluids}. 
+
+For a fluid satisfying \eqref{eq:newtonian}, we can substitute \eqref{eq:strain_rate} into \eqref{eq:stress_viscous} and then \eqref{eq:momentum_conservation} to get
+\[ \rho\frac{D\mathbf{u}}{D t} = \nabla\cdot(-p\mathbf{I} + 2\mu\mathbf{e}) + \rho\mathbf{f}.\]
+This can be rewritten and combined with the mass conservation equation \eqref{eq:incompressible} to yield the Navier-Stokes equations for an incompressible Newtonian fluid:
+\begin{subequations}\label{eq:navier_stokes}
+\begin{align}
+	\rho\frac{\partial\mathbf{u}}{\partial t} -\mu\Delta\mathbf{u} + \rho\mathbf{u}\cdot\nabla\mathbf{u} + \nabla p &= \rho\mathbf{f},\\
+	\nabla\cdot\mathbf{u} &= 0.
+\end{align}
+\end{subequations}
+
+For a given problem, we can define $U$ and $L$ to be the characteristic velocity and length scales respectively. In \eqref{eq:navier_stokes} the inertial term $\rho\mathbf{u}\cdot\nabla\mathbf{u}$ has units $\rho U^2/L$, while the viscous term $\mu\Delta\mathbf{u}$ has units $\mu U/L^2$. The ratio of viscous to inertial forces is then of the order $\rho U L/\mu$. We define the Reynolds number, $Re$, to be this ratio, i.e. 
+\[ Re = \frac{\rho UL}{\mu}.\]
+If  $Re\ll 1$, we can neglect the inertial term in \eqref{eq:navier_stokes} and obtain the unsteady Stokes equations:
+\begin{align*}
+	  \rho\frac{\partial \mathbf{u}}{\partial t} - \mu\Delta\mathbf{u} + \nabla p &= \rho\mathbf{f},\\
+	\nabla\cdot\mathbf{u} &= 0.
+\end{align*}
+
+If we assume that the fluid has reached a steady state, i.e. $\partial\mathbf{u}/\partial t = 0$, and that the body forces are conservative and can be absorbed into the pressure gradient, we get the steady Stokes equations:
+\begin{subequations}\label{eq:stokes_steady}
+\begin{align}
+	\nabla\cdot\pmb{\sigma} = \mu\Delta\mathbf{u} - \nabla p &= \mathbf{0},\\
+	\nabla\cdot\mathbf{u} &= 0.
+\end{align}
+\end{subequations}
+
+The Stokes equations govern the motion of creeping flow and are the preferred model for problems involving particle suspensions \cite{Karrila1991}. Dropping the nonlinear inertial term offers a significant simplification compared to the full Navier-Stokes equations. Since the Stokes equations are linear, we can invoke the principle of superposition to generate solutions. 
+
+\section{Particle Suspensions}
+
+Particle suspensions are extremely common in many natural or man-made settings. Polymer melts for example often contain suspended fibers, while blood contains suspended blood cells and mayonnaise is a suspensions of oil droplets. The boundaries of the suspended particles may be rigid or deformable and may be of any shape. In this work, we restrict our attention to rigid bodies, however many of the same techniques described below can be applied to deformable bodies such as vesicles or bubbles \cite{Villa2014, Rahimian2010}.
+
+From an engineering standpoint it is valuable to know properties of the suspension, for example the viscosity of the entire fluid or the alignment of the suspended particles. These can be difficult to determine experimentally, so numerical simulations are often used. Many different techniques are used, some at the continuum level \cite{Folgar1984}, others such as the one presented in this work model the motion of each fiber explicitly. 
+
+\section{Boundary Integral Equations}
+
+Boundary Integral Equations (BIEs) are a tool to generate approximate solutions to differential equations. They have several nice features:
+\begin{itemize}
+	\item \textbf{dimension reduction} - typically the unknown function is restricted to the boundary of the domain, thus reducing a three dimensional problem to a two dimensional surface integral, or a two dimension problem to a one dimensional line integral
+	\item \textbf{physically realistic} - for Stokes flow, incompressibility is automatically strongly enforced
+	\item \textbf{exterior problems} - able to naturally handle problems on unbounded domains, including boundary conditions at infinity
+	\item \textbf{conditioning} - the condition number of the problem can be made mesh independent
+\end{itemize}
+However BIEs also present some challenges:
+\begin{itemize}
+	\item \textbf{difficulties in handling certain problems} - BIEs are suited mainly for linear elliptic problems, parabolic and hyperbolic problems can be solved, but require extra work
+	\item \textbf{dense systems} - the resulting linear system is dense and is therefore more computationally expensive to solve than the sparse systems coming from finite element or finite difference
+\end{itemize}
+
+As we shall see, BIEs are well suited for modeling rigid body motion in a Stokesian fluid. The resulting systems, while dense, are relatively small compared to problems that discretize the entire domain, and can remain well conditioned even for fine meshes. The problem lends itself nicely to fast summation techniques, which can be efficiently combined with iterative solvers such as the generalized minimal residual method (GMRES) \cite{Saad1986}. Finally, meshing is trivial for two dimensional bodies, since we only have to discretize one dimensional closed curves. Since these bodies are rigid, as they move in space we do not have to re-mesh.
+
+\subsection{Fredholm Equations}
+
+The generic integral equation that must be solved is
+\begin{equation}\label{eq:fredholm} \lambda\eta(\mathbf{x}) - \int_{\Gamma} K(\mathbf{x},\mathbf{y})\eta(\mathbf{y})\text{d}s(\mathbf{y}) = g(\mathbf{x}), \qquad \text{for } \mathbf{x}\in\Gamma,\end{equation}
+for an unknown density function $\eta(\mathbf{x})$. Here $\lambda$ is a given constant, $g$ and $K$ are given functions and $\Gamma$ is a finite interval. $K$ is known as the kernel, and is derived from the fundamental solution to a partial differential equation, while $g$ is typically related to the boundary conditions. In our case $\Gamma$ will be the boundary of a two dimensional domain. If $\lambda=0$ this equation is a Fredholm equation of the first kind, otherwise it is a Fredholm equation of the second kind. Fredholm equations can be written in the abstract form
+\[ \lambda \eta - \mathcal{K}\eta = g,\]
+where $\mathcal{K}$ is an integral operator, which in our case is compact and linear. 
+
+Since $\mathcal{K}$ is compact, its eigenvalues cluster at the origin, rendering first kind Fredholm equations ill conditioned, meaning that small changes in the data $g$ can lead to large changes in the solution $\eta$. In practice, this means that after discretization, the matrix resulting from a first kind equation will have a condition number that grows with finer discretization.
+
+Second kind equations on the other hand can be well posed, and share many properties with ordinary square matrices. The solvability of Fredholm equations can be analyzed with the \textit{Fredholm alternative}. In particular, a second kind equation has a unique solution for any $g$, or the corresponding homogeneous problem ($g=0$) has nontrivial solutions. In that case the nontrivial solutions are eigenvectors corresponding to the eigenvalue $\lambda$. If there exists a solution $\eta$ for $g$, other solutions can be found by adding eigenvectors so the solution is not unique. 
+
+If $\lambda$ is not an eigenvalue, then the second kind operator has a bounded inverse. If $\lambda\ne 0$ is an eigenvalue, the corresponding eigenvectors form a null space for the second kind operator $N(\lambda I - \mathcal{K})$. The second kind equation has a solution if and only if $g$ can be represented as a linear combination of these vectors, i.e. $g\in R(\lambda I - \mathcal{K})$. 
+
+\subsection{Discretization}\label{sec:discretization}
+
+Except in very special cases, integral equations cannot be solved analytically and therefore must be solved numerically.  There are many ways to  discretize  integral equations, two popular ones being the Galerkin based \textit{boundary element method} \cite{Brebbia1977} and the collocation method that we will be using in this work.
+
+Given a set of $N$ quadrature points $\{\mathbf{y}_i\}$ and weights $\{w_i\}$, we can replace the Fredholm equation \eqref{eq:fredholm} with the approximation
+\begin{equation}\label{eq:fredholm_discrete} \lambda\eta(\mathbf{x}) - \sum\limits_{i=1}^N w_i K(\mathbf{x}, \mathbf{y}_i)\eta(\mathbf{y}_i) = g(\mathbf{x}).\end{equation}
+The unknowns in this equation are the $N$ values of $\eta$, $\{\eta(\mathbf{y}_i)\}$. To generate $N$ equations we enforce \eqref{eq:fredholm_discrete} at the $N$ quadrature points $\{\mathbf{x}_j\}$. This gives
+\[ \lambda\eta(\mathbf{x}_j) - \sum\limits_{i=1}^N w_i K(\mathbf{x}_j, \mathbf{x}_i)\eta(\mathbf{x}_i) = g(\mathbf{x}_j) \qquad \text{ for } j = 1,\hdots, N.\]
+This is a linear system for the values of $\eta$ at the quadrature points. If the underlying Fredholm  equation has a unique solution, then so does this linear system. 
+

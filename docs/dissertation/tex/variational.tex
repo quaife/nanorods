@@ -1,0 +1,309 @@
+\chapter{Resolving Contact}\label{chap:repulsion}
+
+Complementarity problems appear in many scientific or engineering applications \cite{Ferris1995}. They have been used to model contact mechanics \cite{Bender2012, Stewart1996,Anitescu1997} and structural mechanics \cite{Maier1968} among many other problems. Complementarity problems are problems that are constrained by a set of complementarity conditions, in other words a requirement that the product of two or more non-negative quantities is zero. For example, in contact mechanics the force between two objects is typically complementarity to the distance between them. That is, the force between two objects is zero, unless the distance between them is zero. This suggests a procedure for preventing contact between rigid bodies in our simulations. 
+\begin{enumerate}
+	\item Starting from a contact-free configuration, perform a single time step to obtain a new configuration.
+	\item If the new configuration is contact-free, accept this configuration and move to the next time step. Otherwise, for each rigid body pair in contact, apply a repulsion force until the distance between them is zero.
+	\item Once the distance between all rigid body pairs is at least zero, the configuration is contact-free. Accept this configuration and move to the next time step.
+\end{enumerate}
+
+Before formalizing this procedure, some background on complementarity problems is provided. This discussion follows largely from \cite{Billups2000} and \cite{Erleben2013}.
+
+\section{Description and Properties of Complementarity Problems}
+
+A one-dimensional complementarity problem is the following. Given two variables $x, y\in \mathbb{R}$, the complementarity constraint states
+\[ y > 0 \Rightarrow x = 0, \qquad \text{or}\qquad x > 0 \Rightarrow y = 0.\]
+This means that if one variable is positive then the other is zero. This can be stated as the constraint
+\[ x \geq 0, \qquad y\geq 0,\qquad xy = 0,\]
+or in the more compact notation
+\[ 0 \leq y \perp x\geq 0.\]
+The space that satisfies this condition is any point on the positive $x$ or postive $y$ axis. If there is a linear relationship between $x$ and $y$, then we have the linear complementarity problem (LCP)
+\begin{equation}\label{eq:lcp1d}
+	y = ax + b,\qquad 0\leq y \perp x\geq 0,
+\end{equation}
+where $a,b\in\mathbb{R}$. Now the solution space is the intersection of the $y=ax + b$ and the positive $x$ and $y$ axes. Depending on the values of $a$ and $b$, this problem admits either zero, one, two, or infinite solutions. These solutions are summarized in Table \ref{tab:1d_comp} and plotted in Figure \ref{fig:1d_comp}.
+
+\begin{table}[!h]
+\caption[Number of possible solutions for a one-dimensional complementarity problem]{The number of solutions to the LCP \eqref{eq:lcp1d} depends on the signs of $a$ and $b$. There are nine possible cases.}\label{tab:1d_comp}
+\begin{center}
+\begin{tabular}{c | c | c | c |}
+ & $a < 0$ & $a = 0$ & $a > 0$\\
+\hline
+$b < 0$ & 0 & 0 & 1\\
+$b = 0$ & 1 & $\infty$ & 1\\
+$b > 0$ &2 & 1 & 1
+\end{tabular}
+\end{center}
+\end{table}
+
+\begin{figure}[!h]
+\begin{center}
+\includegraphics{figures/complementarity_problem.pdf}
+\end{center}
+\caption[One-dimensional complementarity problems]{Examples of one-dimensional complementarity problems corresponding to \eqref{eq:lcp1d}. Solutions are marked with a cross. If $a$ is greater than zero, then there exists a single solution. If $a$ is less than zero, then two solutions exist if $b$ is greater than zero, or no solutions exist if $b$ is less than zero. If $a=0$ and $b\geq 0$, then there is a single solution at $(0,b)$, unless $b$ is also zero, in which case $(x,0)$ is a solution for all $x\geq 0$. }\label{fig:1d_comp}
+\end{figure}
+
+By eliminating $y$, we can rewrite \eqref{eq:lcp1d} as
+\begin{subequations}\label{eq:lcp2}
+\begin{align}
+	 ax + b&\geq 0, \label{eq:constraint-a}\\
+	 x&\geq 0,\label{eq:constraint-b}\\
+	 x(ax+b) &= 0.\label{eq:comp-condition}
+\end{align}
+\end{subequations}
+
+Now consider the following constrained minimization problem 
+\[ x^* = \argmin\limits_{x\geq 0} x\left(\frac{1}{2}ax + b\right),\]
+which is a quadratic program (QP). The Lagrangian of  this problem is 
+\[ \mathcal{L}(x,y) =  x\left(\frac{1}{2}ax + b\right) - yx,\]
+where $y$ is a Lagrange multiplier needed to enforce the constraint $x\geq 0$. The first-order optimality (KKT) conditions \cite{Sundaram1996} are
+\begin{subequations}\label{eq:lcp_min}
+\begin{align}
+	\nabla_x \mathcal{L}(x,y) = ax + b - y &= 0,\label{eq:lcp_min_a}\\
+	x &\geq 0,\\
+	y &\geq 0,\\
+	xy &= 0,\label{eq:slack}
+\end{align}
+\end{subequations}
+where the last condition \eqref{eq:slack} is  the complementary slackness condition. From \eqref{eq:lcp_min_a} we have that $y = ax + b$, which allows us to rewrite \eqref{eq:lcp_min} as
+\begin{align*}
+	ax + b &\geq 0,\\
+	x &\geq 0,\\
+	x(ax + b) &= 0,
+\end{align*}
+which is identical to \eqref{eq:lcp2}. Thus we have turned a constrained minimization problem into an LCP. The necessary optimality conditions for any QP lead to an LCP \cite{Murty1988}. We will see this in Section \ref{sec:stokes_variation}, when we transform the constrained variational Stokes equations into a sequence of LCPs. 
+
+A general LCP in $\mathbb{R}^n$ is the following: Given $\qq\in\mathbb{R}^n$ and $\MM\in\mathbb{R}^{n\times n}$, find $\ww\in\mathbb{R}^n$ and $\zz\in\mathbb{R}^n$ such that
+\begin{equation}\label{eq:lcp} \ww - \MM\zz = \qq,\qquad \ww,\zz\geq \mathbf{0}, \qquad \ww\cdot\zz = 0.\end{equation}
+Often, such a complementarity problem will be written in the compact notation 
+\[ 0 \leq \qq + \MM\zz\perp \zz \geq 0.\] 
+This notation is shorthand for saying that every component of $\zz$ must be positive, every component of $\ww = \qq + \MM\zz$ must be positive, and the inner product $\ww\cdot\zz$ must be zero. It follows from these conditions that at least one of $z_i$ or $w_i$ must be zero for each $i=1,\hdots, N$.
+
+More generally, there exist \emph{nonlinear} complementarity problems (NCPs) in $\mathbb{R}^n$: Given a mapping $F:\mathbb{R}^n\to\mathbb{R}^n$,  find $\zz\in \mathbb{R}^n$ such that
+\begin{equation} \label{eq:ncp}\zz \geq \mathbf{0}, \qquad F(\zz) \geq  \mathbf{0}, \qquad \zz\cdot F(\zz) = 0.\end{equation}
+In shorthand notation we write
+\[ 0 \leq F(\zz) \perp \zz\geq 0.\]
+
+\section{Solution Procedures}
+
+Solution procedures for complementarity problem is an active field of research. Depending on the properties of the matrix $\mathbf{M}$, an LCP may be easy to solve with a greedy type algorithm, it may be NP-hard, or it may be somewhere in between. It has been shown that an LCP with general integer data is NP-hard \cite{Murty1988}, and the only algorithm that is guaranteed to find a solution is an exhaustive search. 
+
+Besides exhaustive search, there are several possible avenues to attempt to solve an LCP. These include pivot methods, splitting methods, and Newton-type methods. We focus on a Newton-type method known as the Fischer-Newton method that uses Newton's method to solve the Fischer-Burmeister function. To solve NCPs, they can be linearized with Newton's method to create a sequence of LCPs whose solutions converge to the solution of the NCP.
+
+\subsection{Linear Complementarity Problems}
+
+
+Any LCP can be converted into a root finding problem by defining the the Fischer-Burmeister function $\phi:\mathbb{R}^n\to\mathbb{R}^n$ \cite{Fischer1992}
+\begin{equation}\label{eq:fischer} \bm{\phi}(\zz) = \bm{\phi}(\zz,\ww(\zz)) = \begin{pmatrix} \sqrt{\displaystyle z_1^2 + w_1^2} - z_1 - w_1\\ \vdots \\ \sqrt{\displaystyle z_n^2 + w_n^2} - z_n - w_n\end{pmatrix}.\end{equation}
+Equation \eqref{eq:fischer} satisfies the property
+\[ \phi_i(\zz, \ww) = 0\qquad \Longleftrightarrow \qquad0\leq z_i \perp w_i \geq 0.\]
+This can be verified by looking at at each possible case:
+\begin{center}
+\begin{tabular}{c |c | c | c}
+	& $z_i < 0$ & $z_i =0$ &$ z_i > 0$\\
+	\hline
+	$w_i < 0$ & $\phi_i > 0$ & $\phi_i > 0$ & $\phi_i > 0$\\
+	\hline
+	$w_i = 0$ & $\phi_i>0$ & $\phi_i = 0$ & $\phi_i = 0$\\
+	\hline
+	$w_i > 0$ & $\phi_i > 0$ & $\phi_i = 0$ & $\phi_i < 0$   
+\end{tabular}
+\end{center}
+The challenge of finding the root of $\bm{\phi}$ is that it is not differentiable if $z_i = w_i = 0$. 
+
+Nonetheless, to solve $\bm{\phi} = \mathbf{0}$, we apply Newton's method. Starting from an initial guess $\zz^0$, we choose a search direction by solving the linear system
+\[ \JJ\Delta \zz^k = \phi(\zz^k),\]
+ and then update $\zz^k$ according to $\zz^{k+1} = \zz^k + \tau\Delta\zz^k$, where $\tau$ is some step size is determined in the usual ways, for example using backtracking. Ordinarily $\JJ$ would be the Jacobian of $\bm{\phi}$, however, since $\bm{\phi}$ not differentiable everywhere, the classical Jacobian may not work.
+
+Instead of using the classical Jacobian, we make use of the generalized Jacobian. Before defining the generalized Jacobian, we must first define the B-subdifferential. 
+\begin{definition}
+	Consider a Lipshitz continuous function $F:\mathbb{R}^n\to\mathbb{R}^m$ and assume that $F$ is continuously differentiable on the subdomain $\mathcal{D}\subset\mathbb{R}^n$. The B-subdifferential of $F$ at a point $\xx$ is the set
+\[ \partial_B F(\xx) := \left\{\lim\limits_{\yy\to\xx} \nabla F ~| ~ \forall \yy\in\mathcal{D}\right\}.\]
+\end{definition}
+In other words, $\partial_B F(\xx)$ is the set of limiting values of the gradient of $F$ at $\xx$. The generalized Jacobian of $F$ at $\xx$, $\partial F(\xx)$, is the convex-hull of $\partial_B F(\xx)$.  If $F$ is continuously differentiable at $\xx$, then this limit is unique and the generalized Jacobian coincides with the classical Jacobian. 
+
+As a simple example, consider the function $f(x) = |x|$. This function is continuously differentiable everywhere, except $x=0$. The B-subdifferential of $f(0)$ is the set of limiting values of the continuous derivative at $x=0$. This is $+1$ if we are approaching from the right and $-1$ if we are approaching from the left. Therefore the B-subdifferential of $f(0)$ is the set $\{-1, 1\}$. The generalized derivative of $f$ at $x=0$ is the convex hull of this B-subdifferential, namely $\{m~|~|m| \leq 1\}$.
+
+The two-dimensional analogue of the absolute value is the function $e:\mathbb{R}^2\to\mathbb{R}$ given by  $e(\zz) = ||\zz|| = \sqrt{\zz^T \zz}$. This function has the gradient $\nabla e~=~\zz^T/||\zz||$ but is not continuously differentiable at the origin. Letting $x=r\cos\theta$ and $y=r\sin\theta$, $\theta\in [0,2\pi)$,  the B-subdifferential at the origin is
+\[ \partial_B e(\mathbf{0}) = \left\{\lim\limits_{r\to 0} \left(r\cos\theta/r, ~r\sin\theta/r\right)\right\} = \left\{\cos\theta, ~\sin\theta\right\} = \left\{\vv ~|~||\vv|| = 1\right\}.\]
+Then, the generalized derivative of $e(0)$ is the convex hull of this set,
+\[ \partial e(0) = \left\{ \vv ~|~||\vv||\leq 1\right\}.\]
+
+We can apply this result to determine the generalized Jacobian of the Fischer-Burmeister function \eqref{eq:fischer}. Letting $\yy = [z_i, w_i]$, each component of the range of $\phi$ can be written as
+\[ \phi_i(\yy) = e(\yy) - g(\yy),\]
+where $g(\yy) = [1,1]^T [z_i, w_i] = [1,1]^T \yy$. For $\yy\ne \mathbf{0}$, the gradient of $\phi_i$ is
+\[ \nabla\phi_i = \frac{\yy^T}{||\yy||} - [1,1]^T.\] 
+For $\yy=0$, the generalized gradient is 
+\[ \partial \phi_i = \left\{ \vv - [1,1]~|~||\vv||\leq 1\right\}.\]
+
+Combining this result with the chain rule, and recalling that $\ww = \qq + \MM\zz$,  the generalized Jacobian of $\phi(\zz,\ww)$ is
+\[ \JJ = \frac{\partial \phi_i}{\partial z_j} = \begin{dcases}
+			 \left\{ \vv - [1,1]~|~||\vv||\leq 1\right\}, & z_i = w_i = 0,\\
+			 \dfrac{z_i}{(z_i + w_i)^{1/2}}\left( z_k\delta_{kj} + 2w_k M_{kj}\right) - M_{ij} - \delta_{ij}, & \text{otherwise.}
+			 \end{dcases}
+			 \]
+
+At $z_i = w_i = 0$ the generalized Jacobian is a set of vectors. A descent direction at this point is chosen to be a particular element from this set. There are several possible choices for the Fischer-Burmeister function:
+\begin{itemize}
+	\item \textbf{random}: the gradient is picked randomly from the set of possible directions
+	\item \textbf{zero}: the gradient is taken to always be zero
+	\item \textbf{perturbation}: the gradient can be approximated by perturbing $z_i$ to some small value $\epsilon$
+	\item \textbf{approximation}: the gradient is approximated using finite difference
+\end{itemize}
+We will use a perturbation to compute the gradient at $z_i = w_i = 0$.
+
+\subsection{Nonlinear Complementarity Problems}
+
+To solve the NCP \eqref{eq:ncp}, a common procedure is to generate a sequence of solutions $\{\zz^k\}$, such that $\zz^{k+1}$ is a solution to the LCP 
+\[ 0 \leq \qq^k + \MM^k \zz^{k+1} \perp \zz^{k+1} \geq 0,\]
+where $\qq^k$ and $\MM^k$ approximate $F(\zz)$ near $\zz^k$. There are multiple choices for $\qq^k$ and $\MM^k$ including Newton's method where $\MM^k=\nabla F(\zz^k)$ and $\qq^k= F(\zz^k) - \MM^k\zz^k$. As with Newton's method for nonlinear equations, provided we are in the neighborhood of the solution $\zz^*$ and $F$ is sufficiently differentiable, this method's iterates converge quadratically to the solution of the NCP. 
+
+
+\section{Variational Stokes Equations}\label{sec:stokes_variation}
+
+In the algorithm outlined in Chapter \ref{chap:numerics}, at each time step we solve the Stokes equations, and then advance the rigid bodies according to the ODEs \eqref{eq:odes_rbm}. If two bodies are sufficiently close and $\Delta t$ is sufficiently large, then they may overlap after advancing in time. This is especially the case in concentrated suspensions, where it is certain that there will be rigid bodies in close proximity to one another. Spatial and temporal adaptivity \cite{Kropinski1999} help, but  as the distance between bodies approaches zero, the required spatial refinement and time step size become computationally infeasible. 
+
+As an alternative to adaptivity, a repulsion force can be used. This can be a force based on a Morse or Lennard-Jones potential \cite{Flormann2017, Liu2006} or a spring based force \cite{Kabacogulu2017, Zhao2013}, however both these methods require tuning parameters and add stiffness to the system. Therefore, small  time step sizes are required when rigid bodies are sufficiently close. In addition, these methods do not explicitly guarantee that overlap is avoided. 
+
+A different approach  \cite{Lu2017} uses a repulsion force that is free of tuning parameters and explicitly guarantees that overlap between bodies is avoided. This is done by imposing a constraint on the variational form of the Stokes equations. In Section \ref{sec:stiv} we define a metric $\VV$ to measure overlap between bodies. This metric will be defined so that $\VV < \mathbf{0}$ means that there is overlap between bodies. We will thus constrain the solution to the Stokes equations $\uu$ to be a solution such that, after advancing the rigid bodies in time, $\VV \geq \mathbf{0}$. 
+
+Without defining $\VV$ exactly, we can define a few of its properties. First, $\VV$ must be a function of $\uu$, otherwise constraining $\uu$ by $\VV$ would not be possible. Second, we let $\VV$ a vector, with each component measuring the overlap between a pair of bodies. Thus $\VV\in \mathbb{R}^m$, where $m=\binom{n_p}{2}$.
+
+The Stokes equations are the Euler-Lagrange equations of the constrained minimization problem,
+\begin{subequations}\label{eq:stokes_variation}
+\begin{align*}
+	 &\min_{\uu} \int_{V} \left(\frac{1}{2}\nabla \uu : \nabla \uu  \right)~\text{d}V,\\
+	 &\text{such that } \nabla\cdot\uu = 0.
+\end{align*}
+\end{subequations}
+By applying the KKT conditions, the pressure $p$ enters as a Lagrange multiplier to enforce the incompressibility constraint. As mentioned above, in addition to the incompressibility constraint, we also wish to enforce $\VV\geq \mathbf{0}$, and this leads to the constrained minimization problem
+ \begin{subequations}\label{eq:stokes_variation1}
+\begin{align}
+	 &\min_{\uu} \int_{V} \left(\frac{1}{2}\nabla \uu : \nabla \uu  \right)~\text{d}V,\\
+	 &\text{such that } \nabla\cdot\uu = 0,~~\VV \geq 0.
+\end{align}
+\end{subequations}
+The Lagrangian of \eqref{eq:stokes_variation1} is
+\[ \mathcal{L}(\uu,  p, \bm{\lambda}) = \int_{V} \left(\frac{1}{2} \nabla\uu:\nabla \uu  - p\nabla\cdot\uu\right)~\text{d}V+\bm{\lambda}\cdot\VV(\uu),\]
+where $\bm{\lambda}\in \mathbb{R}^m$ is a Lagrange multiplier that enforces the no overlap constraint.
+
+The first-order optimality conditions of the Lagrangian yield the forced Stokes equations,
+\begin{subequations}\label{eq:stokes_ncp}
+\begin{align}
+	-\Delta \uu + \nabla p &=  \FF_r(\xx),\\
+	\nabla\cdot\uu &= 0,\\
+	\VV(\uu) &\geq \mathbf{0},\\
+	\bm{\lambda} &\geq \mathbf{0},\\
+	\bm{\lambda}\cdot\VV(\uu) &= 0,
+\end{align}
+\end{subequations}
+where the repulsion force $\FF_r$ is
+\begin{equation}\label{eq:repulsion_force}\FF_r(\xx) = \int_{S} \text{d}_{\uu} \VV^T \bm{\lambda}\delta(\xx - \XX(s,t_0))~\text{d}S.\end{equation}
+Note that $\text{d}_{\uu}\VV$ is nonzero only on the boundaries of the rigid bodies, since changing the velocity at any other point inside the fluid domain does not change the amount of overlap between bodies. This is important, as it lets us reuse the boundary integral formulation developed in the previous chapters without introducing any volume integrals. The problem \eqref{eq:stokes_ncp} is an NCP since the relationship between $\VV$ and $\uu$ is nonlinear. 
+
+\section{Space-Time Interference Volumes}\label{sec:stiv}
+
+One possible choice for $\VV$ is a signed distance function \cite{Yan2017}, where we measure the closest distance between each rigid body pair. If two bodies  are overlapping then this distance is negative. This choice, though simple, has the disadvantage that if too large a time step is taken, contact may be missed even though the configuration is contact-free at the end of the time step.  Space-time interference volumes \cite{Harmon2011, Lu2017}  mitigate this issue by computing the volume swept out in the space-time plane during each time step. This value will be negative if there is contact at any point during the time step, even if the final configuration is contact-free. 
+
+Let $\xx(s,\tau)$ be a paramaterization of the boundary of the domain (all rigid bodies and walls) at time $\tau$ between an initial contact-free time $t_0$ and $t_1 = t_0+\Delta t$. The collection of points $\xx(s,\tau)$ define a moving boundary $S(\tau)$. For each point $\xx(s,\tau)$ let $\tau_I(s)$, $t_0 \leq \tau_I\leq t_1$ be the intersection time. That is, $\tau_I(s)$ is the first instance when $\xx(s,\tau)$ comes into contact with a different point on $S(\tau_I)$. Then, the space-time volume for the time interval $[t_0, t_1]$ is
+\begin{equation}\label{eq:stiv1}
+V^C(S,t_1) = -\int_{S(t_0)}\int_{\tau_I(s)}^{t_1} \sqrt{\epsilon^2 + (\uu(s,\tau)\cdot\nn(s,\tau))^2}~\text{d}\tau~\text{d}s,\end{equation}
+where $\nn(s,\tau)$ is the normal to $S(\tau)$ at $\xx(s,\tau)$ and $\uu(s,\tau)$ is its velocity. The small constant $\epsilon$ is used to smooth the expression and the time integration is over the entire history of particle overlap. 
+
+For a fixed $\tau$, the set of points such that $\tau_I(s)\leq \tau$ defines a set of boundary segments. Let $s_1(\tau)$ and $s_2(\tau)$ be the endpoints of one such segment at time $\tau$.  Using this notation, $\tau(s)\leq \tau$ is equivalent to $s_1(\tau)\leq s \leq s_2(\tau)$. We can exchange the order of integration and rewrite \eqref{eq:stiv1} as
+\[ \Delta V^C = -\int_{t_0}^{t_1} \int_{s_1(\tau)}^{s_2(\tau)} \sqrt{\epsilon^2 + (\uu(s,\tau)\cdot\nn(s,\tau))^2}~\text{d}s~\text{d}\tau.\]
+To first-order in $\Delta t$ this is equivalent to
+\[ \Delta V^C =  -\int_{s_1(t_0)}^{s_2(t_0)} \sqrt{\epsilon^2 + (\uu(s,t_0)\cdot\nn(s,t_0))^2}~\text{d}s\Delta t,\]
+and the rate of change of $V^C$ with respect to time is $\Delta V^C/\Delta t$. This lets us define
+\begin{equation}\label{eq:stiv_constraint} V(\uu, t_0) = -\int_{s_1(t_0)}^{s_1(t_0)} \sqrt{\epsilon^2 + (\uu(s,t_0)\cdot\nn(s,t))^2}~\text{d}s + \epsilon.\end{equation}
+We will use \eqref{eq:stiv_constraint} as a constraint in the next section. Note that we have added $\epsilon$ to make sure $V(\uu,t_0)$ can be zero. The variation of $V(\uu,t_0)$ with respect to $\uu$ is
+\begin{equation}\label{eq:stiv_variation} \text{d}_{\uu}V[\delta\uu] = \frac{\text{d}}{\text{d}h}  V(\uu + h \delta\uu,t_0)\bigg\rvert_{h=0} = -\int_{s_1(t_0)}^{s_2(t_0)} \dfrac{(\uu\cdot\nn)(\nn\cdot\delta \uu)}{\sqrt{\epsilon^2 + (\uu\cdot\nn)^2}}~\text{d}s.\end{equation}
+
+Instead of just preventing overlaps between rigid bodies, we can control the minimum distance between them. Defining $d_m\geq 0$, we modify the computation of $\tau_I$ to  be the time of contact of the displaced surfaces $S(\tau) + d_m\nn(\tau)$. Keeping bodies sufficiently separated means that we can limit potentially expensive near singular integration and control the stiffness of the problem.
+
+
+
+\section{The Boundary Integral Formulation as a NCP}
+
+At each time step the cannonical equations \eqref{eq:canonical_velocity} and \eqref{eq:canonical_closure} are solved. We write these equations in the compact form
+\[ \mathbf{A}\bm{\Psi} = \bb,\]
+where $\bm{\Psi}$ is a vector consisting of the density function $\bm{\eta}$ as well as the translational and rotational velocities of all the bodies and $\bb$ is a vector consisting of the velocities on the surfaces of the bodies, as well as the net force and torque on each body. Modifying the right hand allows us to introduce contact forces between bodies,
+ \begin{equation}\label{eq:compact} \mathbf{A}\bm{\Psi} = \bb + \mathbf{G}\hat{\ff},\end{equation}
+where $\hat{\ff}$ is a vector containing the forces and torques on each rigid body, and $\mathbf{G}\in \mathbb{R}^{2N+3n}\times\mathbb{R}^{3n}$ maps the contact forces to their corresponding velocities. Defining $\bm{\lambda}\in \mathbb{R}^m$ to be a scaling factor associated with each possible collision, and $\hat{\FF}_c \in \mathbb{R}^{3n_p}\times \mathbb{R}^m$ to be the repulsion forces associated with each collision region, we have
+\[
+	\hat{\ff} = \hat{\FF}_c\cdot\bm{\lambda} =  \begin{pmatrix} \hat{\ff}_1^1 & \hdots & \hat{\ff}^{m}_1\\  \vdots & \ddots & \vdots \\ \hat{\ff}_{n_p}^1 & \hdots & \hat{\ff}_{n_p}^m\end{pmatrix} \begin{pmatrix} \lambda_1 \\ \vdots \\ \lambda_m\end{pmatrix} = \begin{pmatrix} \lambda_1 \hat{\ff}_1^1 + \hdots + \lambda_m\hat{\ff}_1^m\\ \vdots \\\lambda_1 \hat{\ff}_{n_p}^1 + \hdots + \lambda_m\hat{\ff}_{n_p}^m\end{pmatrix},
+\]
+where $\hat{\ff}_i^q$ are the forces and torques on rigid body $i$ due to contact region $q$. Equation \eqref{eq:repulsion_force} tells us that $\hat{\ff}_i$ is related to $\text{d}_\uu \VV$, specifically $\hat{\ff}^q_i = (\FF^q_i, L^q_i)$ where,
+\begin{equation}\label{eq:stiv_force} \FF^q_i = \int_{\Gamma^q_i} \text{d}_\uu \VV~\text{d}S, \qquad L^q_i =\int_{\Gamma^q_i} (\text{d}_\uu \VV)\cdot(\xx -\cc^p_q)^\perp~\text{d}S,\end{equation}
+and $\Gamma_i^q$ is the surface of part of rigid body $i$ that belongs to contact region $q$.
+
+We require $\bm{\lambda}\geq 0$ so that overlapping bodies repel one another. As discussed in the introduction to this section, we also require that if there is no contact, then the magnitude of the repulsion force is zero. Thus we have the complementarity problem
+\begin{equation}\label{eq:ncp_mobility}0 \leq  \VV(\bm{\Psi}) \perp \bm{\lambda} \geq 0.\end{equation}
+
+Performing a first-order linearization
+\[ 0 \leq \VV(\Psi^k) + \text{d}_{\bm{\Psi}}\VV(\bm{\Psi}^k)\cdot\Delta \bm{\Psi} \perp \bm{\lambda}^{k+1} \geq 0.\]
+From \eqref{eq:compact}, we know that
+\[ \Delta\bm{\Psi} = \mathbf{A}^{-1}\cdot\mathbf{G}\cdot\hat{\FF}_c\cdot\bm{\lambda}^{k+1}.\]
+Thus we have the LCP
+\begin{equation}\label{eq:lcp_repulsion} 0 \leq \VV(\bm{\Psi}^k) + \BB\bm{\lambda}^{k+1} \perp\ \bm{\lambda}^{k+1} \geq 0,\end{equation}
+where $\BB = \text{d}_{\bm{\Psi}}\VV \cdot\mathbf{A}^{-1}\cdot \mathbf{G} \cdot \hat{\FF}_c$. Algorithm \ref{alg:contact-free} presents the algorithm that incorporates repulsion forces to advance to a contact-free time step. The matrix $\BB$ is an $m\times m$ matrix, where the entry $B_{ij}$ is the change induced by the $i^\text{th}$ contact volume by the $j^\text{th}$ contact force. This matrix is sparse and the largest entries will be along the diagonal, since a repulsion force will affect mainly its corresponding volume. Figure \ref{fig:contact_resolution} provides a sketch of this algorithm applied to circles in an extensional flow. 
+
+\begin{algorithm}[!h]
+\KwData{initial positions $\hat{\qq}^0$}
+\KwResult{contact-free configuration $\hat{\qq}^1$ }
+Solve $\mathbf{A} \bm{\Psi} = \bb$ for $\hat{\uu}$;\\
+$\hat{\qq}^1 \gets \hat{\qq}^0 + \Delta t\hat{\uu}$; \\
+Compute $\VV(\hat{\qq}^1)$;\\
+\tcc{NCP iteration}
+\While{ $\VV < \mathbf{0}$}{
+	Compute $\text{d}_{\uu}\VV$, $\hat{\FF}$;\\
+	$\BB \gets \text{d}_{\bm{\Psi}}\VV\cdot\mathbf{A}^{-1}\cdot\mathbf{G}\cdot\hat{\FF}$;$\qquad$\tcp{Construct $\BB$} 
+	Solve LCP: $0 \leq \VV + \BB\bm{\lambda} \perp \bm{\lambda} \geq 0$ for $\bm{\lambda}$;\\
+	$\bb \gets \bb + \mathbf{G}\hat{\FF}_c\bm{\lambda}$;\\
+	Solve $\mathbf{A} \bm{\Psi} = \bb$ for $\bm{\Psi}$;$\qquad$\tcp{Stokes solve} 
+	$\hat{\qq}^1 \gets \hat{\qq}^0 + \Delta t\hat{\uu}$; \\
+	Compute $\VV(\hat{\qq}^1)$;
+	}
+	\caption{Algorithm to advance simulation to a contact-free configuration.}\label{alg:contact-free}	
+\end{algorithm}
+
+Each time step requires the solution to a sequence of LCPs. Experience has shown that the solution often converges to the solution of the NCP after only one or two iterations. However, in certain situations the sequence of LCPs can be very lengthy. Since each LCP solve corresponds to solving the Stokes equations with a different contact force, limiting the number of required LCP solves is critical to keeping the computational cost reasonable. An approach that we have used is a heuristic adaptive time stepping routine. If the number of LCP iterations goes above a critical value, we halve the time step size. Conversely, if the number of LCP iterations is small (less than five for example) we increase the time step size slightly.
+
+\begin{figure}[!h]
+\begin{center}
+\begin{tabular}{c c c}
+$t_0$ & & $t_0 + \Delta t$\\
+\hline
+\\
+& & $\VV \leq \mathbf{0}$\\
+\begin{minipage}{0.35\textwidth}
+\includegraphics[angle=90]{figures/stiv_init.pdf}
+\end{minipage} &   Stokes solve $\rightarrow$ &
+\begin{minipage}{0.35\textwidth}
+ \includegraphics[angle=90]{figures/stiv1.pdf}
+ \end{minipage}\\
+ \hline
+ \\
+NCP iteration 1 & & $\VV \leq \mathbf{0}$\\
+\begin{minipage}{0.35\textwidth}
+\includegraphics[angle=90]{figures/stiv_NCP1.pdf}
+\end{minipage}
+ & Stokes solve $\rightarrow$ & 
+ \begin{minipage}{0.35\textwidth}
+ \includegraphics[angle=90]{figures/stiv2.pdf} 
+ \end{minipage}\\
+ \hline
+ \\
+NCP iteration 2 & & $\VV = \mathbf{0}$\\
+\begin{minipage}{0.35\textwidth}
+\includegraphics[angle=90]{figures/stiv_NCP2.pdf} 
+\end{minipage}
+& Stokes solve $\rightarrow$ & 
+\begin{minipage}{0.35\textwidth}
+\includegraphics[angle=90]{figures/stiv3.pdf}
+\end{minipage}
+\end{tabular}
+\end{center}
+\caption[Collision resolution]{Consider two circular bodies in the extensional flow $(-x,y)$. Starting from an initial contact-free configuration, the Stokes equations are solved. After time stepping, the circles are pushed into one another and overlap occurs. A linear interpolation of the bodies' tracjectories are used to estimate $\VV$ and $\text{d}_{\mathbf{u}}\VV$. From $\text{d}_{\mathbf{u}}\VV$ (red arrows), we compute the direction of the net force and torque on each body. Solving the LCP \eqref{eq:lcp_repulsion} gives the magnitude $\bm{\lambda}^0$. This repulsion force updates the right hand side $\bb$ and the Stokes equations are solved again. In this example, this repulsion force (green arrow) is not enough to prevent overlap, and the LCP \eqref{eq:lcp_repulsion} is solved again for $\bm{\lambda}^1$. This new repulsion force updates $\bb$ and the Stokes equations are solved again. At this point the circles do not overlap and the configuration is accepted and we advance to the next time step.}\label{fig:contact_resolution}
+\end{figure}
+

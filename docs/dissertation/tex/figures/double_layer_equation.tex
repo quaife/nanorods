@@ -1,0 +1,62 @@
+% This file was created by matlab2tikz.
+%
+%The latest updates can be retrieved from
+%  http://www.mathworks.com/matlabcentral/fileexchange/22022-matlab2tikz-matlab2tikz
+%where you can also make suggestions and rate matlab2tikz.
+%
+\documentclass{article}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{pgfplots}
+\usepackage{grffile}
+\pgfplotsset{compat=newest}
+\usetikzlibrary{plotmarks}
+\usepgfplotslibrary{patchplots}
+\usepackage{amsmath}
+\usetikzlibrary{decorations.markings}
+\usetikzlibrary{shapes,snakes}
+\usetikzlibrary{calc}
+\usepackage{amsthm}
+\usepackage{amssymb} 
+\usepackage{amsmath} 
+\usepackage{bm}
+\usepackage{mathtools}
+\usetikzlibrary{positioning}
+
+\newcommand{\FF}{{\mathbf{F}}}
+\newcommand{\RR}{{\mathbf{R}}}
+\newcommand{\Ss}{{\mathbf{S}}}
+\newcommand{\LL}{{\mathbf{L}}}
+\newcommand{\nn}{{\mathbf{n}}}
+\newcommand{\cc}{{\mathbf{c}}}
+\newcommand{\KK}{{\mathbf{K}}}
+\newcommand{\uu}{{\mathbf{u}}}
+
+\newcommand{\tikzmark}[1]{\tikz[overlay,remember picture] \node (#1) {};}
+
+\begin{document}
+
+\begin{align*}
+	 \biggr(-\frac{1}{2} &+ \Delta q |\varphi'(q^0_\ell)|\bigg(\frac{\kappa(\varphi(q^0_\ell)) \bm{\tau}(q^0_\ell)\otimes\bm{\tau}(q^0_\ell)}{2\pi} + 1\bigg)\biggr)\bm{\eta}^0_\ell \tikzmark{a}\\
+	 &+ \Delta q\sum_{\substack{k=1\\ k\ne \ell}}^{N_w}\left(\left( \mathbf{K}(\varphi(q^0_\ell),\varphi(q^0_k))+ \nn(\phi(q^0_\ell))\nn(\phi(q^0_k))\bm{\eta}^0\right)|\varphi'(q^0_k)| \right)\tikzmark{b} \\
+	 &+ \sum\limits_{m=1}^{n_w}  \Delta q\sum\limits_{k=1}^{N_w} \mathbf{K}(\varphi(q^0_\ell), \varphi(q^n_k))\bm{\eta}^n_k|\varphi'(q^n_k)| \tikzmark{c}  \\ 
+	 &+  \sum\limits_{r=1}^{n_p}  \Delta s\sum\limits_{k=1}^{N_p} \mathbf{K}(\varphi(q^0_\ell), \phi(s^r_k))\bm{\zeta}^r_k|\phi'(s^r_k)| \tikzmark{d}\\ 
+	 &+ \sum\limits_{m=1}^{n_w} \left(\Ss[\FF^w_m](\varphi(q^0_\ell),\cc^w_m) + \RR[\LL^w_m](\varphi(q^0_\ell),\cc^w_m)\right) \tikzmark{e}\\
+	 &= \uu(\varphi(q^0_\ell)) - \sum\limits_{r=1}^{n_p} \left(\Ss[\FF^p_r](\varphi(q^0_\ell),\cc^p_r) +\tikzmark{f} \RR[\LL^p_r](\varphi(q^0_\ell),\cc^p_r)\right) ,\qquad \ell=1,\hdots,N_w.
+\end{align*}
+
+\begin{tikzpicture}[overlay, remember picture]
+	\node (Intra) [right=2.5em of a.north] {Intra-body contributions};
+	\draw[->] (Intra) -- (a.north);
+	\draw[->] (Intra) -- (b.north);
+	
+	\node (Inter) [right=2.5em of c.north] {Inter-body contributions};
+	\draw[->] (Inter) -- (c.north);
+	\draw[->] (Inter) -- (d.north);
+	
+	\node (Rot) [above right=1em and 1em of e.north] {Rotlet and Stokeslet contributions};
+	\node (f)[above=0.5em of f.north]{};
+	\draw[->] (Rot) -- (e.north);
+	\draw[->] (Rot) -- (f);
+\end{tikzpicture}
+\end{document}
