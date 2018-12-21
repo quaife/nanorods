@@ -306,15 +306,17 @@ suspensions. Artificial repulsion forces~\cite{Flormann2017, Liu2006,
 Malhotra2018, Lu2017, Kabacogulu2017} minimize, but do not eliminate,
 the chance of a collision. Moreover, these potentials often have sharp
 gradients which lead to stiffness and necessitate a small time step
-size. Alternatively, a repulsion force based on the concept of
-space-time interference volumes (STIVs)~\cite{Harmon2011, Lu2017}
-explicitly prevents collisions between particles.  Using current STIV
-implementations, the minimum separation distance between bodies cannot
-be too small; otherwise, the associated optimization algorithm stalls.
-This is a result of treating interactions between different bodies
-explicitly.  Therefore, in this work, we extend the STIV contact
-algorithm to implicit interactions so that bodies are able to come much
-closer---a physical characteristic of dense suspensions of rigid bodies.
+size. Alternatively, a Lagrange multiplier method that explicitly
+prevents collisions between particles can be used~\cite{Harmon2011,
+Lu2017}.  In these works, the Lagrange multipliers are used to enforce
+that the space-time interference volumes (STIVs) between all particles
+are zero.  Using current STIV implementations, the minimum separation
+distance between bodies cannot be too small; otherwise, the associated
+optimization algorithm stalls.  This is a result of treating
+interactions between different bodies explicitly.  Therefore, in this
+work, we extend the STIV contact algorithm to implicit interactions so
+that bodies are able to come much closer---a physical characteristic of
+dense suspensions of rigid bodies.
 
 In addition to coupling all the bodies implicitly, we further improve
 time stepping by allowing for an adaptive time step size.  There are a
@@ -372,7 +374,7 @@ imposed on the rigid bodies $\gamma$, and the rigid bodies are assumed
 to be force- and torque-free.  On each solid wall, there is a net force
 and torque, $\FF^\Gamma_i$ and $L^\Gamma_i$, respectively, that depend
 on the boundary condition.  A similar force, $\FF^\gamma_j$, and torque
-$\L^\gamma_j$ are defined for each rigid body $\gamma_j$, but these, for
+$L^\gamma_j$ are defined for each rigid body $\gamma_j$, but these, for
 the time being, are assumed to be 0.  Therefore, the governing equations
 for $M_p$ particles suspended in a bounded $M_w$-connected domain is
 \begin{equation}
@@ -518,7 +520,7 @@ equation~\eqref{eqn:modelEquations} is
   \int_{\gamma_j} \eeta~\text{d}s &= \FF^\gamma_j, \quad
   \int_{\gamma_j} \eeta\cdot (\xx - \cc^\gamma_j)^\perp~\text{d}s =
   L^\gamma_j,\quad j=1,\ldots,M_p, \label{eqn:BIEformulation4} \\
-  \FF^\gamma_j &= 0, \quad \L^\gamma_j = 0,\quad j=1,\ldots,M_p.
+  \FF^\gamma_j &= 0, \quad L^\gamma_j = 0,\quad j=1,\ldots,M_p.
   \label{eqn:BIEformulation5}
 \end{align}
 \end{subequations}
@@ -576,8 +578,10 @@ is that they do not guarantee that particles remain contact-free.
 We apply a modification of the contact-aware method of Lu et
 al.~\cite{Lu2017} that explicitly requires that particles remain
 contact-free. We only summarize the method, but a in-depth description
-is in~\cite{Lu2017}.  The method starts with the Stokes equations in
-variational form,
+is in~\cite{Lu2017}.  To apply a Lagrange multiplier method, the
+governing equations~\eqref{eqn:modelEquations} are written as a
+constrained optimization problem by using the variational form of the
+Stokes equations
 \begin{align}
   \min \int_{\Omega} \nabla\uu:\nabla\uu~\text{d}\Omega,
   \quad\text{ such that }\quad \nabla\cdot\uu = 0, 
@@ -713,9 +717,9 @@ Equations~\eqref{eqn:BIEformulation} are discretized as
   \UU(\xx_i) = -\frac{1}{2}\eeta(\xx_i) + 
   \sum_{k=1}^{N} K(\xx_i,\xx_k) \eeta(\xx_k) \Delta s_k
     &+ \sum_{j=1}^{M_p} \left(\mathbf{S}(\xx_i,\cc^\gamma_j)\FF_j +
-    \mathbf{R}(\xx_i,\dd_j)L_j\right)  \\
+    \mathbf{R}(\xx_i,\cc_j)L_j\right)  \\
     &+ \sum_{j=1}^{M_w} \left(\mathbf{S}(\xx_i,\cc^\Gamma_j)\FF_j +
-    \mathbf{R}(\xx_i,\cc^\Gamma_j)\L_j\right), \quad \xx_i \in \Gamma,
+    \mathbf{R}(\xx_i,\cc^\Gamma_j)L_j\right), \quad \xx_i \in \Gamma,
   \end{aligned}
 \end{equation*}
 for $\xx_i \in \Gamma$, and
@@ -725,9 +729,9 @@ for $\xx_i \in \Gamma$, and
 -\frac{1}{2}\eeta(\xx_i) +
 \sum_{k=1}^{N} K(\xx_i,\xx_k) \eeta(\xx_k) \Delta s_k
     &+ \sum_{j=1}^{M_p} \left(\mathbf{S}(\xx_i,\cc^\gamma_j)\FF_j +
-    \mathbf{R}(\xx_i,\dd_j)L_j\right) \\
+    \mathbf{R}(\xx_i,\cc_j)L_j\right) \\
     &+ \sum_{j=1}^{M_w} \left(\mathbf{S}(\xx_i,\cc^\Gamma_j)\FF_j +
-    \mathbf{R}(\xx_i,\cc^\Gamma_j)\L_j\right),
+    \mathbf{R}(\xx_i,\cc^\Gamma_j)L_j\right),
   \end{aligned}
 \end{equation*}
 for $\xx \in \gamma_j$, where $N = M_w N_w + M_p N_p$ is the total
@@ -773,13 +777,14 @@ torque-free bodies from time $t$ to $t + \Delta t$ with
 equation~\eqref{eqn:centersAngles}.  Then, equation~\eqref{eqn:stokesEL}
 needs to be solved with the inequality constraint that the STIV is
 greater than zero.  The definition of the STIV includes a parameter that
-guarantees that not only do bodies intersect, but they maintain minimum
-separation distance. Following~\cite{Lu2017}, we use a Lagrange
-multiplier to satisfy the non-negative STIV inequality constraint (a
-negative STIV indicates contact).  The resulting equations are  the
-incompressible Stokes equations with body forces and torques that depend
-on the gradient of the STIV, and the inequality constraint that the STIV
-is less than or equal to zero.  Therefore, the governing equations are
+guarantees that not only do bodies not intersect, but they maintain
+minimum separation distance. Following~\cite{Lu2017}, each pair of
+colliding bodies is given a single Lagrange multiplier that is used to
+satisfy the non-negative STIV inequality constraint (a negative STIV
+indicates contact).  The resulting equations are the incompressible
+Stokes equations with body forces and torques that depend on the
+gradient of the STIV, and the inequality constraint that the STIV is
+less than or equal to zero.  Therefore, the governing equations are
 similar to~\eqref{eqn:BIEformulation}, except that the force- and
 torque-free conditions have been changed.
 
@@ -871,7 +876,7 @@ sufficiently large minimum separation distance is used.
 Instead of avoiding nearly-touching bodies, we use the {\em globally
 implicit} discretization
 \begin{align}
-  \DD[\eeta](\xx) \approx \DD^{N}[\eeta_{N+1}](\xx) +
+  \DD[\eeta](\xx) \approx \DD^{N}[\eeta^{N+1}](\xx) +
   \DD^{N}[\eeta^{N+1}](\xx).
   \label{eqn:SemiImplicit}
 \end{align}
@@ -1072,24 +1077,25 @@ algorithm.\label{tab:reverse}}
 \end{table}
 
 The break in reversibility is further demonstrated by examining
-individual streamlines.  In Figure~\ref{fig:shear_cross}, we compute the
-streamline of the left body for three different initial placements.  We
-set $\delta=3h$ for all the streamlines.  With this threshold, only the
-bottom-most streamline falls below $\delta$.  Therefore, as the bodies
-approach, the streamlines behave as expected---they do not cross.
-However, when the contact algorithm is applied to the blue streamline,
-the streamlines cross.
+the trajectories of two rigid bodies with three different initial
+setups.  In Figure~\ref{fig:shear_cross}, we compute the
+trajectory of the left body for three different initial placements.  We
+set $\delta=3h$ for all three simulations.  With this threshold, only the
+bottom-most path line falls below $\delta$ as the two bodies approach
+one another.  Therefore, as the bodies approach, the streamlines behave
+as expected---they do not cross.  However, when the contact algorithm is
+applied to the blue trajectory, the pathlines cross.
 
 \begin{figure}[t]
 \centerline{\includegraphics{figures/shear_streamlines_cross.pdf}}
-\caption{\label{fig:shear_cross} The contact algorithm causes
-streamlines to cross. Keeping the minimum separation fixed at
-$\delta=3h$, we vary the starting $y$ location of the left body. The
-teal and red streamlines do not require a repulsion force to enforce the
-minimum separation between the bodies, but the blue streamline does.
-Once the contact algorithm is applied, the blue streamline crosses the
-other streamlines (middle inset). This crossing of the streamlines
-breaks the reversibility of the simulation.}
+\caption{\label{fig:shear_cross} The contact algorithm causes pathlines
+to cross. Keeping the minimum separation fixed at $\delta=3h$, we vary
+the starting $y$ location of the left body. The teal and red pathlines
+do not require a repulsion force to enforce the minimum separation
+between the bodies, but the blue pathline does.  Once the contact
+algorithm is applied, the blue pathline crosses the other pathlines
+(middle inset). This crossing of the pathlines breaks the reversibility
+of the simulation.}
 \end{figure}
 
 

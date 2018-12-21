@@ -2,6 +2,7 @@
 
 
 \usepackage{fullpage}
+\usepackage{todonotes}
 \usepackage{amsmath,amsfonts,amssymb,stmaryrd}
 \usepackage{color}
 \newcommand{\comment}[1]{{\color{blue} #1}}
@@ -15,7 +16,9 @@ Thank you for reading ....
 Are you using one contact volume constraint among all particles or one
 contact volume constraint per contact region?}
 \begin{itemize}
-  \item
+  \item The reviewer is correct that there is a single Lagrange
+    multiplier for each pair of colliding bodies.  The text has been
+    modified in Section 3.2.
 \end{itemize}
 
 \noindent
@@ -28,20 +31,23 @@ contact volume constraint per contact region?}
   on the NCP solve stage and the time spent on globally implicit time
   stepping without NCP solve?}
 \begin{itemize}
-  \item
+  \item \todo[inline]{Lukas: Can you comment on this?}
 \end{itemize}
 
 \noindent
 \comment{Typo on equation 7e, the torque $L$.}
 \begin{itemize}
-  \item
+  \item This is corrected
 \end{itemize}
 
 \noindent
 \comment{Typos around page 8 line 27 and line 34 '$d_j$' in Rotlet and the
 torque $L$?}
 \begin{itemize}
-  \item
+  \item There were several typos in these equations.  The $\mathbf{d}_j$
+    should have been $\mathbf{c}_j$ since these correspond to the center
+    of the rigid bodies or the interior elemenets of the boundary of the
+    solid walls.  The typo for the torque $L$ is also corrected.
 \end{itemize}
 
 
@@ -90,11 +96,12 @@ paper", it lacks depth in its analysis.}
   story, because one major source of ill-conditioning is the bending
 force.  Please quantify the effect of the preconditioner.}
 \begin{itemize}
-  \item
+  \item \todo[inline]{Lukas: Can you investigate the effect of the
+    block-diagonal preconditioner when rigid bodies are close}
 \end{itemize}
 
 \noindent
-\comment{Page 10, last line: ''semi-implicit time integrator proposed by
+\comment{Page 10, last line: ``semi-implicit time integrator proposed by
   Lu et al.~results in the STIV algorithm stalling." This should be
   elaborated more.  It is unclear why small minimal separation break the
   algorithm.  Is it due the semi-implicit scheme, the LCP solver, the
@@ -120,7 +127,8 @@ of this result.}
 \comment{Also, in Figure 3, what is drawn are not streamlines.  They are
 Pathlines.}
 \begin{itemize}
-  \item
+  \item The reviewer is correct.  The language in the caption of Figure
+    3 and in the text that refers to Figure 3 has been modified.
 \end{itemize}
 
 
@@ -133,7 +141,7 @@ method?  What causes the limitation.}
 \end{itemize}
 
 \noindent
-\comment{Page 2, line 47, ''Deformable bodies, such as vesicles, deform as
+\comment{Page 2, line 47, ``Deformable bodies, such as vesicles, deform as
 they approach one another, and this creates a natural minimum separation
 distance." Why is this true?  does this depend on flow/particle type?}
 \begin{itemize}
@@ -147,13 +155,18 @@ distance." Why is this true?  does this depend on flow/particle type?}
   Lagrangian to impose the collision-free constraint and not a repulsion
   force.  Please rephrase.}
 \begin{itemize}
-  \item
+  \item The reviewer is correct.  The work of Lu et al.~is a Lagrange
+    multiplier method which acts as an {\em artificial repulsion force}
+    (as described by Lu et al.).  We have modified the text to make it
+    clear that the method is not a repulsion force in the traditional
+    sense.
 \end{itemize}
 
 \noindent
 \comment{Page 4, line 54, the symbol for torque is missing.}
 \begin{itemize}
-  \item
+  \item This was a latex error that occurred in several locations---they
+    have all been corrected.
 \end{itemize}
 
 \noindent
@@ -177,7 +190,12 @@ appendix.}
 \comment{Equation 9, is just the Stokes equation in energy form, which
 is already given in Eq.~2.}
 \begin{itemize}
-  \item
+  \item We agree that equations (9) and (2) are identical.  However, to
+    address the constraint that the STIV is zero, one approach is to
+    formulate the problem as a constrained optimization problem.  This
+    is the approach taken by Liu et al.  Note, however, that we are only
+    trying to highlight the relevant and key points of the work of Liu
+    et al.
 \end{itemize}
 
 \noindent
@@ -232,7 +250,7 @@ section.}
 \comment{Section 3.2, page 9, line 3, not only do bodies not intersect..
 (missing ``not")}
 \begin{itemize}
-  \item
+  \item Thank you for catching this typo.  The text is adjusted.
 \end{itemize}
 
 \noindent
@@ -247,7 +265,7 @@ particle in equations 13,14 on Page 10.}
 \comment{In equation 14, there is an inconsistent subscript as opposed
 to a superscript for $\eta^{N+1}$}
 \begin{itemize}
-  \item
+  \item Thank you for catching this typo.  The equation is corrected.
 \end{itemize}
 
 
