@@ -2,11 +2,11 @@ function [options,prams] = initRigid2D(options,prams)
 % set the path and assign options and prams to default values if they
 % have not been assigned
 
-P = path; ii = find(pwd == filesep); ii = ii(end);
-subPath = pwd; subPath = [subPath(1:ii) 'src'];
-if isempty(strfind(P, subPath))
-  addpath(subPath)
-end
+% P = path; ii = find(pwd == filesep); ii = ii(end);
+% subPath = pwd; subPath = [subPath(1:ii) 'src'];
+% if isempty(strfind(P, subPath))
+%   addpath(subPath)
+% end
 
 PramList = {'Np','np', 'Nw', 'nw', 'lengths', 'widths', 'rounding_order', ...
                         'T', 'number_steps'};
