@@ -9,8 +9,8 @@ CPPFLAGS := -Iiagm -I${EIGEN_INC} -Iiagm/iagm/inc -Iiagm/iagm/src
 LIBS 	 := -Liagm/iagm/lib -liagm
 
 MEXSUFFIX  = mexglx
-MATLABHOME = /usr/local/matlab
-MEX        = /usr/local/matlab/bin/mex
+MATLABHOME = /opt/matlab/r2018a/
+MEX        = /opt/matlab/r2018a/bin/mex
 CXX        = g++
 CFLAGS     = -ansi -D_GNU_SOURCE  -fexceptions -fPIC -fno-omit-frame-pointer -DMX_COMPAT_32 \
                -DMATLAB_MEX_FILE

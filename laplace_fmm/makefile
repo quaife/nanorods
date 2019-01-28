@@ -1,5 +1,5 @@
 #MEX=/Applications/MATLAB_R2015a.app/bin/mex
-MEX = /usr/local/matlab/bin/mex
+MEX = /opt/matlab/r2018a/bin/mex
 
 FORTRAN = gfortran
 #FORTRAN = ifort
