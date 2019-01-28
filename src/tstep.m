@@ -1313,7 +1313,6 @@ if iv < 0 && o.tstep_order == 2
         maxIter, totalPts, c_tol, np, nw, Np*upsampleFactor, Nw*upsampleFactor,...
         nexten, max(cellSizeP,minSep));
     
-    
     solution.xc_new = xc_new;
     solution.tau_new = tau_new;
     solution.uP = uP;
