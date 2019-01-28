@@ -25,9 +25,9 @@ function o = monitor(options, prams, xc, tau)
 % monitor(options,prams) saves options and parameters needed by the class.
 % This is the constructor
 
-o.OUTPUTPATH_DATA = '../output/data/';
-o.OUTPUTPATH_LOG = '../output/logs/';
-o.OUTPUTPATH_PROFILE = '../output/profile/';
+o.OUTPUTPATH_DATA = 'output/data/';
+o.OUTPUTPATH_LOG = 'output/logs/';
+o.OUTPUTPATH_PROFILE = 'output/profile/';
 
 o.verbose = options.verbose;
 % write data to console
