@@ -1339,6 +1339,15 @@ while iv(end) < 0
     n_volumes_new = max(ids);
     o.om.writeMessage(['Number of intersection volumes: ', num2str(n_volumes_new)])
     
+    % set vgrad to normal
+    nx = geomOld.xt(end/2 + 1:end,:);
+    ny = -geomOld.xt(1:end/2,:);
+    
+    n = [nx;ny];
+    n = n(:);
+    n(vgrad == 0) = 0;
+    vgrad = n;
+    
     if colCount == 1
         n_volumes_init = max(ids);
         o.om.writeMessage(['Initial number of volumes:', num2str(n_volumes_init)]);
@@ -1410,7 +1419,7 @@ while iv(end) < 0
     
     % if at least one of the lambda values is negative use Fisher-Newton to
     % solve for best positive lambdas
-    balance = true;
+    balance = false;
     
     if max(lambda) < 0
         o.om.writeMessage('WARNING: ALL LAMBDAS NEGATIVE, LCP CONSTRAINTS VIOLATED');
@@ -1638,9 +1647,12 @@ else
 end
 
 
-[forceBalanced, torqueBalanced] = o.balance_force(geomOld, ...
-            [forceP_orig,forceW_orig], [torqueP_orig, torqueW_orig],...
-            vtoiv, bounding_wall_number);
+% [forceBalanced, torqueBalanced] = o.balance_force(geomOld, ...
+%             [forceP_orig,forceW_orig], [torqueP_orig, torqueW_orig],...
+%             vtoiv, bounding_wall_number);
+
+forceBalanced = [forceP_orig,forceW_orig];
+torqueBalanced =  [torqueP_orig, torqueW_orig];
 
 forceP_all = forceBalanced(:,1:np);
 torqueP_all = torqueBalanced(1:np);
@@ -1648,7 +1660,7 @@ torqueP_all = torqueBalanced(1:np);
 forceW_all = zeros(2,nw);
 torqueW_all = zeros(nw,1);
 
-C = o.determine_clusters(vtoiv, bounding_wall_number);
+%C = o.determine_clusters(vtoiv, bounding_wall_number);
 
 % LOOP OVER INTERSECTION VOLUMES
 for i = 1:nivs
