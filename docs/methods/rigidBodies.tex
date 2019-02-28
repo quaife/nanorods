@@ -863,26 +863,32 @@ The leading source of stiffness for a particular rigid body is the
 velocity field induced by the body itself. This can be controlled with a
 {\em locally implicit} discretization
 \begin{align}
-  \DD[\eeta](\xx) \approx \DD^{n}[\eeta^{N+1}](\xx) +
-  \DD^{n}[\eeta^N](\xx),
+%  \DD[\eeta](\xx) \approx \DD^{N}[\eeta^{N+1}](\xx) +
+%  \DD^{N}[\eeta^N](\xx),
+  \DD[\eeta](\xx) \approx \DD^{N}_{i,i}\left[\eeta_i^{N+1}\right](\xx) + 
+    \sum_{k \neq i} \DD^{N}_{i,k}\left[\eeta_k^{N}\right](\xx)
+    \quad \xx \in \gamma_i,
   \label{eqn:BlockImplicit}
 \end{align}
-where the superscript of $\DD$ implies that the geometry used in the
-discretization of the layer potential is at time step $n$.  This time
-stepping method is focus of the work of Lu et al.~\cite{Lu2017}.
-There, to avoid stiffness caused by nearly-touching bodies, a
-sufficiently large minimum separation distance is used.
+where $D_{i,k}^N$ denotes the double-layer potential due to body
+$\gamma_k$ evaluated on $\gamma_i$ with both these bodies discretized at
+time $N$.  This time stepping method is the focus of the work of Lu et
+al.~\cite{Lu2017}.  There, to avoid stiffness caused by nearly-touching
+bodies, a sufficiently large minimum separation distance is used.
  
 Instead of avoiding nearly-touching bodies, we use the {\em globally
 implicit} discretization
 \begin{align}
-  \DD[\eeta](\xx) \approx \DD^{N}[\eeta^{N+1}](\xx) +
-  \DD^{N}[\eeta^{N+1}](\xx).
+%  \DD[\eeta](\xx) \approx \DD^{N}[\eeta^{N+1}](\xx) +
+%  \DD^{N}[\eeta^{N+1}](\xx). \\
+  \DD[\eeta](\xx) \approx \DD^{N}_{i,i}\left[\eeta_i^{N+1}\right](\xx) + 
+    \sum_{k \neq i} \DD^{N}_{i,k}\left[\eeta_k^{N+1}\right](\xx)
+    \quad \xx \in \gamma_i.
   \label{eqn:SemiImplicit}
 \end{align}
 By discretizing the interactions between different bodies implicitly,
-the stiffness caused by nearly-touching bodies is reduced, so large time
-steps with small minimum separation distances are possible.
+the stiffness caused by nearly-touching bodies is reduced, and large
+time steps with small minimum separation distances are possible.
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

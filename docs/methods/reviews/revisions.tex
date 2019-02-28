@@ -31,7 +31,11 @@ contact volume constraint per contact region?}
   on the NCP solve stage and the time spent on globally implicit time
   stepping without NCP solve?}
 \begin{itemize}
-  \item \todo[inline]{Lukas: Can you comment on this?}
+  \item \todo[inline]{Lukas: Check if globally implicit without STIV
+    works for Taylor-Green}
+
+  \item \todo[inline]{Lukas: Breakdown of the time spent doing NCP
+    vs.~everything else.}
 \end{itemize}
 
 \noindent
@@ -46,7 +50,7 @@ torque $L$?}
 \begin{itemize}
   \item There were several typos in these equations.  The $\mathbf{d}_j$
     should have been $\mathbf{c}_j$ since these correspond to the center
-    of the rigid bodies or the interior elemenets of the boundary of the
+    of the rigid bodies or the interior elements of the boundary of the
     solid walls.  The typo for the torque $L$ is also corrected.
 \end{itemize}
 
@@ -62,7 +66,8 @@ torque $L$?}
 viscosity, which is entirely missing from the text. Please revise the
 introduction to reflect the current work.}
 \begin{itemize}
-  \item
+  \item \todo[inline]{Bryan: Tone down the intro so that it reads more
+    as a motivation for the work that we want to eventually do.}
 \end{itemize}
 
 
@@ -83,7 +88,11 @@ In summary, if this is a ``method paper", I fail to see any significant
 mathematical/computational contributions. If it is an ``application
 paper", it lacks depth in its analysis.}
 \begin{itemize}
-  \item
+  \item \todo[inline]{Bryan: Malholtra et al.~consider deformable bodies
+    which is less challenging.}
+  \item \todo[inline]{Bryan: We do compute effective viscosities and
+    alignment angles which are both related to the statistical and
+    rheological properties of the flow.}
 \end{itemize}
 
 \noindent
@@ -97,7 +106,11 @@ paper", it lacks depth in its analysis.}
 force.  Please quantify the effect of the preconditioner.}
 \begin{itemize}
   \item \todo[inline]{Lukas: Can you investigate the effect of the
-    block-diagonal preconditioner when rigid bodies are close}
+    block-diagonal preconditioner when rigid bodies are close.  Do the
+    Taylor-Green example from the paper without preconditioning.}
+  \item \todo[inline]{Bryan: Describe how preconditioner can be rotated
+    at each time step, so it is more or less free to update unlike
+    vesicles where the shape changes}
 \end{itemize}
 
 \noindent
@@ -105,10 +118,16 @@ force.  Please quantify the effect of the preconditioner.}
   Lu et al.~results in the STIV algorithm stalling." This should be
   elaborated more.  It is unclear why small minimal separation break the
   algorithm.  Is it due the semi-implicit scheme, the LCP solver, the
-linear solver?  Lu et al.~use spectral deferred correction for rigid
-bodies, is that effective here?}
+  linear solver?  Lu et al.~use spectral deferred correction for rigid
+  bodies, is that effective here?}
 \begin{itemize}
-  \item
+  \item \todo[inline]{Lukas: STIV stalls in the taylor-green example}
+  \item \todo[inline]{Bryan: Stiffness issue}
+  \item \todo[inline]{Lukas: Plot the density function using 32 points
+    for two 2:1 elliptical bodies that are separated from each by
+    $10^{-1}, 10^{-2} \ldots 10^{-5}$.  Bryan expects that the
+    density function does not blow up near  the contact and the velocity
+    can be evaluated accurately.}
 \end{itemize}
 
 \noindent
@@ -119,9 +138,8 @@ bodies, is that effective here?}
   solution and maintains reversibility.  Please clarify the significance
 of this result.}
 \begin{itemize}
-  \item
+  \item \todo[inline]{Bryan: Address this comment}
 \end{itemize}
-
 
 \noindent
 \comment{Also, in Figure 3, what is drawn are not streamlines.  They are
@@ -137,7 +155,10 @@ Pathlines.}
 ratio $\lambda$?  What range of aspect ratio is feasible with this
 method?  What causes the limitation.}
 \begin{itemize}
-  \item
+  \item \todo[inline]{Bryan: More resolution is required for higher aspect
+    ratios so that the geometry can be resoled.  We only used 32 points
+    per body, so we are restricted to aspect ratios not much larger than
+    6:1.}
 \end{itemize}
 
 \noindent
@@ -145,7 +166,8 @@ method?  What causes the limitation.}
 they approach one another, and this creates a natural minimum separation
 distance." Why is this true?  does this depend on flow/particle type?}
 \begin{itemize}
-  \item
+  \item \todo[inline]{Bryan/Lukas: Find a reference.  Maybe Michael
+    Graham?}
 \end{itemize}
 
 \noindent
@@ -175,14 +197,16 @@ distance." Why is this true?  does this depend on flow/particle type?}
   quasi-static Stokes flow, all freely suspended particles are always
   force-free, that is how the solution is computed.}
 \begin{itemize}
-  \item
+  \item \todo[inline]{Bryan: See how Libin, Abtin, and Denis talked
+    about this}
 \end{itemize}
 
 \noindent
 \comment{Section 2.4 is well known and is better suited for the
 appendix.}
 \begin{itemize}
-  \item
+  \item \todo[inline]{Bryan: Remove this and give a reference
+    (Pozrikidis)}
 \end{itemize}
 
 
@@ -204,7 +228,7 @@ theorem, the volumed average stresses can be expressed in terms of
 boundary integrals" a book is used.  Please add page number/section that
 clearly support the claim.}
 \begin{itemize}
-  \item
+  \item \todo[inline]{Lukas: Find the reference to this in Pozrikidis}
 \end{itemize}
 
 \noindent
@@ -212,7 +236,7 @@ clearly support the claim.}
 the force on one particle.  Why is this not added as a constraint so
 that the resulting force is balanced?}
 \begin{itemize}
-  \item
+  \item \todo[inline]{Lukas: We do this, just need to clarify in text}
 \end{itemize}
 
 \noindent
@@ -222,7 +246,10 @@ that the resulting force is balanced?}
   effective in bringing down the cost of simulation for fixed target
 accuracy?}
 \begin{itemize}
-  \item
+  \item \todo[inline]{Bryan: It is a heuristic and we don't have error
+    bounds.  This could be done, for example, with an embedded R-K
+    method, a predictor-corrector, or SDC.  SDC is not implemented
+    correctly (fix this)}
 \end{itemize}
 
 
@@ -243,7 +270,10 @@ accuracy?}
 the computational complexity of their approach in the subsequent
 section.}
 \begin{itemize}
-  \item
+  \item \todo[inline]{Bryan: Make it clearer even though we are doing
+    forward Euler, it is important the bodies are coupled implicitly.
+    Otherwise, the velocity $\mathbf{u}$ and $\omega$ are not
+    sufficiently accurate and a smaller time step size must be taken.}
 \end{itemize}
 
 \noindent
@@ -258,7 +288,9 @@ section.}
 interactions and the hydrodynamic interactions between different
 particle in equations 13,14 on Page 10.}
 \begin{itemize}
-  \item
+  \item Thank you for pointing out this flaw in the notation.  We have
+    updated equations (13) and (14) so that it is clearer how the
+    integral equation is discretized.
 \end{itemize}
 
 \noindent
