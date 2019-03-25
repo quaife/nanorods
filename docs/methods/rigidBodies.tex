@@ -670,7 +670,7 @@ in the pressure and stress, as reported in~\cite{Quaife2014}.  These
 boundary terms are required for our near-singular integration scheme
 described in Section~\ref{sec:spatial}.  Finally, using the divergence
 theorem, the volumed average stresses can be expressed in terms of
-boundary integrals~\cite{Pozrikidis1992}. 
+boundary integrals~\cite{Pozrikidis1992} \textcolor{red}{(Section 2.5)}. 
 		
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Numerical Methods}\label{s:method}
@@ -797,7 +797,7 @@ solution of the NCP.  In Section~\ref{sec:temporal}, we describe two
 methods to avoid this slow convergence.
 
 If only two bodies are in contact, the symmetry of the STIV ensures that
-the net force is zero.   However, if more than two bodies are in
+the net force is zero \textcolor{red}{ and Newton's third law is not violated}.  However, if more than two bodies are in
 contact, then the forces returned by the STIV are not guaranteed to sum
 to zero.  We improve the validity of the method by always requiring that
 the total force added to the system is zero, meaning
@@ -809,7 +809,7 @@ distinct clusters.  For each cluster, the body that is in contact with
 the most other bodies (to break ties, the body with the largest
 repulsion force in magnitude) is given a net force that balances all
 other bodies in the cluster. Whenever a force on a body is scaled the
-torque on that body is scaled by the same amount.
+torque on that body is scaled by the same amount. \textcolor{red}{This constraint is applied at every NCP iteration}.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{Time Stepping Methods}
@@ -916,7 +916,7 @@ factorized.  The identical preconditioner has been used for
 two-dimensional vesicle suspensions~\cite{Quaife2014}.  For rigid
 bodies, the preconditioner is further accelerated by factorizing all
 double-layer potentials at the initial condition, and then multiplying
-with rotation matrices corresponding to the rotation velocity $\omega$.
+with rotation matrices corresponding to the rotation velocity $\omega$. \textcolor{red}{This simple preconditioner significantly reduces the number of GMRES iterations needed to reach a given tolerance. For example, without preconditioning, the dense suspension in Section \ref{sec:taylor_green} requires approximately 100 GMRES iterations per time step. By applying the preconditioner, we can reduce the number of iterations to around 50 per time step.}
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -963,8 +963,8 @@ are now summarized.
   of 48 rigid ellipses in an unbounded Taylor-Green flow. At the
   prescribed separation distance, our new time stepping method is able
   to stably reach the time horizon, while the locally semi-implicit time
-  integrator proposed by Lu et al.~\cite{Lu2017} results in the STIV
-  algorithm stalling, even with $\Delta t = 10^{-8}$.
+  integrator proposed by Lu et al.~\cite{Lu2017} results in the STIV algorithm \textcolor{red}{
+  creating a non-converging sequnce of LCPs}, even with $\Delta t = 10^{-8}$.
 
   \item {\bf Porous Monolayer Injection}: We consider a suspension of
   confined rigid circular bodies motivated by an experiment by MacMinn
@@ -1105,14 +1105,14 @@ of the simulation.}
 \end{figure}
 
 
-\subsection{Taylor-Green Flow}
+\subsection{Taylor-Green Flow}\label{sec:taylor_green}
 
 For planar flows, we can separate suspensions into dilute and
 concentrated regimes by comparing the number of bodies per unit area,
 $\nu$, to the average body length $\ell$. If $\nu < 1/\ell^2$, then we
 are in the dilute regime, otherwise we are in the concentrated regime
 (in 2D planar suspensions, unlike 3D suspensions, there is no
-semi-dilute regime).  We consider the suspension of 75 rigid bodies in
+semi-dilute regime).  We consider the suspension of 48 rigid bodies in
 the Taylor-Green flow $\mathbf{u}^\infty = (\cos(x)\sin(y),
 -\sin(x)\cos(y))$.  The number of bodies per unit area is $\nu \approx
 3.1$ which is greater than $1/\ell^2=1.1$.  Therefore, this suspension
@@ -1121,7 +1121,7 @@ is well within the concentrated regime.
 We discretize the bodies with $N=32$ points and select the minimum
 separation distance $\delta=0.05h$. Snapshots of the simulation are
 shown in Figure \ref{fig:taylor_green}.  In this concentrated
-suspension, the bodies come into contact much more frequently.  If
+suspension, the bodies come into contact much more frequently. 
 the interactions between these nearly touching bodies are treated
 explicitly, this leads to stiffness.  Our time stepper controls this
 stiffness by treating these interactions implicitly, and the simulation
@@ -1131,11 +1131,15 @@ method~\cite{Lu2017}.  Because of the near-contact, smaller time step
 sizes must be taken.  Even when we took time step sizes as small as
 $10^{-8}$, the method was not able to successfully reach the time
 horizon.  This exact behavior has also been observed for vesicle
-suspensions~\cite{Quaife2014}.  In the bottom right plot of
+suspensions~\cite{Quaife2014}.  \textcolor{red}{Using a globally implicit time stepping method without a contact constraint requires a time step size smaller than $10^{-2}$ to avoid collisions. The overall computational cost for this example is comparable if no collision algorithm is employed because without collision avoidance the particles get much closer (within the buffer distance) and consequently the number of GMRES iterations grows from a maximum of around 50 when the collision avoidance algorithm is employed to well over 100.} 
+
+\textcolor{red}{The added computational cost is almost entirely in checking if the nonlinear complemenarity problem given in \cite{Lu2017}  has been satisfied. Each check requires solving \eqref{eqn:BIEformulation} with different forces and torques on particles in contact. Thus for each NCP iteration we are increasing the cost of the time step by the amount of time it takes to solve \eqref{eqn:BIEformulation}. For this example, the maxmimum number of NCP iterations for a single time step was nine, and the vast majority required only one or two. If we look up to the time horizon $T=30$, $\Delta t = 2.5\e{-2}$ required a total of 190 NCP iterations (for 1200 time steps), $\Delta t = 1.25\e{-2}$ required  290 NCP iterations  (2400 time steps), and $\Delta t=6.25\e{-3}$ required 559 NCP iterations (4800 time steps). Thus the computational cost of the collision algorithm is 16\% for $\Delta t = 2.5\e{-2}$, 12\% for $\Delta t = 1.25\e{-2}$, and 12\% for  $\Delta t=6.25\e{-3}$. As mentioned above however, imposing the buffer region puts an upper bound on the number of GMRES iterations needed to solve each time step, and thus removing the collision avoidance algorithm (even if it is not strictly necessary to avoid collision) would increase the base computational cost.  }
+
+In the bottom right plot of
 Figure~\ref{fig:taylor_green}, we show the trajectory of one body for
 different time step sizes.  The dots denote locations where the contact
 algorithm is applied.  For this very complex flow, the trajectories are
-in good agreement with different time step sizes.
+in good agreement with different time step sizes. 
 
 \begin{figure}[t]
   \centerline{

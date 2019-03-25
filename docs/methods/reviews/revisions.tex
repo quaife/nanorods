@@ -32,10 +32,14 @@ contact volume constraint per contact region?}
   stepping without NCP solve?}
 \begin{itemize}
   \item \todo[inline]{Lukas: Check if globally implicit without STIV
-    works for Taylor-Green}
+    works for Taylor-Green
+
+LB : Done, results summarized on page 12}
 
   \item \todo[inline]{Lukas: Breakdown of the time spent doing NCP
-    vs.~everything else.}
+    vs.~everything else.
+
+LB : Done, results on page 12}
 \end{itemize}
 
 \noindent
@@ -107,7 +111,9 @@ force.  Please quantify the effect of the preconditioner.}
 \begin{itemize}
   \item \todo[inline]{Lukas: Can you investigate the effect of the
     block-diagonal preconditioner when rigid bodies are close.  Do the
-    Taylor-Green example from the paper without preconditioning.}
+    Taylor-Green example from the paper without preconditioning.
+
+LB : Done, page 10}
   \item \todo[inline]{Bryan: Describe how preconditioner can be rotated
     at each time step, so it is more or less free to update unlike
     vesicles where the shape changes}
@@ -121,7 +127,9 @@ force.  Please quantify the effect of the preconditioner.}
   linear solver?  Lu et al.~use spectral deferred correction for rigid
   bodies, is that effective here?}
 \begin{itemize}
-  \item \todo[inline]{Lukas: STIV stalls in the taylor-green example}
+  \item \todo[inline]{Lukas: STIV stalls in the taylor-green example
+
+LB: Brief mention on page 11}
   \item \todo[inline]{Bryan: Stiffness issue}
   \item \todo[inline]{Lukas: Plot the density function using 32 points
     for two 2:1 elliptical bodies that are separated from each by
@@ -228,7 +236,9 @@ theorem, the volumed average stresses can be expressed in terms of
 boundary integrals" a book is used.  Please add page number/section that
 clearly support the claim.}
 \begin{itemize}
-  \item \todo[inline]{Lukas: Find the reference to this in Pozrikidis}
+  \item \todo[inline]{Lukas: Find the reference to this in Pozrikidis
+
+LB : page 7}
 \end{itemize}
 
 \noindent
@@ -236,7 +246,9 @@ clearly support the claim.}
 the force on one particle.  Why is this not added as a constraint so
 that the resulting force is balanced?}
 \begin{itemize}
-  \item \todo[inline]{Lukas: We do this, just need to clarify in text}
+  \item \todo[inline]{Lukas: We do this, just need to clarify in text
+
+LB: page 9}
 \end{itemize}
 
 \noindent
