@@ -550,6 +550,14 @@ equation~\eqref{eqn:BIEformulation1} is removed, and the background
 velocity $\uu_\infty(\xx)$ is added to the right hand side of
 equation~\eqref{eqn:BIEformulation2}.
 
+Finally, to understand the rheological and statistical properties of
+suspensions of rigid bodies, it is necessary to compute the pressure,
+stress, and energy dissipation.  Formulas for these quantities are layer
+potentials involving the density function $\eeta$~\cite{Power1993}.  A
+numerical method for computing these layer potentials is described
+in~\ref{sec:spatial}.
+
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{A Contact-Based Repulsion Force}
 \label{sec:repulsion}
@@ -577,11 +585,11 @@ is that they do not guarantee that particles remain contact-free.
 
 We apply a modification of the contact-aware method of Lu et
 al.~\cite{Lu2017} that explicitly requires that particles remain
-contact-free. We only summarize the method, but a in-depth description
-is in~\cite{Lu2017}.  To apply a Lagrange multiplier method, the
-governing equations~\eqref{eqn:modelEquations} are written as a
-constrained optimization problem by using the variational form of the
-Stokes equations
+contact-free. We only summarize the method, but an in-depth description
+is in the original work~\cite{Lu2017}.  To apply a Lagrange multiplier
+method, the governing equations~\eqref{eqn:modelEquations} are written
+as a constrained optimization problem by using the variational form of
+the Stokes equations
 \begin{align}
   \min \int_{\Omega} \nabla\uu:\nabla\uu~\text{d}\Omega,
   \quad\text{ such that }\quad \nabla\cdot\uu = 0, 
@@ -594,83 +602,84 @@ collided, are flagged.  Then, the space-time interference volume (STIV),
 defined as the volume in space-time distance swept out by the trajectory
 of two bodies, is computed.  Next, equation~\eqref{eqn:stokesEL} is
 supplemented with an additional constraint that the STIV is positive (no
-contact).  As detailed in~\cite{Lu2017, Harmon2011}, STIV offer a metric
-to quantify collision volumes.  By computing the STIV, rather than
-simply the overlap at the new time step, time steps that result in rigid
-bodies passing through each other are detected and resolved.  Details
-for solving~\eqref{eqn:stokesEL} with the STIV inequality constraint are
-given in Section~\ref{sec:contact}.
+contact).  As detailed in~\cite{Lu2017, Harmon2011}, the STIV offers a
+metric to quantify collision volumes.  By computing the STIV, rather
+than simply the overlap at the new time step, time steps that result in
+rigid bodies passing through each other are detected and resolved.
+Details for solving~\eqref{eqn:stokesEL} with the STIV inequality
+constraint are given in Section~\ref{sec:contact}.
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\subsection{Computing the Pressure and Stress}
-To understand the rheological and statistical properties of suspensions
-of rigid bodies, it is necessary to compute the pressure, stress, and
-energy dissipation.  This expressions are standard~\cite{Power1993}, but
-we summarize them for completeness.  A numerical method for computing
-the pressure, stress, and energy dissipation is described in
-Section~\ref{sec:spatial}.
-
-The pressure of the two-dimensional double-layer potential
-is~\cite{Power1993}
-\begin{align*}
-  p(\xx) = \frac{1}{\pi}\int_{\partial\Omega}\frac{1}{\rho^2}\left(
-\mathbf{I} - 2\frac{\rr \otimes \rr}{\rho^2}\right)\nn\cdot\eeta~\text{d}s,
-\qquad\xx\in\Omega.
-\end{align*}
-The pressure of the Stokeslet and rotlet contributions are easily
-computed, and the pressure of the completed double-layer
-potential~\eqref{eqn:completed_DLP} is
-\begin{align}
-  \label{eqn:pressure} 
-  p(\xx) = \frac{1}{\pi}\int_{\partial\Omega}\frac{1}{\rho^2}\left(
-    \mathbf{I} - 2\frac{\rr \otimes \rr}{\rho^2}\right)\nn\cdot\eeta~\text{d}s +
-  \sum_{i=1}^{M_w}
-  \frac{\FF_i^\Gamma\cdot(\xx-\cc_i^\Gamma)}{2\pi|\xx-\cc_i^{\Gamma}|^2}
-  + \sum_{i=1}^{M_p}
-    \frac{\FF_i^\gamma\cdot(\xx-\cc_i^\gamma)}{2\pi|\xx-\cc_i^\gamma|^2}.
-\end{align}
-
-Starting with the pressure~\eqref{eqn:pressure}, we compute the stress
-tensor
-\begin{align*} 
-\ssigma = -p \mathbf{I} + \left(\nabla \uu + (\nabla\uu)^\intercal\right), \qquad
-\xx\in\Omega.
-\end{align*}
-We decompose the stress into contributions from the double-layer
-potential, Stokeslets, and rotlets
-\begin{align}
-  \label{eqn:stress}
-  \ssigma = \ssigma_{\eeta} + \ssigma_{S} + \ssigma_{R},
-\end{align}
-where
-\begin{align*}
-  \ssigma_{\eeta}(\xx) &= \frac{1}{\pi}\int_{\partial\Omega}\left( 
-    \frac{\nn\cdot\eeta}{\rho^2}\mathbf{I} 
-    -8\frac{(\rr\cdot\nn)(\rr\cdot\eeta)(\rr\otimes\rr)}{\rho^6} 
-    +\frac{(\rr\cdot\nn)(\rr\otimes\eeta + \eeta\otimes\rr)}{\rho^4} 
-+ \frac{(\rr\cdot\eeta)(\rr\otimes\nn +
-\nn\otimes\rr)}{\rho^4}\right)\text{d}s,\\
-  \ssigma_S(\xx) &= -\sum_{i=1}^{M_w} 
-    \frac{\FF_i^\Gamma\cdot(\xx - \cc_i^\Gamma)}{\pi|\xx-\cc_i^\Gamma|^2}
-        (\xx - \cc_i^\Gamma)\otimes(\xx - \cc_i^\Gamma)  -
-    \sum_{i=1}^{M_p}
-    \frac{\FF_i^\gamma\cdot(\xx - \cc_i^\gamma)}{\pi|\xx-\cc_i^\gamma|^2}
-        (\xx-\cc_i^\gamma )\otimes(\xx-\cc_i^\gamma),\\
-\ssigma_R(\xx) &= -\sum_{i=1}^{M_w} \frac{L_i^\Gamma}{2\pi|\xx-\cc_i^\Gamma|^2}
-((\xx-\cc_i^\Gamma)\otimes(\xx-\cc_i^\Gamma)^\perp +
-    (\xx-\cc_i^\gamma)^\perp\otimes(\xx-\cc_i^\gamma))  \\
-\qquad&-\sum_{i=1}^{M_p}
-\frac{L_i^\gamma}{2\pi|\xx-\cc_i^\gamma|^2}
-    ((\xx-\cc_i^\gamma )\otimes(\xx-\cc_i^\gamma)^\perp + 
-    (\xx-\cc_i^\gamma)^\perp\otimes(\xx-\cc_i^\gamma)).
-\end{align*}
-
-These expressions hold inside $\Omega$. On the boundary there is a jump
-in the pressure and stress, as reported in~\cite{Quaife2014}.  These
-boundary terms are required for our near-singular integration scheme
-described in Section~\ref{sec:spatial}.  Finally, using the divergence
-theorem, the volumed average stresses can be expressed in terms of
-boundary integrals~\cite{Pozrikidis1992} \textcolor{red}{(Section 2.5)}. 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%\subsection{Computing the Pressure and Stress}
+%To understand the rheological and statistical properties of suspensions
+%of rigid bodies, it is necessary to compute the pressure, stress, and
+%energy dissipation.  This expressions are standard~\cite{Power1993}, but
+%we summarize them for completeness.  A numerical method for computing
+%the pressure, stress, and energy dissipation is described in
+%Section~\ref{sec:spatial}.
+%
+%The pressure of the two-dimensional double-layer potential
+%is~\cite{Power1993}
+%\begin{align*}
+%  p(\xx) = \frac{1}{\pi}\int_{\partial\Omega}\frac{1}{\rho^2}\left(
+%\mathbf{I} - 2\frac{\rr \otimes \rr}{\rho^2}\right)\nn\cdot\eeta~\text{d}s,
+%\qquad\xx\in\Omega.
+%\end{align*}
+%The pressure of the Stokeslet and rotlet contributions are easily
+%computed, and the pressure of the completed double-layer
+%potential~\eqref{eqn:completed_DLP} is
+%\begin{align}
+%  \label{eqn:pressure} 
+%  p(\xx) = \frac{1}{\pi}\int_{\partial\Omega}\frac{1}{\rho^2}\left(
+%    \mathbf{I} - 2\frac{\rr \otimes \rr}{\rho^2}\right)\nn\cdot\eeta~\text{d}s +
+%  \sum_{i=1}^{M_w}
+%  \frac{\FF_i^\Gamma\cdot(\xx-\cc_i^\Gamma)}{2\pi|\xx-\cc_i^{\Gamma}|^2}
+%  + \sum_{i=1}^{M_p}
+%    \frac{\FF_i^\gamma\cdot(\xx-\cc_i^\gamma)}{2\pi|\xx-\cc_i^\gamma|^2}.
+%\end{align}
+%
+%Starting with the pressure~\eqref{eqn:pressure}, we compute the stress
+%tensor
+%\begin{align*} 
+%\ssigma = -p \mathbf{I} + \left(\nabla \uu + (\nabla\uu)^\intercal\right), \qquad
+%\xx\in\Omega.
+%\end{align*}
+%We decompose the stress into contributions from the double-layer
+%potential, Stokeslets, and rotlets
+%\begin{align}
+%  \label{eqn:stress}
+%  \ssigma = \ssigma_{\eeta} + \ssigma_{S} + \ssigma_{R},
+%\end{align}
+%where
+%\begin{align*}
+%  \ssigma_{\eeta}(\xx) &= \frac{1}{\pi}\int_{\partial\Omega}\left( 
+%    \frac{\nn\cdot\eeta}{\rho^2}\mathbf{I} 
+%    -8\frac{(\rr\cdot\nn)(\rr\cdot\eeta)(\rr\otimes\rr)}{\rho^6} 
+%    +\frac{(\rr\cdot\nn)(\rr\otimes\eeta + \eeta\otimes\rr)}{\rho^4} 
+%+ \frac{(\rr\cdot\eeta)(\rr\otimes\nn +
+%\nn\otimes\rr)}{\rho^4}\right)\text{d}s,\\
+%  \ssigma_S(\xx) &= -\sum_{i=1}^{M_w} 
+%    \frac{\FF_i^\Gamma\cdot(\xx - \cc_i^\Gamma)}{\pi|\xx-\cc_i^\Gamma|^2}
+%        (\xx - \cc_i^\Gamma)\otimes(\xx - \cc_i^\Gamma)  -
+%    \sum_{i=1}^{M_p}
+%    \frac{\FF_i^\gamma\cdot(\xx - \cc_i^\gamma)}{\pi|\xx-\cc_i^\gamma|^2}
+%        (\xx-\cc_i^\gamma )\otimes(\xx-\cc_i^\gamma),\\
+%\ssigma_R(\xx) &= -\sum_{i=1}^{M_w} \frac{L_i^\Gamma}{2\pi|\xx-\cc_i^\Gamma|^2}
+%((\xx-\cc_i^\Gamma)\otimes(\xx-\cc_i^\Gamma)^\perp +
+%    (\xx-\cc_i^\gamma)^\perp\otimes(\xx-\cc_i^\gamma))  \\
+%\qquad&-\sum_{i=1}^{M_p}
+%\frac{L_i^\gamma}{2\pi|\xx-\cc_i^\gamma|^2}
+%    ((\xx-\cc_i^\gamma )\otimes(\xx-\cc_i^\gamma)^\perp + 
+%    (\xx-\cc_i^\gamma)^\perp\otimes(\xx-\cc_i^\gamma)).
+%\end{align*}
+%
+%These expressions hold inside $\Omega$. On the boundary there is a jump
+%in the pressure and stress, as reported in~\cite{Quaife2014}.  These
+%boundary terms are required for our near-singular integration scheme
+%described in Section~\ref{sec:spatial}.  Finally, using the divergence
+%theorem, the volumed average stresses can be expressed in terms of
+%boundary integrals (see Section 2.5 in
+%Pozrikidis~\cite{Pozrikidis1992}). 
 		
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Numerical Methods}\label{s:method}
@@ -788,7 +797,7 @@ less than or equal to zero.  Therefore, the governing equations are
 similar to~\eqref{eqn:BIEformulation}, except that the force- and
 torque-free conditions have been changed.
 
-The resulting equation is a non-linear complementary problem (NCP) To
+The resulting equation is a non-linear complementary problem (NCP). To
 solve the NCP, the problem is linearized as a sequence of linear
 complementary problems (LCPs) that are solved until the STIV is less
 than or equal to zero.  For small minimum separation distances, it is
@@ -796,20 +805,23 @@ possible that the LCP converges very slowly, or not at all, to the
 solution of the NCP.  In Section~\ref{sec:temporal}, we describe two
 methods to avoid this slow convergence.
 
-If only two bodies are in contact, the symmetry of the STIV ensures that
-the net force is zero \textcolor{red}{ and Newton's third law is not violated}.  However, if more than two bodies are in
+If only two bodies are in contact, Newton's third law is guaranteed by
+the symmetry of the STIV.  However, if more than two bodies are in
 contact, then the forces returned by the STIV are not guaranteed to sum
 to zero.  We improve the validity of the method by always requiring that
 the total force added to the system is zero, meaning
 \begin{align*}
   \sum_{j=1}^{M_p} \FF^\gamma_j = \mathbf{0}. 
 \end{align*}
-To accomplish this, we group all bodies that are in contact into
-distinct clusters.  For each cluster, the body that is in contact with
-the most other bodies (to break ties, the body with the largest
+This could be accomplished by introducing additional Lagrange
+multipliers, and the result would be a modification to our governing
+equations~\eqref{eqn:BIEformulation}.  As a simpler alternative, we
+group all bodies that are in contact into distinct clusters.  For each
+cluster, and at each NCP iteration, the body that is in contact with the
+most other bodies (to break ties, we use the body with the largest
 repulsion force in magnitude) is given a net force that balances all
 other bodies in the cluster. Whenever a force on a body is scaled the
-torque on that body is scaled by the same amount. \textcolor{red}{This constraint is applied at every NCP iteration}.
+torque on that body is scaled by the same amount.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{Time Stepping Methods}
@@ -909,34 +921,38 @@ implicit and globally implicit time stepping methods to $\mathcal{O}(N)$
 operations.
 
 Reducing the cost of matrix-vector multiplication greatly reduces the
-computational effort.  However, for dense suspensions, the number of
-GMRES iterations can also be large.  Therefore, we apply a
-block-diagonal preconditioner where each block is precomputed and
-factorized.  The identical preconditioner has been used for
-two-dimensional vesicle suspensions~\cite{Quaife2014}.  For rigid
-bodies, the preconditioner is further accelerated by factorizing all
-double-layer potentials at the initial condition, and then multiplying
-with rotation matrices corresponding to the rotation velocity $\omega$. \textcolor{red}{This simple preconditioner significantly reduces the number of GMRES iterations needed to reach a given tolerance. For example, without preconditioning, the dense suspension in Section \ref{sec:taylor_green} requires approximately 100 GMRES iterations per time step. By applying the preconditioner, we can reduce the number of iterations to around 50 per time step.}
+computational effort.  However, even though we are solving a
+well-conditioned second-kind integral equation, for dense suspensions,
+the number of GMRES iterations can be prohibitively large.  Therefore,
+we apply a block-diagonal preconditioner where each block is precomputed
+and factorized.  The identical preconditioner has been used for
+two-dimensional vesicle suspensions~\cite{Quaife2014}.  Without
+preconditioning, the dense suspension in Section~\ref{sec:taylor_green}
+requires, on average, 100 GMRES iterations per time step. However, by
+applying the block-diagonal preconditioner, the average number of GMRES
+iterations is reduced to 50 per time step.  Moreover, since we are
+considering rigid body suspensions, the block-diagonal preconditioner of
+a new configuration can be formed by multiplying the previous
+preconditioner with the rotation matrix corresponding to the rotation
+velocity $\omega$.  Therefore, the preconditioner only needs to be
+computed and factorized once for the entire simulation, and it is
+updated at each time step with a negligible computational cost.
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{Computing the Pressure and Stress}
 \label{sec:pressure_stress}
-Computing the pressure~\eqref{eqn:pressure} and
-stress~\eqref{eqn:stress} are more challenging than evaluating the
-velocity double-layer potential.  The challenge stems from a singularity
-that scales as $\mathcal{O}(|\xx - \yy|^{-2})$ as a target point
-approaches a source point.  The pressure and stress are computed using a
-combination of singularity subtraction and odd-even
-integration~\cite{sid-isr1988}.  The result is a spectrally accurate
-method for computing the pressure and stress.
-
-Near-singular integration still required, and our interpolation-based
-method requires limiting values of the layer
-potentials~\eqref{eqn:pressure} and~\eqref{eqn:stress} as $\xx
-\rightarrow \bd\Omega$.  The limiting values and tests of the
-near-singular integration scheme are reported in~\cite{Quaife2014}.
-
+Computing the layer potentials for the pressure and stress are more
+challenging than evaluating the velocity double-layer potential.  The
+challenge stems from a singularity that scales as $\mathcal{O}(|\xx -
+\yy|^{-2})$ as a target point approaches a source point.  The pressure
+and stress are computed using a combination of singularity subtraction
+and odd-even integration~\cite{sid-isr1988}.  The result is a spectrally
+accurate method for computing the pressure and stress.  Near-singular
+integration is still required, and our interpolation-based method
+requires limiting values of the layer potentials as $\xx \rightarrow
+\bd\Omega$.  The limiting values and tests of the near-singular
+integration scheme are reported in~\cite{Quaife2014}.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Results}\label{s:results}
@@ -963,8 +979,8 @@ are now summarized.
   of 48 rigid ellipses in an unbounded Taylor-Green flow. At the
   prescribed separation distance, our new time stepping method is able
   to stably reach the time horizon, while the locally semi-implicit time
-  integrator proposed by Lu et al.~\cite{Lu2017} results in the STIV algorithm \textcolor{red}{
-  creating a non-converging sequnce of LCPs}, even with $\Delta t = 10^{-8}$.
+  integrator proposed by Lu et al.~\cite{Lu2017} results in the STIV
+  contact algorithm does not converge, even with $\Delta t = 10^{-8}$.
 
   \item {\bf Porous Monolayer Injection}: We consider a suspension of
   confined rigid circular bodies motivated by an experiment by MacMinn
@@ -1119,27 +1135,59 @@ the Taylor-Green flow $\mathbf{u}^\infty = (\cos(x)\sin(y),
 is well within the concentrated regime. 
 
 We discretize the bodies with $N=32$ points and select the minimum
-separation distance $\delta=0.05h$. Snapshots of the simulation are
-shown in Figure \ref{fig:taylor_green}.  In this concentrated
-suspension, the bodies come into contact much more frequently. 
-the interactions between these nearly touching bodies are treated
-explicitly, this leads to stiffness.  Our time stepper controls this
-stiffness by treating these interactions implicitly, and the simulation
-successfully reaches the time horizon.  We performed the same
-simulation, but with the locally implicit time stepping
-method~\cite{Lu2017}.  Because of the near-contact, smaller time step
-sizes must be taken.  Even when we took time step sizes as small as
-$10^{-8}$, the method was not able to successfully reach the time
-horizon.  This exact behavior has also been observed for vesicle
-suspensions~\cite{Quaife2014}.  \textcolor{red}{Using a globally implicit time stepping method without a contact constraint requires a time step size smaller than $10^{-2}$ to avoid collisions. The overall computational cost for this example is comparable if no collision algorithm is employed because without collision avoidance the particles get much closer (within the buffer distance) and consequently the number of GMRES iterations grows from a maximum of around 50 when the collision avoidance algorithm is employed to well over 100.} 
+separation distance $\delta=0.05h$.   In this concentrated
+suspension, because the bodies are often in contact, we expect that the
+interactions lead to stiffness if the locally semi-implicit time
+stepping method is used.  To demonstrate this stiffness, we apply the
+locally semi-implicit time stepping method with the contact constraint.
+Even with a time step of $\Delta t = 10^{-8}$, the contact constraint is
+not satisfied after thousands of iterations of the LCP solver.
+Alternatively, our globally implicit time stepper addresses the
+stiffness by treating the interactions implicitly, and the simulation
+successfully reaches the time horizon with time step sizes as large as
+$\Delta t = 2.50 \times 10^{-2}$.  Since compatibility constraint is
+satisfied by simply transitioning from a locally implicit to a globally
+implicit time stepping scheme, we conclude that the contact algorithm
+will stall for sufficiently small minimum separation distances unless
+all interactions are treated semi-implicitly.  An additional approach
+that can be taken is to use a higher-order time stepping method such as
+spectral deferred correction (SDC)~\cite{qua-bir2016}.  This approach is
+taken by Lu et al.~\cite{Lu2017}, but only for large minimum separation
+distances.  For vesicle suspensions, SDC is unstable when a locally
+implicit method is applied to vesicles in
+near-contact~\cite{qua-bir2016}. We expect that this behavior extends to
+rigid body suspensions, but a deeper investigation into the coupling of
+SDC, different time stepping methods, and small minimum separation
+distances will be investigated at a later date.
 
-\textcolor{red}{The added computational cost is almost entirely in checking if the nonlinear complemenarity problem given in \cite{Lu2017}  has been satisfied. Each check requires solving \eqref{eqn:BIEformulation} with different forces and torques on particles in contact. Thus for each NCP iteration we are increasing the cost of the time step by the amount of time it takes to solve \eqref{eqn:BIEformulation}. For this example, the maxmimum number of NCP iterations for a single time step was nine, and the vast majority required only one or two. If we look up to the time horizon $T=30$, $\Delta t = 2.5\e{-2}$ required a total of 190 NCP iterations (for 1200 time steps), $\Delta t = 1.25\e{-2}$ required  290 NCP iterations  (2400 time steps), and $\Delta t=6.25\e{-3}$ required 559 NCP iterations (4800 time steps). Thus the computational cost of the collision algorithm is 16\% for $\Delta t = 2.5\e{-2}$, 12\% for $\Delta t = 1.25\e{-2}$, and 12\% for  $\Delta t=6.25\e{-3}$. As mentioned above however, imposing the buffer region puts an upper bound on the number of GMRES iterations needed to solve each time step, and thus removing the collision avoidance algorithm (even if it is not strictly necessary to avoid collision) would increase the base computational cost.  }
+We also compare the computational costs of the globally implicit time
+stepping method with and without the contact constraint.  Without the
+contact constraint, a time step size smaller than $\Delta t = 10^{-2}$
+is required to avoid any collisions.  Therefore, as expected, we are
+able to take a larger stable time step size when imposing the contact
+constraint.  Moreover, the distance between rigid bodies fall well
+within the buffer distance $\delta$ if the contact constraint is not
+imposed, and the result is a more than two-fold increase in the GMRES
+iteration count that is used to solve the integral equation.  The
+additional computational cost of the contact algorithm comes almost
+entirely from checking if the NCP has been satisfied.  Each check
+requires solving~\eqref{eqn:BIEformulation} with forces and torques
+coming from solving the LCP.  For the Taylor-Green example, no more than
+nine NCP iterations are required at each time step, and the majority of
+time steps only require one or two NCP iterations.  With a time horizon
+of $T=30$, the total number of NCP iterations is 290 when $\Delta t =
+2.50 \times 10^{-2}$, 559 when $\Delta t = 1.25 \times 10^{-2}$, and 559
+when $\Delta t = 6.25 \times 10^{-3}$.  Therefore, the additional cost
+required by the NCP solver is no more than $16\%$ of the total cost, and
+this cost is more than amortized by the additional cost required if the
+contact algorithm is not used.
 
-In the bottom right plot of
-Figure~\ref{fig:taylor_green}, we show the trajectory of one body for
+Snapshots of the simulation are shown in Figure~\ref{fig:taylor_green},
+and the bottom right plot of shows the trajectory of one body for
 different time step sizes.  The dots denote locations where the contact
 algorithm is applied.  For this very complex flow, the trajectories are
 in good agreement with different time step sizes. 
+
 
 \begin{figure}[t]
   \centerline{

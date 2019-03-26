@@ -31,15 +31,16 @@ contact volume constraint per contact region?}
   on the NCP solve stage and the time spent on globally implicit time
   stepping without NCP solve?}
 \begin{itemize}
-  \item \todo[inline]{Lukas: Check if globally implicit without STIV
-    works for Taylor-Green
+  \item The globally implicit time stepper can be used without the
+    contact constraint with an acceptable time step size.  While this
+    results in a savings because no NCP solvers are required, it results
+    in two additional computational costs.  First, more time steps must
+    be taken.  Second, because the bodies come closer together,
+    additional GMRES iterations are required to perform each time step.
+    We describe this in detail in the Taylor-Green section.
 
-LB : Done, results summarized on page 12}
-
-  \item \todo[inline]{Lukas: Breakdown of the time spent doing NCP
-    vs.~everything else.
-
-LB : Done, results on page 12}
+  \item We quantify the additional cost of NCP as a percentage of the
+    total computational effort
 \end{itemize}
 
 \noindent
@@ -109,14 +110,19 @@ paper", it lacks depth in its analysis.}
   story, because one major source of ill-conditioning is the bending
 force.  Please quantify the effect of the preconditioner.}
 \begin{itemize}
-  \item \todo[inline]{Lukas: Can you investigate the effect of the
-    block-diagonal preconditioner when rigid bodies are close.  Do the
-    Taylor-Green example from the paper without preconditioning.
+  \item We did a comparison of the number of GMRES iterations required
+    with and without the block-diagonal preconditioner.  For the
+    Taylor-Green flow, there is a 2X reduction in the number of
+    iterations.
 
-LB : Done, page 10}
-  \item \todo[inline]{Bryan: Describe how preconditioner can be rotated
-    at each time step, so it is more or less free to update unlike
-    vesicles where the shape changes}
+  \item In addition, because we are simulating rigid bodies, the
+    block-diagonal preconditioner can be updated at each time step by
+    simply applying a rotation matrix to the preconditioner from the
+    previous time step.  This significantly reduces the cost of
+    constructing the preconditioner and justifies its use.  In contrast,
+    for deformable bodies such as vesicles, if an exact block-diagonal
+    preconditioner is used, it must be constructed from scratch at every
+    time step.
 \end{itemize}
 
 \noindent
@@ -127,15 +133,25 @@ LB : Done, page 10}
   linear solver?  Lu et al.~use spectral deferred correction for rigid
   bodies, is that effective here?}
 \begin{itemize}
-  \item \todo[inline]{Lukas: STIV stalls in the taylor-green example
+  \item The itemized environment in the start of Section 4 is meant to
+    only offer the reader a brief summary of the examples to come.
+    We slightly elaborated this section, but we reserve a more thorough
+    discussion of the behavior for Section 4.2.
 
-LB: Brief mention on page 11}
-  \item \todo[inline]{Bryan: Stiffness issue}
-  \item \todo[inline]{Lukas: Plot the density function using 32 points
-    for two 2:1 elliptical bodies that are separated from each by
-    $10^{-1}, 10^{-2} \ldots 10^{-5}$.  Bryan expects that the
-    density function does not blow up near  the contact and the velocity
-    can be evaluated accurately.}
+  \item In Section 4.2, we compare the contact algorithm with the two
+    different time stepping schemes.  Since all other variables are held
+    fixed (LCP solver, linear solver, etc.), we argue that it is the
+    time stepping scheme that results in the stalling of the contact
+    algorithm. 
+
+  \item Regarding a higher-order time stepping method such as SDC, we
+    expect that it is convergent only if the globally implicit method is
+    used.  This prediction is based on a previous work of one author
+    (Quaife) who developed the SDC framework for vesicle suspensions.
+    While this is not complete the picture regarding SDC with small
+    minimum separation distances, we leave more careful experiments and
+    discussions to future work.
+
 \end{itemize}
 
 \noindent
@@ -213,8 +229,21 @@ distance." Why is this true?  does this depend on flow/particle type?}
 \comment{Section 2.4 is well known and is better suited for the
 appendix.}
 \begin{itemize}
-  \item \todo[inline]{Bryan: Remove this and give a reference
-    (Pozrikidis)}
+  \item We agree that this section is not necessary as it is described
+    in many references.  We have removed the section entirely.  Instead,
+    we added a small paragraph at the end of Section 2.2 that describes
+    how the pressure and stress are simply new layer potentials, and the
+    expressions are found in: \newline
+    Power H. The completed double layer boundary integral equation
+    method for two-dimensional Stokes flow.  IMA J Appl Math.
+    1993;51(2):123--145.
+
+  \item We briefly  describe how the pressure and stress are computed
+    numerically in Section 3.5.  However, the method has already been
+    described in previous work of one of the authors in: \newline
+    Quaife B, Biros G. High-volume fraction simulations of
+    two-dimensional vesicle suspensions. J Comput Phys.
+    2014;274:245--267.
 \end{itemize}
 
 
@@ -236,9 +265,8 @@ theorem, the volumed average stresses can be expressed in terms of
 boundary integrals" a book is used.  Please add page number/section that
 clearly support the claim.}
 \begin{itemize}
-  \item \todo[inline]{Lukas: Find the reference to this in Pozrikidis
-
-LB : page 7}
+  \item This is described in Section 2.5 of Pozrikidis book: {\em Boundary
+    integral and singularity methods}.
 \end{itemize}
 
 \noindent
@@ -246,9 +274,20 @@ LB : page 7}
 the force on one particle.  Why is this not added as a constraint so
 that the resulting force is balanced?}
 \begin{itemize}
-  \item \todo[inline]{Lukas: We do this, just need to clarify in text
+  \item The language in the previous version may have led to some
+    confusion.  We do enforce a net force balance of 0.  The reviewer is
+    right that this could be done by imposing this as a constraint.
+    However, this would require an addition Lagrange multiplier and
+    the result would be a modification to Equation (7).  
+    
+  \item We take a different, but simpler approach.  We simply modify one
+    of the forces of a cluster of rigid bodies in near-contact so that
+    it balances with the sum of the others.  By only modifying the
+    smallest force, this makes sure that we are only modifying the least
+    significant force.
 
-LB: page 9}
+  \item We have described both this techniques in the text.
+
 \end{itemize}
 
 \noindent
@@ -271,7 +310,7 @@ accuracy?}
 \noindent
 \comment{While the paper gives a lot of details regarding various
   components of their solver, I feel that the paper is lacking in detail
-  when it comes to discussing their main contribution, i.e. how all
+  when it comes to discussing their main contribution, i.e.~how all
   interactions are handled implicitly. It is particularly confusing
   since the novelty of the approach is the fully-implicit handling of
   all hydrodynamic interactions, but the only time discretized equations
