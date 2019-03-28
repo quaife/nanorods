@@ -332,17 +332,16 @@ that bodies are able to come much closer---a physical characteristic of
 dense suspensions of rigid bodies.
 
 In addition to coupling all the bodies implicitly, we further improve
-time stepping by allowing for an adaptive time step size.  There are a
-variety of adaptive time stepping methods, and they typically either
-estimate the local truncation error, and the time step size is adjusted
-according to this error~\cite{Quaife2015, Quaife2015a, Sorgentone2018},
-or they quantify the computational effort, such as the number of
-required time steps, and reduce the time step size when this becomes
-large~\cite{Kropinski1999}.  The local truncation error for rigid body
-suspensions is expensive because multiple numerical solutions must be
-formed.  Therefore, we apply the second option where the time step size
-is decreased when the STIV optimization routine requires a large number
-of iterations.
+time stepping by allowing for an adaptive time step size. One class of
+adaptive time stepping methods estimate the local truncation
+error~\cite{Quaife2015, Quaife2015a, Sorgentone2018}.  Such estimates
+require multiple numerical solutions to be formed at each time step, or
+a conserved quantity that can be efficiently computed at each time step
+must be available.  Alternatively, we apply a heuristic method that
+adjusts the time step size when the computation effort is
+large~\cite{Kropinski1999}.  Such a heuristic approach does not require
+an estimate of the error, and it tends to decrease and increase the time
+step size in response to the complexity of the dynamics.
 
 \paragraph{Outline of the paper}
 In Section~\ref{s:formulation} we describe the physical problem and the
@@ -430,14 +429,14 @@ Equations~\eqref{eqn:modelEquations} and~\eqref{eqn:centersAngles} govern
 the dynamics of the rigid body suspensions, and their numerical solution
 is a focus on this paper.
 
-We have assumed that the rigid bodies are force- and torque-free.
-However, when two rigid bodies are brought sufficiently close together,
+We have assumed that the suspension only has hydrodynamic forces.
+However, when rigid bodies are brought sufficiently close together,
 numerical errors can cause the rigid bodies to unphysically intersect.
-To avoid contact,  we will later relax the force- and torque-free
-conditions to guarantee that numerical errors do not cause rigid bodies
-to come into contact.  This idea is first described for
-vesicle suspensions by Lu et al.~\cite{Lu2017} and we summarize the
-method in Section~\ref{sec:repulsion}.  
+To avoid contact,  we will later introduce a contact force that
+guarantees that numerical errors do not cause rigid bodies to come into
+contact.  This idea is first described for vesicle suspensions by Lu et
+al.~\cite{Lu2017} and we summarize the method in
+Section~\ref{sec:repulsion}.  
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -863,16 +862,28 @@ individual trajectories of the rigid bodies.  If high-order accuracy is
 desired, a Runge-Kutta or deferred correction method~\cite{Quaife2015,
 qua-bir2016} can be applied.
 
-Since the dynamics of the suspension can develop complex features, we
-use a heuristic adaptive time stepping method.  When the LCP solver
-requires many iterations to solve the NCP, this indicates that the time
-step size should be reduced.  Conversely, if the LCP solver converges
-quickly to the solution of the NCP, then a larger time step size can be
-taken.  Therefore, if each LCP iteration is not converging to a
-contact-free configuration sufficiently fast, we abort the time step and
-restart with the time step size $\Delta t/2$. Conversely, if the LCP
-iteration converges quickly, then, at the next time step, we increase
-$\Delta t$ to $1.5\Delta t$.
+The dynamics of the suspension can develop complex features, and the
+time step size should be adjusted accordingly.  If the error can be
+efficiently estimated at each time step, the time step size can be
+adjusted according to this estimate.  However, such estimates require
+multiple numerical solutions or a physical quantity, such as the fluid
+mass in a control region, that is easy to compute and conserved by the
+governing equations.  Forming multiple numerical solutions is too
+expensive, and our simulations do not have an conserved quantity that we
+can easily compute.  Therefore, rather than trying to control the error
+at each time step, we use a heuristic adaptive time stepping method.
+When the LCP solver requires many iterations to solve the NCP, this
+indicates that the time step size should be reduced.  Conversely, if the
+LCP solver converges quickly to the solution of the NCP, then a larger
+time step size can be taken.  Therefore, if each LCP iteration is not
+converging to a contact-free configuration sufficiently fast, we abort
+the time step and restart with the time step size $\Delta t/2$.
+Conversely, if the LCP iteration converges quickly, then, at the next
+time step, we increase $\Delta t$ to $1.5\Delta t$. This strategy can
+not be used to guarantee a user-specified error bound.  However, it does
+tend to appropriately adjust the time step size according to the
+dynamics, and the result is that simulations are able to reach their
+time horizon without taking wastefully uniform small time step size.
 
 The stability of the method depends on the discretization
 of~\eqref{eqn:BIEformulation} and the minimum separation distance.  If
@@ -888,8 +899,6 @@ The leading source of stiffness for a particular rigid body is the
 velocity field induced by the body itself. This can be controlled with a
 {\em locally implicit} discretization
 \begin{align}
-%  \DD[\eeta](\xx) \approx \DD^{N}[\eeta^{N+1}](\xx) +
-%  \DD^{N}[\eeta^N](\xx),
   \DD[\eeta](\xx) \approx \DD^{N}_{i,i}\left[\eeta_i^{N+1}\right](\xx) + 
     \sum_{k \neq i} \DD^{N}_{i,k}\left[\eeta_k^{N}\right](\xx)
     \quad \xx \in \gamma_i,
@@ -904,8 +913,6 @@ bodies, a sufficiently large minimum separation distance is used.
 Instead of avoiding nearly-touching bodies, we use the {\em globally
 implicit} discretization
 \begin{align}
-%  \DD[\eeta](\xx) \approx \DD^{N}[\eeta^{N+1}](\xx) +
-%  \DD^{N}[\eeta^{N+1}](\xx). \\
   \DD[\eeta](\xx) \approx \DD^{N}_{i,i}\left[\eeta_i^{N+1}\right](\xx) + 
     \sum_{k \neq i} \DD^{N}_{i,k}\left[\eeta_k^{N+1}\right](\xx)
     \quad \xx \in \gamma_i.

@@ -242,8 +242,11 @@ distance." Why is this true?  does this depend on flow/particle type?}
   quasi-static Stokes flow, all freely suspended particles are always
   force-free, that is how the solution is computed.}
 \begin{itemize}
-  \item \todo[inline]{Bryan: See how Libin, Abtin, and Denis talked
-    about this}
+  \item The reveiwer is correct that our simulations are always
+    force-free and torque-free.  We have revised this paragraph to state
+    that equation (2) assumes that all forces are hydrodynamic.  Then,
+    an additional contact force will be added to avoid the unphysical
+    contact.
 \end{itemize}
 
 \noindent
@@ -318,10 +321,27 @@ that the resulting force is balanced?}
   effective in bringing down the cost of simulation for fixed target
 accuracy?}
 \begin{itemize}
-  \item \todo[inline]{Bryan: It is a heuristic and we don't have error
-    bounds.  This could be done, for example, with an embedded R-K
-    method, a predictor-corrector, or SDC.  SDC is not implemented
-    correctly (fix this)}
+  \item The reviewer is right that the method is heuristic.
+
+  \item The issue with using a method that estimates the error is that
+    the error estimates are expensive to compute.  For suspensions with
+    conserved quantities, such as the area inside a vesicle, such an
+    estimate can be efficiently computed.  However, for rigid body
+    suspensions, such a physical quantity to efficiently estimate the
+    error is not available.  Therefore, the error would need to be
+    estimated using two numerical solutions with, for example, different
+    time step sizes, and this is too expensive.  
+
+  \item Since our method is heuristic, it can not be used to achieve
+    guaranteed user-specified tolerance.  However, the heuristic method
+    does increase/decrease the time step size when the dynamics become
+    less/more complicated.  Therefore, our adaptive time stepping method
+    is able to successfully reach desired time horizons without having
+    to take a uniformly small time step size which would be
+    computationally wasteful.
+
+  \item The above discussion is now included in the manuscript.
+
 \end{itemize}
 
 
