@@ -189,19 +189,18 @@ trajectories, we compute rheological and statistical properties of the
 fluid and particles to better understand the dispersion of fibers in
 composite materials.
 
-\paragraph{Contributions} Our main contributions are extending the time
-stepping strategy introduced for vesicle suspensions~\cite{Quaife2014}
-to rigid body suspensions, and analyzing the rheological properties of
-the suspensions.  Deformable bodies, such as vesicles, deform as they
-approach one another, and this creates a natural minimum separation
-distance.  However, for rigid body suspensions, the inability to deform
-can force bodies much closer together, and numerical errors can easily
-cause unphysical overlap between particles.  To avoid overlap, Lu et
-al.~\cite{Lu2017} developed a contact algorithm that guarantees a
-minimum separation distance between bodies and used a {\em locally
-implicit} time stepping method that only treats inter-body interactions
-implicitly.  That is, if $\uu_{ij}$ is the velocity of body $i$ induced
-by body $j$, then the time stepping method used is
+\paragraph{Contributions} When deformable bodies, such as vesicles, approach
+one another, the pressure in the lubrication region between the bodies
+causes the membrane interfaces to flatten and this creates a natural
+minimum separation distance~\cite{lac-mor-bar2007}.  However, for rigid
+body suspensions, the inability to deform results in bodies coming much
+closer together, and numerical errors can easily cause unphysical
+overlap between particles.  To avoid overlap, Lu et al.~\cite{Lu2017}
+developed a contact algorithm that guarantees a minimum separation
+distance between bodies and used a {\em locally implicit} time stepping
+method that only treats inter-body interactions implicitly.  That is, if
+$\uu_{ij}$ is the velocity of body $i$ induced by body $j$, then the
+locally implicit time stepping method is
 \begin{align*}
   \frac{\xx_i(t + \Delta t) -  \xx_i(t)}{\Delta t} = 
     \uu_{ii}(t+\Delta t) + \sum_{j \neq i} \uu_{ij}(t),
@@ -210,8 +209,15 @@ where $\xx_i$ is the center of the $i^{\mathrm{th}}$ body.  By treating
 the interactions between different bodies explicitly, the minimum
 separation distance must be kept sufficiently large to avoid a small
 time step restriction due to stiffness---a typical minimum separation
-distance is $\mathcal{O}(1)$ arclength spacings.  In line with previous
-work of one of the authors~\cite{Quaife2014}, we discretize all
+distance is $\mathcal{O}(1)$ arclength spacings.
+
+Our main contributions are extending the time stepping strategy
+introduced for vesicle suspensions~\cite{Quaife2014} to rigid body
+suspensions, analyzing the rheological properties of the suspensions,
+and characterizing the loss of reversibility caused by the contact
+algorithm.  The time stepping strategy we present is in line with
+previous work of one of the authors~\cite{Quaife2014}.  The time
+stepping method is {\em globally implicit} and discretizes all
 interactions semi-implicitly
 \begin{align*}
   \frac{\xx_i(t + \Delta t) -  \xx_i(t)}{\Delta t} = 
