@@ -179,10 +179,21 @@ Pathlines.}
 ratio $\lambda$?  What range of aspect ratio is feasible with this
 method?  What causes the limitation.}
 \begin{itemize}
-  \item \todo[inline]{Bryan: More resolution is required for higher aspect
-    ratios so that the geometry can be resoled.  We only used 32 points
-    per body, so we are restricted to aspect ratios not much larger than
-    6:1.}
+  \item In theory the method works for any aspect ratio, but the cost is
+    that additional resolution is required.  The resolution has to be
+    sufficiently large to describe the geometry (curvature, arclength,
+    etc.) and the hydrodynamic interactions between the rigid bodies and
+    between the rigid bodies and the solid wall (ie.~resolve the density
+    functions).
+    
+  \item We state in the {\em Limitations} section that larger aspect
+    ratios our often present in applications, and such problems require
+    higher resolutions than those we consider.
+
+  \item In the {\em Taylor-Couette flow} section, we report the
+    resolutions we used and state that higher resolutions are required
+    to consider more slender bodies.
+
 \end{itemize}
 
 \noindent

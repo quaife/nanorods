@@ -245,6 +245,13 @@ three dimensions include efficient preconditioners and a suspension
 space-time interference volume that integrates a four-dimensional domain
 ($3$ space dimensions and $1$ time dimension).
 
+Another limitation is that we only consider elliptical rigid bodies
+whose minor and major axis differ by a factor of no more than six.
+However, in many applications, the aspect ratio of many slender bodies
+is at least an order of magnitude larger.  Our formulation is valid for
+any two-dimensional geometry with a smooth boundary, but the resolution
+must sufficiently large to resolve the geometry, layer potentials, and
+density functions.
 
 \paragraph{Related work} Rather than presenting an exhaustive list of
 work related to particulate suspensions in viscous fluids, we focus on
@@ -968,12 +975,12 @@ detection algorithm is applied.  The particular experiments we perform
 are now summarized.
 \begin{itemize}
   \item {\bf Shear Flow}: We consider the standard problem of two
-  identical rigid circles in the shear flow $\uu = (y,0)$ with the left
-  body slightly elevated from the right body.  We report similar results
-  to those presented in~\cite{Lu2017}, but we are able to take smaller
-  initial displacements and minimum separation distances.  The contact
-  algorithm breaks the reversibility of the flow, and this effect is
-  illustrated and quantified.
+  identical rigid circles in the shear flow $\uu = (y,0)$ with one body
+  placed to the left and slightly above the other body.  We report
+  similar results to those presented in~\cite{Lu2017}, but we are able
+  to take smaller initial displacements and minimum separation
+  distances.  The contact algorithm breaks the reversibility of the
+  flow, and this effect is illustrated and quantified.
 
   \item {\bf Taylor-Green Flow}: We simulate a concentrated suspension
   of 48 rigid ellipses in an unbounded Taylor-Green flow. At the
@@ -1004,36 +1011,33 @@ are now summarized.
 \label{sec:shear}
 We consider two rigid circular bodies in the shear flow ${\uu}(\xx) =
 (y,0)$.  One body is centered at the origin, while the other body is
-placed to the left and slightly elevated of the origin.  With this
+placed to the left and slightly above the body at the origin.  With this
 initial condition, the particles come together, interact, and then
 separate.  Both bodies are discretized with $N=32$ points and the arc
 length spacing $h = 2\pi/32 \approx 0.196$.  This experiment was also
 performed by Lu et al.~\cite{Lu2017}, and we compare the two time
-stepping methods.
+stepping methods.  We start by considering the time step size $\Delta t
+= 0.4$ and minimum separation distance $\delta = 0$ (no contact
+algorithm).  Our new globally implicit method successfully reaches the
+time horizon without requiring a repulsion force.  However, with the
+same $\Delta t$, the locally implicit time stepping results in a
+collision between the bodies, so the collision algorithm is required to
+reach the time horizon.  Alternatively, the time step size can be
+reduced, but, as we will see, for sufficiently dense suspensions, even
+an excessively small time step size results in collisions.  
 
-We start by considering the time step size $\Delta t = 0.4$ and
-minimum separation distance $\delta = 0$ (no contact algorithm). 
-Our new globally implicit method successfully reaches the time
-horizon without requiring a repulsion force.  However, with the same
-$\Delta t$, the local explicit time stepping results in a collision
-between the bodies, so the collision algorithm is required to reach the
-time horizon.  Alternatively, the time step size can be reduced, but, as
-we will see, for sufficiently dense suspensions, even an excessively
-small time step size results in collisions.  Next, in
-Figure~\ref{fig:shear_experiment}, we investigate the effect of the
-minimum separation distance on the position of the rigid bodies.  The
-top plot shows the trajectory of the left body as it approaches,
+Next, in Figure~\ref{fig:shear_experiment}, we investigate the effect of
+the minimum separation distance on the position of the rigid bodies.
+The top plot shows the trajectory of the left body as it approaches,
 interacts, and finally separates from the body centered at the origin.
-In this simulation, we use our new globally implicit time integrator,
-but the STIV contact algorithm is not applied.  The bottom left plot
-shows the trajectory of the particle when the contact algorithm is
-applied with varying levels of separation.  Notice that the trajectories
-are identical until near $x=0$ when the particle separation first falls
-below the minimum separation distance.  Finally, in the bottom right
-plot, the final vertical displacement body initially on the left is
-plotted.  These results are computed for the locally implicit time
-stepping method~\cite{Lu2017}, and the general trend of the trajectories
-are similar.
+The bottom left plot shows the trajectory of the particle when the
+contact algorithm is applied with varying levels of separation.  Notice
+that the trajectories are identical until near $x=0$ when the particle
+separation first falls below the minimum separation distance.  Finally,
+in the bottom right plot, the final vertical displacement body initially
+on the left is plotted.  These results are computed for the locally
+implicit time stepping method~\cite{Lu2017}, and the general trend of
+the trajectories are similar.
 \begin{figure}[t]
   \centerline{
   \includegraphics{figures/shear_setup1.pdf}}
@@ -1102,11 +1106,12 @@ The break in reversibility is further demonstrated by examining
 the trajectories of two rigid bodies with three different initial
 setups.  In Figure~\ref{fig:shear_cross}, we compute the
 trajectory of the left body for three different initial placements.  We
-set $\delta=3h$ for all three simulations.  With this threshold, only the
-bottom-most path line falls below $\delta$ as the two bodies approach
+set $\delta=3h$ for all three simulations.  With this threshold, only
+the bottom-most pathline falls below $\delta$ as the two bodies approach
 one another.  Therefore, as the bodies approach, the streamlines behave
 as expected---they do not cross.  However, when the contact algorithm is
-applied to the blue trajectory, the pathlines cross.
+applied to the blue trajectory, the pathlines cross, and the flow is no
+longer reversible.
 
 \begin{figure}[t]
 \centerline{\includegraphics{figures/shear_streamlines_cross.pdf}}
@@ -1309,13 +1314,18 @@ Motivated by these suspensions we investigate rheological and
 statistical properties of confined suspensions.  We consider suspensions
 of varying area fraction and body aspect ratio; specifically we look at
 5, 10, and 15 percent area fractions and elliptical bodies of aspect
-ratio, $\lambda$ of 1, 3, and 6.  In all the examples, $\nu < 1/\ell^2$,
-so all the suspensions are in the dilute regime.  The bodies initial
-locations are random, but non-overlapping
-(Figure~\ref{fig:couette_setup}).  The flow is driven by rotating the
-outer cylinder at a constant angular velocity while the inner cylinder
-remains fixed. 
+ratio, $\lambda$ of 1, 3, and 6.  We discretize the bodies with $N_p =$
+\todo[inline]{number} points and the solid walls with $N_w =$
+\todo[inline]{number} points.  To simulate bodies with larger aspect
+ratios, larger values of $N_p$ and $N_w$ are required to resolve the
+slender body geometries, and the hydrodynamic interactions between the
+bodies and the solid walls.
 
+For all the aspect ratios we consider, $\nu < 1/\ell^2$, so all the
+suspensions are in the dilute regime.  The bodies initial locations are
+random, but non-overlapping (Figure~\ref{fig:couette_setup}).  The flow
+is driven by rotating the outer cylinder at a constant angular velocity
+while the inner cylinder remains fixed. 
 \begin{figure}[t]
   \centerline{
 \begin{tabular}{c c c c}
