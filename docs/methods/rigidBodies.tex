@@ -536,6 +536,7 @@ equation~\eqref{eqn:modelEquations} is
   \label{eqn:BIEformulation5}
 \end{align}
 \end{subequations}
+\todo[inline]{$j$ is being used as a dummy index and for the summation}
 Again, the methodology of Power and Miranda relates the strength of the
 Stokeslets and rotlets of each rigid body to its density function.  The
 BIE formulation~\eqref{eqn:BIEformulation} of the governing
@@ -588,9 +589,9 @@ We adopt the method of using artificial forces to avoid contact, and
 there are many choices for the force. One possibility is a Morse or
 Lennard-Jones potential that grows as a high order polynomial as two
 bodies approach~\cite{Flormann2017, Liu2006}. This has been shown to
-work for dense suspensions, but the resulting ODEs for the rigid body
-dynamics become very stiff as the separation between bodies decreases.
-Spring models~\cite{Tsubota2006, Kabacogulu2017} have also
+work for dense suspensions, but the resulting dynamics for the rigid
+body dynamics become very stiff as the separation between bodies
+decreases.  Spring models~\cite{Tsubota2006, Kabacogulu2017} have also
 been used to generate artificial repulsion forces, but these models also
 introduce stiffness. A further disadvantage of many contact algorithms
 is that they do not guarantee that particles remain contact-free.
@@ -840,22 +841,36 @@ torque on that body is scaled by the same amount.
 \label{sec:temporal}
 Since we only consider rigid body suspensions, we only track the centers
 $\cc_i^\gamma$ and orientations $\theta_i$ of each rigid body
-$\gamma_i$. Given a suspension of rigid
-bodies,~\eqref{eqn:BIEformulation} is solved for the translational and
-rotational velocities of each body. Then, the position and angle of each
-body are updated according to the ODEs,
+$\gamma_i$.  Substituting the no-slip boundary condition into
+equation~\eqref{eqn:BIEformulation2}, the center and orientation of a
+suspension of rigid bodies satisfies
+\begin{align*}
+  \frac{d\cc_i^\gamma}{dt} + \frac{d\theta_i}{dt}
+    (\xx - \cc_i^\gamma)^\perp &=
+    -\frac{1}{2}\eeta(\xx) + \DD[\eeta](\xx) + 
+    \sum_{j=1}^{M_w} \left(\mathbf{S}(\xx,\cc^\Gamma_j)\FF^\Gamma_j + 
+      \mathbf{R}(\xx,\cc^\Gamma_j)L^\Gamma_j\right) 
+    +\sum_{j=1}^{M_p} \left(\mathbf{S}(\xx,\cc^\gamma_j)\FF^\gamma_j +
+      \mathbf{R}(\xx,\cc^\gamma_j)L^\gamma_j\right).
+\end{align*}
+After discretizing this equation with forward Euler, the result is an
+equation for the new center, inclination angle, and density function.
+However, since the governing equations are linear \todo[inline]{is this
+why?}, an equivalent formulation is to solve~\eqref{eqn:BIEformulation}
+for $\uu^\tau_k$, $\omega_k$, and $\eeta$, and then update the position
+and angle of each body by dicretizing the differential equations
 \begin{align*}
   \frac{\text{d}}{\text{d}t}\cc_k &= \uu^\tau_k,  
     \quad \cc_k(0) = \cc_k^0, \\
   \frac{\text{d}}{\text{d}t}\theta_k &= \omega_k,
-    \quad \theta_k(0) = \theta_k^0.
+    \quad \theta_k(0) = \theta_k^0,
 \end{align*}
-The ODEs are advanced in time using the first-order explicit Euler
-method
+with the first-order explicit Euler method
 \begin{align*}
   \cc_k^{N+1} &= \cc_k^N + \Delta t \left(\uu_k^\tau\right)^N, \\
   \theta_k^{N+1} &= \theta_k^N + \Delta t \left(\omega_k\right)^N.
 \end{align*}
+
 A low cost first-order time stepper is justified since we are interested
 in statistical, rheological, and bulk quantities rather than the
 individual trajectories of the rigid bodies.  If high-order accuracy is
