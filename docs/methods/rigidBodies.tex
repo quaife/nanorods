@@ -1015,7 +1015,7 @@ are now summarized.
   prescribed separation distance, our new time stepping method is able
   to stably reach the time horizon, while the locally semi-implicit time
   integrator proposed by Lu et al.~\cite{Lu2017} results in the STIV
-  contact algorithm does not converge, even with $\Delta t = 10^{-8}$.
+  contact algorithm not converging, even with $\Delta t = 10^{-8}$.
 
   \item {\bf Porous Monolayer Injection}: We consider a suspension of
   confined rigid circular bodies motivated by an experiment by MacMinn
@@ -1178,7 +1178,7 @@ not satisfied after thousands of iterations of the LCP solver.
 Alternatively, our globally implicit time stepper addresses the
 stiffness by treating the interactions implicitly, and the simulation
 successfully reaches the time horizon with time step sizes as large as
-$\Delta t = 2.50 \times 10^{-2}$.  Since compatibility constraint is
+$\Delta t = 2.50 \times 10^{-2}$.  Since the compatibility constraint is
 satisfied by simply transitioning from a locally implicit to a globally
 implicit time stepping scheme, we conclude that the contact algorithm
 will stall for sufficiently small minimum separation distances unless
@@ -1212,7 +1212,7 @@ of $T=30$, the total number of NCP iterations is 290 when $\Delta t =
 2.50 \times 10^{-2}$, 559 when $\Delta t = 1.25 \times 10^{-2}$, and 559
 when $\Delta t = 6.25 \times 10^{-3}$.  Therefore, the additional cost
 required by the NCP solver is no more than $16\%$ of the total cost, and
-this cost is more than amortized by the additional cost required if the
+this cost is more than amortized by the additional cost from the extra GMRES iterations if the
 contact algorithm is not used.
 
 Snapshots of the simulation are shown in Figure~\ref{fig:taylor_green},
