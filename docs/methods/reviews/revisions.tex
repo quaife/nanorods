@@ -8,7 +8,20 @@
 \newcommand{\comment}[1]{{\color{blue} #1}}
 
 \begin{document}
-Thank you for reading ....
+\noindent
+Dear Dr.~Dumbser,
+\\ \\ \noindent 
+Thank you for handling the manuscript, and we would like to thank the
+reviewers for their constructive comments. The attached manuscript
+addresses all the reviewers’ comments and the result is what we believe
+is a stronger manuscript.
+\\ \\ \noindent 
+We also note that a few typos from the manuscript’s original form have
+been addressed. An itemized list of the changes addressing the
+reviewers’ comments are below.
+\\ \\ \noindent 
+Sincerely, \\ \noindent
+Lukas Bystricky, Sachin Shanbhag, and Bryan Quaife
 
 \section*{Reviewer 1}
 \noindent
@@ -162,7 +175,23 @@ force.  Please quantify the effect of the preconditioner.}
   solution and maintains reversibility.  Please clarify the significance
 of this result.}
 \begin{itemize}
-  \item \todo[inline]{Bryan: Address this comment}
+  \item We agree that the extra force in the system will break the
+    time-reversibility.  There are three main sources of this error: 1)
+    the time step size; 2) the contact force; and 3) the spatial
+    resolution (ie.~$h$).  Since we are using a high-order methods in
+    space, the third source of error is negligible when compared to the
+    other two sources.
+
+  \item The conclusion is that the time-reversibility is first-order if
+    the contact algorithm is not necessary which happens for
+    sufficiently small minimum separation distances $\delta$.  However,
+    for larger values of $\delta$, the first-order accuracy is only
+    achieved for large $\Delta t$ where the time stepping error
+    dominates.  However, as $\Delta t$ is decreased, the error plateaus
+    at the error introduced by the contact algorithm.
+
+  \item This presentation of this behavior has been clarified in the
+    manuscript.
 \end{itemize}
 
 \noindent
@@ -363,12 +392,19 @@ the computational complexity of their approach in the subsequent
 section.}
 \begin{itemize}
   \item We agree with the reviewer that it appears that the update
-    equations are linear.  However, this is not the case.  
+    equations are linear.  However, this is not the case.  In Section
+    3.3, we present a formulation that clearly shows how the method is
+    implicit.  From here, it can be seen that this new formulation and
+    the original one in the manuscript are equivalent.
 
-  \item \todo[inline]{Bryan: Make it clearer even though we are doing
-    forward Euler, it is important the bodies are coupled implicitly.
-    Otherwise, the velocity $\mathbf{u}$ and $\omega$ are not
-    sufficiently accurate and a smaller time step size must be taken.}
+  \item The main difference is the decision of how to discretize the
+    double-layer potential.  The choice is between using treating the
+    intra-body interactions explicitly (locally implicit) or implicitly
+    (globally implicit).
+
+  \item We have restructured and revised Section 3.3 to improve the
+    presentation of our main contribution with respect to the time
+    stepping method.
 \end{itemize}
 
 \noindent

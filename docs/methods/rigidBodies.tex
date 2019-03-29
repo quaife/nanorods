@@ -536,7 +536,6 @@ equation~\eqref{eqn:modelEquations} is
   \label{eqn:BIEformulation5}
 \end{align}
 \end{subequations}
-\todo[inline]{$j$ is being used as a dummy index and for the summation}
 Again, the methodology of Power and Miranda relates the strength of the
 Stokeslets and rotlets of each rigid body to its density function.  The
 BIE formulation~\eqref{eqn:BIEformulation} of the governing
@@ -738,10 +737,10 @@ Equations~\eqref{eqn:BIEformulation} are discretized as
   \begin{aligned}
   \UU(\xx_i) = -\frac{1}{2}\eeta(\xx_i) + 
   \sum_{k=1}^{N} K(\xx_i,\xx_k) \eeta(\xx_k) \Delta s_k
-    &+ \sum_{j=1}^{M_p} \left(\mathbf{S}(\xx_i,\cc^\gamma_j)\FF_j +
-    \mathbf{R}(\xx_i,\cc_j)L_j\right)  \\
-    &+ \sum_{j=1}^{M_w} \left(\mathbf{S}(\xx_i,\cc^\Gamma_j)\FF_j +
-    \mathbf{R}(\xx_i,\cc^\Gamma_j)L_j\right), \quad \xx_i \in \Gamma,
+    + \sum_{j=1}^{M_p} \left(\mathbf{S}(\xx_i,\cc^\gamma_j)\FF_j +
+    \mathbf{R}(\xx_i,\cc_j)L_j\right) 
+    + \sum_{j=1}^{M_w} \left(\mathbf{S}(\xx_i,\cc^\Gamma_j)\FF_j +
+    \mathbf{R}(\xx_i,\cc^\Gamma_j)L_j\right),
   \end{aligned}
 \end{equation*}
 for $\xx_i \in \Gamma$, and
@@ -751,12 +750,12 @@ for $\xx_i \in \Gamma$, and
 -\frac{1}{2}\eeta(\xx_i) +
 \sum_{k=1}^{N} K(\xx_i,\xx_k) \eeta(\xx_k) \Delta s_k
     &+ \sum_{j=1}^{M_p} \left(\mathbf{S}(\xx_i,\cc^\gamma_j)\FF_j +
-    \mathbf{R}(\xx_i,\cc_j)L_j\right) \\
-    &+ \sum_{j=1}^{M_w} \left(\mathbf{S}(\xx_i,\cc^\Gamma_j)\FF_j +
+    \mathbf{R}(\xx_i,\cc_j)L_j\right) 
+    + \sum_{j=1}^{M_w} \left(\mathbf{S}(\xx_i,\cc^\Gamma_j)\FF_j +
     \mathbf{R}(\xx_i,\cc^\Gamma_j)L_j\right),
   \end{aligned}
 \end{equation*}
-for $\xx \in \gamma_j$, where $N = M_w N_w + M_p N_p$ is the total
+for $\xx_i \in \gamma_j$, where $N = M_w N_w + M_p N_p$ is the total
 number of discretization points and
 \begin{align*}
   K(\xx,\yy) = \frac{1}{\pi} \frac{\rr \cdot \nn}{\rho^2} 
@@ -839,10 +838,10 @@ torque on that body is scaled by the same amount.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{Time Stepping Methods}
 \label{sec:temporal}
-Since we only consider rigid body suspensions, we only track the centers
+Since we consider rigid body suspensions, we only track the centers
 $\cc_i^\gamma$ and orientations $\theta_i$ of each rigid body
 $\gamma_i$.  Substituting the no-slip boundary condition into
-equation~\eqref{eqn:BIEformulation2}, the center and orientation of a
+equation~\eqref{eqn:BIEformulation}, the center and orientation of a
 suspension of rigid bodies satisfies
 \begin{align*}
   \frac{d\cc_i^\gamma}{dt} + \frac{d\theta_i}{dt}
@@ -855,10 +854,9 @@ suspension of rigid bodies satisfies
 \end{align*}
 After discretizing this equation with forward Euler, the result is an
 equation for the new center, inclination angle, and density function.
-However, since the governing equations are linear \todo[inline]{is this
-why?}, an equivalent formulation is to solve~\eqref{eqn:BIEformulation}
-for $\uu^\tau_k$, $\omega_k$, and $\eeta$, and then update the position
-and angle of each body by dicretizing the differential equations
+An equivalent formulation is to solve~\eqref{eqn:BIEformulation} for
+$\uu^\tau_k$, $\omega_k$, and $\eeta$, and then update the position and
+angle of each body by dicretizing the differential equations
 \begin{align*}
   \frac{\text{d}}{\text{d}t}\cc_k &= \uu^\tau_k,  
     \quad \cc_k(0) = \cc_k^0, \\
@@ -870,20 +868,53 @@ with the first-order explicit Euler method
   \cc_k^{N+1} &= \cc_k^N + \Delta t \left(\uu_k^\tau\right)^N, \\
   \theta_k^{N+1} &= \theta_k^N + \Delta t \left(\omega_k\right)^N.
 \end{align*}
-
 A low cost first-order time stepper is justified since we are interested
 in statistical, rheological, and bulk quantities rather than the
 individual trajectories of the rigid bodies.  If high-order accuracy is
 desired, a Runge-Kutta or deferred correction method~\cite{Quaife2015,
 qua-bir2016} can be applied.
 
-The dynamics of the suspension can develop complex features, and the
-time step size should be adjusted accordingly.  If the error can be
-efficiently estimated at each time step, the time step size can be
-adjusted according to this estimate.  However, such estimates require
-multiple numerical solutions or a physical quantity, such as the fluid
-mass in a control region, that is easy to compute and conserved by the
-governing equations.  Forming multiple numerical solutions is too
+The main factors that determine the stiffness of the system are the
+minimum separation distance and the discretization of the double-layer
+potential $\DD[\eeta](\xx)$.  The leading source of stiffness is the
+velocity field caused by the body itself. This stiffness can be
+controlled with the {\em locally implicit} discretization
+\begin{align}
+  \DD[\eeta](\xx) \approx \DD^{N}_{i,i}\left[\eeta_i^{N+1}\right](\xx) + 
+    \sum_{k \neq i} \DD^{N}_{i,k}\left[\eeta_k^{N}\right](\xx),
+    \quad \xx \in \gamma_i,
+  \label{eqn:BlockImplicit}
+\end{align}
+where $D_{i,k}^N$ is the double-layer potential due to body $\gamma_k$
+evaluated on $\gamma_i$, with both these bodies discretized at time $N$.
+This time stepping method is the focus of the work of Lu et
+al.~\cite{Lu2017}.  The next source of stiffness is caused by
+nearly-touching bodies, which can be controlled by maintaining a
+sufficiently large minimum separation distance~\cite{Lu2017}.
+Alternatively, to allow for small minimum separation distances, we
+discretize the interaction between nearly-touching bodies implicitly
+with the {\em globally implicit} discretization
+\begin{align}
+  \DD[\eeta](\xx) \approx \DD^{N}_{i,i}\left[\eeta_i^{N+1}\right](\xx) + 
+    \sum_{k \neq i} \DD^{N}_{i,k}\left[\eeta_k^{N+1}\right](\xx),
+    \quad \xx \in \gamma_i.
+  \label{eqn:SemiImplicit}
+\end{align}
+In Section~\ref{s:results}, we demonstrate that this new time stepping
+method is able to take larger stable time step sizes for dense
+suspensions of rigid bodies.  In addition, when the contact algorithm is
+required, the globally implicit discretization~\eqref{eqn:SemiImplicit}
+requires fewer LCP iteartions to converge to a solution of the NCP when
+compared to the locally implicit
+discretization~\eqref{eqn:BlockImplicit}.
+
+Finally, since the dynamics of the suspension can develop complex
+features, the time step size should be adjusted accordingly.  If the
+error can be efficiently estimated at each time step, the time step size
+can be adjusted according to this estimate.  However, such estimates
+require multiple numerical solutions or a physical quantity, such as the
+fluid mass in a control region, that is easy to compute and conserved by
+the governing equations.  Forming multiple numerical solutions is too
 expensive, and our simulations do not have an conserved quantity that we
 can easily compute.  Therefore, rather than trying to control the error
 at each time step, we use a heuristic adaptive time stepping method.
@@ -899,44 +930,6 @@ not be used to guarantee a user-specified error bound.  However, it does
 tend to appropriately adjust the time step size according to the
 dynamics, and the result is that simulations are able to reach their
 time horizon without taking wastefully uniform small time step size.
-
-The stability of the method depends on the discretization
-of~\eqref{eqn:BIEformulation} and the minimum separation distance.  If
-the minimum separation distance is small and the interaction between two
-nearly-touching bodies is discretized explicitly, then convergence of
-the LCP solver to the solution of the NCP requires a large number of
-iterations, and the maximum stable time step size is small.  In
-contrast, if the interaction between the bodies is discretized
-implicitly, then the stiffness caused by the nearly-touching bodies is
-resolved and a larger stable time step can be taken.
-
-The leading source of stiffness for a particular rigid body is the
-velocity field induced by the body itself. This can be controlled with a
-{\em locally implicit} discretization
-\begin{align}
-  \DD[\eeta](\xx) \approx \DD^{N}_{i,i}\left[\eeta_i^{N+1}\right](\xx) + 
-    \sum_{k \neq i} \DD^{N}_{i,k}\left[\eeta_k^{N}\right](\xx)
-    \quad \xx \in \gamma_i,
-  \label{eqn:BlockImplicit}
-\end{align}
-where $D_{i,k}^N$ denotes the double-layer potential due to body
-$\gamma_k$ evaluated on $\gamma_i$ with both these bodies discretized at
-time $N$.  This time stepping method is the focus of the work of Lu et
-al.~\cite{Lu2017}.  There, to avoid stiffness caused by nearly-touching
-bodies, a sufficiently large minimum separation distance is used.
- 
-Instead of avoiding nearly-touching bodies, we use the {\em globally
-implicit} discretization
-\begin{align}
-  \DD[\eeta](\xx) \approx \DD^{N}_{i,i}\left[\eeta_i^{N+1}\right](\xx) + 
-    \sum_{k \neq i} \DD^{N}_{i,k}\left[\eeta_k^{N+1}\right](\xx)
-    \quad \xx \in \gamma_i.
-  \label{eqn:SemiImplicit}
-\end{align}
-By discretizing the interactions between different bodies implicitly,
-the stiffness caused by nearly-touching bodies is reduced, and large
-time steps with small minimum separation distances are possible.
-
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{Fast Summation and Preconditioning}
@@ -1042,30 +1035,31 @@ We consider two rigid circular bodies in the shear flow ${\uu}(\xx) =
 placed to the left and slightly above the body at the origin.  With this
 initial condition, the particles come together, interact, and then
 separate.  Both bodies are discretized with $N=32$ points and the arc
-length spacing $h = 2\pi/32 \approx 0.196$.  This experiment was also
-performed by Lu et al.~\cite{Lu2017}, and we compare the two time
-stepping methods.  We start by considering the time step size $\Delta t
-= 0.4$ and minimum separation distance $\delta = 0$ (no contact
-algorithm).  Our new globally implicit method successfully reaches the
-time horizon without requiring a repulsion force.  However, with the
-same $\Delta t$, the locally implicit time stepping results in a
-collision between the bodies, so the collision algorithm is required to
-reach the time horizon.  Alternatively, the time step size can be
-reduced, but, as we will see, for sufficiently dense suspensions, even
-an excessively small time step size results in collisions.  
+length spacing is $h = 2\pi/32 \approx 0.196$.  This experiment was also
+performed by Lu et al.~\cite{Lu2017}, and we compare the locally
+implicit and globally implicit time stepping methods.  We start by
+considering the time step size $\Delta t = 0.4$ and minimum separation
+distance $\delta = 0$ (no contact algorithm).  Our new globally implicit
+method successfully reaches the time horizon without requiring a
+repulsion force.  However, with the same $\Delta t$, locally implicit
+time stepping results in a collision between the bodies, so the
+collision algorithm is required to reach the time horizon.
+Alternatively, the time step size can be reduced, but, as we will see,
+for sufficiently dense suspensions, even an impractical small time step
+size results in collisions.  
 
-Next, in Figure~\ref{fig:shear_experiment}, we investigate the effect of
-the minimum separation distance on the position of the rigid bodies.
-The top plot shows the trajectory of the left body as it approaches,
+In Figure~\ref{fig:shear_experiment}, we investigate the effect of the
+minimum separation distance on the position of the rigid bodies.  The
+top plot shows the trajectory of the left body as it approaches,
 interacts, and finally separates from the body centered at the origin.
 The bottom left plot shows the trajectory of the particle when the
 contact algorithm is applied with varying levels of separation.  Notice
 that the trajectories are identical until near $x=0$ when the particle
 separation first falls below the minimum separation distance.  Finally,
 in the bottom right plot, the final vertical displacement body initially
-on the left is plotted.  These results are computed for the locally
-implicit time stepping method~\cite{Lu2017}, and the general trend of
-the trajectories are similar.
+on the left is plotted.  These simulations have also been performed with
+the locally implicit time stepping method~\cite{Lu2017}, and the general
+trend of the trajectories are similar.
 \begin{figure}[t]
   \centerline{
   \includegraphics{figures/shear_setup1.pdf}}
@@ -1084,21 +1078,24 @@ displacement of the left particle for varying minimum separation
 distances.}
 \end{figure}
 
-We next investigate the effect of the collision algorithm on the time
-reversibility of the flow. We reverse the shear direction at $t=10$ and
-measure the error between the body's center at $t=0$ and $t=20$.  We
-expect an error that is the sum of a first-order error caused by time
-stepping, and a fixed constant caused by the minimum separation
-distance.  The results for various values of $\delta$ are reported in
-Table~\ref{tab:reverse}. The contact algorithm is not applied
-when $\delta=0$ and when $\delta=h$, and we observe the expected
-first-order convergence.  When $\delta \geq 2h$, the bodies are
-deflected onto contact-free streamlines when their proximity reaches the
-minimum separation distance.  After the flow is reversed, the bodies
-again pass one another, but they are now on contact-free streamlines, so
-the initial deflection is not reversed.  For these larger values of
-$\delta$, we see in Table~\ref{tab:reverse} that the error eventually
-plateaus as $\Delta t$ is decreased.
+We next investigate the effect of the collision algorithm and time step
+size on the reversibility of the flow. We reverse the shear direction at
+$t=10$ and measure the error between the body's center at $t=0$ and
+$t=20$.  We expect an error that is the sum of a first-order error
+caused by time stepping, a fixed constant caused by the minimum
+separation distance, and the spatial error which is negligible for the
+time step sizes we consider.  The results for various values of $\delta$
+and $\Delta t$ are reported in Table~\ref{tab:reverse}. The contact
+algorithm is not required when $\delta=0$ and when $\delta=h$, and we
+observe the expected first-order convergence.  However, when $\delta
+\geq 2h$, the bodies are deflected onto contact-free streamlines when
+their proximity reaches the minimum separation distance.  After the flow
+is reversed, the bodies again pass one another, but they are now on
+contact-free streamlines, so the initial deflection is not reversed.
+Therefore, for these larger values of $\delta$, there is a decrease in
+the error when the error is dominated by the time step size, but as
+$\Delta t$ decreases, the error is dominated by the contact algorithm,
+and the resulting error plateaus.
 
 \begin{table}[t]
 \caption{A study of time reversibility of the shear flow example. At
@@ -1342,12 +1339,11 @@ Motivated by these suspensions we investigate rheological and
 statistical properties of confined suspensions.  We consider suspensions
 of varying area fraction and body aspect ratio; specifically we look at
 5, 10, and 15 percent area fractions and elliptical bodies of aspect
-ratio, $\lambda$ of 1, 3, and 6.  We discretize the bodies with $N_p =$
-\todo[inline]{number} points and the solid walls with $N_w =$
-\todo[inline]{number} points.  To simulate bodies with larger aspect
-ratios, larger values of $N_p$ and $N_w$ are required to resolve the
-slender body geometries, and the hydrodynamic interactions between the
-bodies and the solid walls.
+ratio, $\lambda$ of 1, 3, and 6.  We discretize the bodies with $N_p =
+32$ points and the solid walls with $N_w = 256$ points.  To simulate
+bodies with larger aspect ratios, larger values of $N_p$ and $N_w$ are
+required to resolve the slender body geometries, and the hydrodynamic
+interactions between the bodies and the solid walls.
 
 For all the aspect ratios we consider, $\nu < 1/\ell^2$, so all the
 suspensions are in the dilute regime.  The bodies initial locations are
