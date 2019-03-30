@@ -91,26 +91,55 @@ introduction to reflect the current work.}
 
 \noindent
 \comment{The contribution of the paper is declared to be time stepping
-  strategy, going from locally-implicit to globally implicit. At the
-  face of it, this does not seem to be novel. This makes the interaction
-  matrix fully dense and more costly to apply, but seems trivial to
-  implement otherwise. For instance, Malhotra et al.~(cited by the
-authors) use a similar scheme in 3D.
-
+strategy, going from locally-implicit to globally implicit. At the face
+of it, this does not seem to be novel. This makes the interaction matrix
+fully dense and more costly to apply, but seems trivial to implement
+otherwise. For instance, Malhotra et al.~(cited by the authors) use a
+similar scheme in 3D.
+\\ \\ \noindent
 Later in that section, it is mentioned that ``we use our new time
 stepping to examine the rheological properties of dense rigid body
 suspensions." However, there is no in-depth discussion about these and
 the results section briefly goes over some example.
-
+\\ \\ \noindent
 In summary, if this is a ``method paper", I fail to see any significant
 mathematical/computational contributions. If it is an ``application
 paper", it lacks depth in its analysis.}
 \begin{itemize}
-  \item \todo[inline]{Bryan: Malholtra et al.~consider deformable bodies
-    which is less challenging.}
-  \item \todo[inline]{Bryan: We do compute effective viscosities and
-    alignment angles which are both related to the statistical and
-    rheological properties of the flow.}
+  \item There are several differences regarding the paper by Malholtra
+    et al.~that we point out.  First, they consider
+    vesicle suspensions which have the ability to use deformability to
+    create additional separation.  The result is that contact happens
+    less frequently when compared with rigid body suspensions.  Second,
+    they use a repulsion force rather than the STIV to maintain a
+    contact-free suspension.  There method results in stiffness when the
+    vesicles are very close together, and they are forced to reduce
+    their time step size.  With the proximities we consider, we expect
+    that such a repulsion force would require time step sizes that are
+    impractical for our simulations.
+
+  \item As this is our first paper for this project, we have focused on
+    the methods in this manuscript. It is true that a lot of the
+    concepts (rigid body suspensions, globally implicit time stepping,
+    STIV contact, preconditioner, fast summation, etc.), to the best of
+    our knowledge, no other group has combined these techniques and
+    presented results that allow for such small minimum separation
+    distances and large time step sizes.  For example, Malholtra et
+    al.~use a stiff repulsion force, while Lu et al.~ use a large
+    minimum separation distance.  In addition, the effect of the contact
+    algorithm on the reversibility of the flow has not been investigated
+    to the best of our knowledge.
+
+  \item Our problem is motivated by rheological applications involving
+    microrods in material science applications.  We wish to demonstrate
+    to the readers that our method can be used to compute rheological
+    properties (alignment angle, order parameter, effective viscosity,
+    and shear stress).  However, this is not the focus of this paper.  A
+    follow-up physics paper will be written focusing on the rheology.
+    However, without the techniques presented in this manuscript,
+    high-fidelity dense suspensions with a small minimum separation
+    distance are not possible.
+    
 \end{itemize}
 
 \noindent
@@ -136,6 +165,8 @@ force.  Please quantify the effect of the preconditioner.}
     for deformable bodies such as vesicles, if an exact block-diagonal
     preconditioner is used, it must be constructed from scratch at every
     time step.
+
+  \item This is discussed in detail in Section 3.4.
 \end{itemize}
 
 \noindent
