@@ -970,7 +970,7 @@ updated at each time step with a negligible computational cost.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{Computing the Pressure and Stress}
 \label{sec:pressure_stress}
-Computing the layer potentials for the pressure and stress are more
+Computing the layer potentials for the pressure and stress is more
 challenging than evaluating the velocity double-layer potential.  The
 challenge stems from a singularity that scales as $\mathcal{O}(|\xx -
 \yy|^{-2})$ as a target point approaches a source point.  The pressure
@@ -980,7 +980,9 @@ accurate method for computing the pressure and stress.  Near-singular
 integration is still required, and our interpolation-based method
 requires limiting values of the layer potentials as $\xx \rightarrow
 \bd\Omega$.  The limiting values and tests of the near-singular
-integration scheme are reported in~\cite{Quaife2014}.
+integration scheme are reported in~\cite{Quaife2014}.  Finally, using
+the divergence theorem, we the volumed average stresses can be expressed
+in terms of boundary integrals~\cite{Pozrikidis1992} (see Section 2.5).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Results}\label{s:results}

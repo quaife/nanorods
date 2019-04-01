@@ -68,8 +68,8 @@ torque $L$?}
 \begin{itemize}
   \item There were several typos in these equations.  The $\mathbf{d}_j$
     should have been $\mathbf{c}_j$ since these correspond to the center
-    of the rigid bodies or the interior elements of the boundary of the
-    solid walls.  The typo for the torque $L$ is also corrected.
+    of the rigid bodies or the interior solid walls.  The typo for the
+    torque $L$ is also corrected.
 \end{itemize}
 
 
@@ -107,38 +107,40 @@ mathematical/computational contributions. If it is an ``application
 paper", it lacks depth in its analysis.}
 \begin{itemize}
   \item There are several differences regarding the paper by Malholtra
-    et al.~that we point out.  First, they consider
-    vesicle suspensions which have the ability to use deformability to
-    create additional separation.  The result is that contact happens
-    less frequently when compared with rigid body suspensions.  Second,
-    they use a \textcolor{red}{heuristic} repulsion force rather than the STIV to maintain a
-    contact-free suspension.  Their method results in stiffness when the
-    vesicles are very close together, and they are forced to reduce
-    their time step size.  With the proximities we consider, we expect
-    that such a repulsion force would require time step sizes that are
-    impractical for our simulations.
+    et al.~that we point out.  First, they consider vesicle suspensions
+    which have the ability to use deformability to create additional
+    separation (this is discussed in detail in a forthcoming revision).
+    The result is that contact happens less frequently when compared
+    with rigid body suspensions.  Second, they use a heuristic repulsion
+    force rather than the STIV to maintain a contact-free suspension.
+    Their method results in stiffness when the vesicles are very close
+    together, and they are forced to reduce their time step size.  With
+    the proximities we consider, we expect that such a repulsion force
+    would require time step sizes that are impractical for our
+    simulations.
 
   \item As this is our first paper for this project, we have focused on
     the methods in this manuscript. It is true that a lot of the
     concepts (rigid body suspensions, globally implicit time stepping,
-    STIV contact, preconditioner, fast summation, etc.) \textcolor{red}{have been presented elsewhere, but} to the best of
-    our knowledge, no other group has combined these techniques and
-    presented results that allow for such small minimum separation
-    distances and large time step sizes.  For example, Malholtra et
-    al.~use a stiff repulsion force, while Lu et al.~ use a large
-    minimum separation distance.  In addition, the effect of the contact
-    algorithm on the reversibility of the flow has not been investigated
-    to the best of our knowledge.
+    STIV contact, preconditioner, fast summation, etc.) have been
+    presented elsewhere, but to the best of our knowledge, no other
+    group has combined these techniques and presented results that allow
+    for such small minimum separation distances and large time step
+    sizes.  For example, Malholtra et al.~use a stiff repulsion force,
+    while Lu et al.~use a large minimum separation distance.  In
+    addition, the effect of the contact algorithm on the reversibility
+    of the flow has not been investigated to the best of our knowledge.
 
   \item Our problem is motivated by rheological applications involving
     microrods in material science applications.  We wish to demonstrate
     to the readers that our method can be used to compute rheological
     properties (alignment angle, order parameter, effective viscosity,
-    and shear stress).  However, this is not the focus of this paper.  A
-    follow-up physics paper will be written focusing on the rheology.
-    However, without the techniques presented in this manuscript,
-    high-fidelity dense suspensions with a small minimum separation
-    distance are not possible.
+    and shear stress) which are very important in such applications.
+    However, the physics is not the focus of this paper.  A follow-up
+    physics paper will be written focusing on the rheology.  However,
+    without the techniques presented in this manuscript, high-fidelity
+    dense suspensions with a small minimum separation distance are not
+    possible.
     
 \end{itemize}
 
@@ -152,10 +154,16 @@ paper", it lacks depth in its analysis.}
   story, because one major source of ill-conditioning is the bending
 force.  Please quantify the effect of the preconditioner.}
 \begin{itemize}
+  \item The reviewer is correct that the high-order derivatives that
+    govern vesicle suspensions can greatly increase the number of GMRES
+    iterations, and a preconditioner is very important.  However, as we
+    argue below, the same preconditioner is helpful for rigid body
+    suspensions.
+
   \item We did a comparison of the number of GMRES iterations required
-    with and without the block-diagonal preconditioner.  For the
-    Taylor-Green flow, there is a 2X reduction in the number of
-    iterations.
+    for a rigid body suspension with and without the block-diagonal
+    preconditioner.  For the Taylor-Green flow, there is a 2X reduction
+    in the number of iterations.
 
   \item In addition, because we are simulating rigid bodies, the
     block-diagonal preconditioner can be updated at each time step by
@@ -164,7 +172,8 @@ force.  Please quantify the effect of the preconditioner.}
     constructing the preconditioner and justifies its use.  In contrast,
     for deformable bodies such as vesicles, if an exact block-diagonal
     preconditioner is used, it must be constructed from scratch at every
-    time step.
+    time step, so the preconditioner does not payoff unless there is a
+    significant reduction in the number of GMRES iterations.
 
   \item This is discussed in detail in Section 3.4.
 \end{itemize}
@@ -186,15 +195,17 @@ force.  Please quantify the effect of the preconditioner.}
     different time stepping schemes.  Since all other variables are held
     fixed (LCP solver, linear solver, etc.), we argue that it is the
     time stepping scheme that results in the stalling of the contact
-    algorithm. \textcolor{red}{This is because the inaccuracy of the semi-implicit time stepper causes the sequence of LCP problems to not converge to the NCP solution.}
+    algorithm. That is, it is the inaccuracy of the locally implicit
+    time stepper that causes the sequence of LCP problems to not
+    converge to the NCP solution.
 
   \item Regarding a higher-order time stepping method such as SDC, we
-    expect that it is convergent only if the globally implicit method is
-    used.  This prediction is based on a previous work of one author
-    (Quaife) who developed the SDC framework for vesicle suspensions.
-    While this is not complete the picture regarding SDC with small
-    minimum separation distances, we leave more careful experiments and
-    discussions to future work.
+    expect that it is convergent for dense suspensions only if the
+    globally implicit method is used.  This prediction is based on a
+    previous work of one author (Quaife) who developed the SDC framework
+    for vesicle suspensions.  While this is not a complete picture
+    regarding SDC with small minimum separation distances, we leave more
+    careful analysis, experiments, and discussions to future work.
 
 \end{itemize}
 
@@ -221,7 +232,7 @@ of this result.}
     dominates.  However, as $\Delta t$ is decreased, the error plateaus
     at the error introduced by the contact algorithm.
 
-  \item This presentation of this behavior has been clarified in the
+  \item The presentation of this behavior has been clarified in the
     manuscript.
 \end{itemize}
 
@@ -242,8 +253,8 @@ method?  What causes the limitation.}
   \item In theory the method works for any aspect ratio, but the cost is
     that additional resolution is required.  The resolution has to be
     sufficiently large to describe the geometry (curvature, arclength,
-    etc.) and the hydrodynamic interactions between the rigid bodies and
-    between the rigid bodies and the solid wall (ie.~resolve the density
+    etc.) and the hydrodynamic interactions of the rigid bodies with the
+    other rigid bodies and the solid wall (ie.~resolve the density
     functions).
     
   \item We state in the {\em Limitations} section that larger aspect
@@ -305,7 +316,7 @@ distance." Why is this true?  does this depend on flow/particle type?}
   \item The reveiwer is correct that our simulations are always
     force-free and torque-free.  We have revised this paragraph to state
     that equation (2) assumes that all forces are hydrodynamic.  Then,
-    an additional contact force will be added to avoid the unphysical
+    an additional contact force is added to avoid the unphysical
     contact.
 \end{itemize}
 
@@ -349,8 +360,12 @@ theorem, the volumed average stresses can be expressed in terms of
 boundary integrals" a book is used.  Please add page number/section that
 clearly support the claim.}
 \begin{itemize}
-  \item This is described in Section 2.5 of {\em Boundary
-    integral and singularity methods} \textcolor{red}{by Pozrikidis}.
+  \item This is described in Section 2.5 of {\em Boundary integral and
+    singularity methods} by Pozrikidis.
+
+  \item Note that the section containing the above mentioned sentence
+    has been removed.  We have moved the discussion of computing average
+    stresses to Section 3.5.
 \end{itemize}
 
 \noindent
@@ -359,10 +374,10 @@ the force on one particle.  Why is this not added as a constraint so
 that the resulting force is balanced?}
 \begin{itemize}
   \item The language in the previous version may have led to some
-    confusion.  We do enforce a net force balance of 0.  The reviewer is
-    right that this could be done by imposing this as a constraint.
-    However, this would require an addition Lagrange multiplier and
-    the result would be a modification to Equation (7).  
+    confusion.  We do enforce a net force balance of zero.  The reviewer
+    is right that this could be done by imposing this as a constraint.
+    However, this would require an addition Lagrange multiplier and the
+    result would be a modification to Equation (7).  
     
   \item We take a different, but simpler approach.  We simply modify one
     of the forces of a cluster of rigid bodies in near-contact so that
@@ -370,7 +385,7 @@ that the resulting force is balanced?}
     smallest force, this makes sure that we are only modifying the least
     significant force.
 
-  \item We have described both this techniques in the text.
+  \item We have described both these techniques in the text.
 
 \end{itemize}
 
@@ -451,8 +466,8 @@ interactions and the hydrodynamic interactions between different
 particle in equations 13,14 on Page 10.}
 \begin{itemize}
   \item Thank you for pointing out this flaw in the notation.  We have
-    updated equations (13) and (14) so that it is clearer how the
-    integral equation is discretized.
+    updated equations (13) and (14) so that it is clear how the integral
+    equation is discretized.
 \end{itemize}
 
 \noindent
