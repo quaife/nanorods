@@ -111,8 +111,8 @@ paper", it lacks depth in its analysis.}
     vesicle suspensions which have the ability to use deformability to
     create additional separation.  The result is that contact happens
     less frequently when compared with rigid body suspensions.  Second,
-    they use a repulsion force rather than the STIV to maintain a
-    contact-free suspension.  There method results in stiffness when the
+    they use a \textcolor{red}{heuristic} repulsion force rather than the STIV to maintain a
+    contact-free suspension.  Their method results in stiffness when the
     vesicles are very close together, and they are forced to reduce
     their time step size.  With the proximities we consider, we expect
     that such a repulsion force would require time step sizes that are
@@ -121,7 +121,7 @@ paper", it lacks depth in its analysis.}
   \item As this is our first paper for this project, we have focused on
     the methods in this manuscript. It is true that a lot of the
     concepts (rigid body suspensions, globally implicit time stepping,
-    STIV contact, preconditioner, fast summation, etc.), to the best of
+    STIV contact, preconditioner, fast summation, etc.) \textcolor{red}{have been presented elsewhere, but} to the best of
     our knowledge, no other group has combined these techniques and
     presented results that allow for such small minimum separation
     distances and large time step sizes.  For example, Malholtra et
@@ -186,7 +186,7 @@ force.  Please quantify the effect of the preconditioner.}
     different time stepping schemes.  Since all other variables are held
     fixed (LCP solver, linear solver, etc.), we argue that it is the
     time stepping scheme that results in the stalling of the contact
-    algorithm. 
+    algorithm. \textcolor{red}{This is because the inaccuracy of the semi-implicit time stepper causes the sequence of LCP problems to not converge to the NCP solution.}
 
   \item Regarding a higher-order time stepping method such as SDC, we
     expect that it is convergent only if the globally implicit method is
@@ -349,8 +349,8 @@ theorem, the volumed average stresses can be expressed in terms of
 boundary integrals" a book is used.  Please add page number/section that
 clearly support the claim.}
 \begin{itemize}
-  \item This is described in Section 2.5 of Pozrikidis book: {\em Boundary
-    integral and singularity methods}.
+  \item This is described in Section 2.5 of {\em Boundary
+    integral and singularity methods} \textcolor{red}{by Pozrikidis}.
 \end{itemize}
 
 \noindent
@@ -392,7 +392,7 @@ accuracy?}
     estimated using two numerical solutions with, for example, different
     time step sizes, and this is too expensive.  
 
-  \item Since our method is heuristic, it can not be used to achieve
+  \item Since our method is heuristic, it cannot be used to achieve
     guaranteed user-specified tolerance.  However, the heuristic method
     does increase/decrease the time step size when the dynamics become
     less/more complicated.  Therefore, our adaptive time stepping method
