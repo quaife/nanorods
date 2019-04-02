@@ -1,6 +1,5 @@
 \documentclass[11pt]{article}
 
-
 \usepackage{fullpage}
 \usepackage{todonotes}
 \usepackage{amsmath,amsfonts,amssymb,stmaryrd}
@@ -84,8 +83,24 @@ torque $L$?}
 viscosity, which is entirely missing from the text. Please revise the
 introduction to reflect the current work.}
 \begin{itemize}
-  \item \todo[inline]{Bryan: Tone down the intro so that it reads more
-    as a motivation for the work that we want to eventually do.}
+  \item We have rewritten much of the Introduction so that it better
+    reflects what we present in the paper.
+
+  \item The general logic is that rigid body suspensions are important
+    in material sciences.  The dynamics of a single body undergoes
+    Jeffery orbits, but if their are multiple bodies, one has to either resort
+    to an implicit method that uses average orientation angles, or use
+    an explicit direct numerical simulation (DNS).
+
+  \item To perform DNS with bodies that are very close to another, which
+    is typical in many applications, a new time stepping method must be
+    coupled with a contact algorithm.
+
+  \item In addition to developing the time stepping method, we analyze
+    the effects of the collision on the reversibility of the flow, and
+    we give preliminary results on the rheological properties of the
+    flow.
+
 \end{itemize}
 
 

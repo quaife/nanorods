@@ -67,25 +67,24 @@ Collision handling, Rheology}
 
 %\footnotetext{\textbf{Abbreviations:} ANA, anti-nuclear antibodies; APC, antigen-presenting cells; IRF, interferon regulatory factor}
 
-
 \section{Introduction}\label{s:intro}
-Dispersions of particulate rods or fibers are used in composite
-materials to tune mechanical, thermal, and electrical properties.
-Typically, these materials are processed in the melt or liquid
-suspension state via operations like injection molding, extrusion,
-casting, etc. It is important to model fiber suspensions for two
-reasons: (i) the distribution and orientation of the fibers, which
-determines the properties of the composite material, are governed by the
-flow history during processing, and (ii) the rheological properties of
-the suspension, which influence the flow behavior, in turn, depend on
-the size, shape, distribution, and orientation of the
-fibers~\cite{larsoncf}.
+Dispersions of rigid fibers particles are used in composite materials to
+tune mechanical, thermal, and electrical properties. Typically, these
+materials are processed in the melt or liquid suspension state via
+operations like injection molding, extrusion, casting, etc. It is
+important to model particle suspensions for two reasons: (i) the
+distribution and orientation of the particles, which determines the
+properties of the composite material, are governed by the flow history
+during processing, and (ii) the rheological properties of the
+suspension, which influence the flow behavior, in turn, depend on the
+size, shape, distribution, and orientation of the
+particles~\cite{larsoncf}.
 
-The theory of rigid fibers in flowing fluids was pioneered by
+The theory of rigid rods in flowing fluids was pioneered by
 Jeffery~\cite{Jeffery1922} who analyzed the motion of a single
 spheroidal particle sheared in a Newtonian solvent. At a given shear
-rate $\dot{\gamma}$, he observed that fibers of length $\ell$ and
-diameter $d$ underwent periodic motion with a period $\pi/(2|\dot{\gamma}|)
+rate $\dot{\gamma}$, he observed that rods of length $\ell$ and diameter
+$d$ underwent periodic motion with a period $\pi/(2|\dot{\gamma}|)
 (\lambda + 1/\lambda)$, where $\lambda = \ell/d$ is the aspect ratio.
 The period increases with $\lambda$, and when $\lambda \gg 1$, a
 particle exhibiting a ``Jeffery's orbit" stays aligned with the flow
@@ -95,82 +94,28 @@ half-revolution. In the dilute regime (number of rods/unit volume $\nu <
 as cylinders, can be quantitatively described via Jeffery's orbits once
 corrections are made for particle shape~\cite{Bretherton1962}.
 
-As $\nu$ increases, interactions between fibers become significant.
-Batchelor extended Jeffery's theory for multiple particles, by relating
-the average stress tensor, $\ssigma$, to the distribution of fiber
-orientation $\mathbf{p}$, and the deformation tensor $\mathbf{D} =
-(\nabla \mathbf{u} + \nabla \mathbf{u}^\intercal)/2$. Assuming purely
-hydrodynamic interactions between fibers, and a slender body
-approximation ($\lambda \gg 1$)~\cite{Batchelor1970, Batchelor1970a,
-Doi1978, Dinh1984, Shaqfeh1990},
-\begin{align}
-  \ssigma = 2 \mu \mathbf{D} + \nu \zeta 
-    \langle \mathbf{p p p p} \rangle : \mathbf{D},
-\label{eqn:batchelor}
-\end{align}
-where $\mu$ is the solvent viscosity, and $\zeta$ is a drag
-coefficient~\cite{Batchelor1971} that depends on the size and
-concentration of the particles, and the solvent viscosity. The ensemble
-average $\langle \cdot \rangle = \int \cdot \,
-\psi(\mathbf{p})\,d\mathbf{p}$ represents a weighted average over the
-probability distribution of fiber orientations $\psi(\mathbf{p})$. 
-
-In computer simulations, the fiber orientation distribution is modeled
-implicitly or explicitly. In the \emph{implicit} approach, individual
-fibers are not explicitly represented; instead it relies on averages of
-second- and fourth-order fiber orientation tensors, $\langle \mathbf{p
-p} \rangle$ and $\langle \mathbf{p p p p} \rangle$. Fluid flow equations
-(Stokes or Navier-Stokes) are coupled with evolution equations for the
-fiber orientation tensors. In order to solve the resulting equations,
-fiber interaction models and closure approximations have to be specified
+As $\nu$ increases, interactions between rods become significant.
+Analytical solutions become intractable, and computer simulations have
+to be resorted to. In these simulations, the distribution of particle
+orientations is modeled either implicitly or explicitly. In the
+\emph{implicit} approach, individual particles are not explicitly
+represented; instead it relies on averages of second- and fourth-order
+orientation tensors. Fluid flow equations (Stokes or Navier-Stokes) are
+coupled with evolution equations for the orientation tensors. In order
+to solve the resulting equations, models for interaction between
+particles and closure approximations have to be specified
 externally~\cite{Advani1987, Advani1990, Ferec2014, Perez2017}. This is
-in contrast to direct numerical simulations where individual fibers are
-\emph{explicitly} represented. Typically, fibers are modeled as
-prolate ellipsoids~\cite{Ausias2006}, a set of connected
-beads~\cite{Yamamoto1996, Joung2001}, rods~\cite{Schmid2000,
-Lindstroem2007}, or a slender body ($\ell \gg d$)~\cite{Fan1998,
-Rahnama1995, tor-she2004, tor-gus2006, gus-tor2009}, with suitable
-first-order corrections to account for finite width. Over the years, in
-addition to long-range hydrodynamic interaction, these models have been
-supplemented with detailed physics including short-range lubrication,
-mechanical contact, and frictional forces~\cite{Sundararajakumar1997,
-Lindstroem2008}.
-
-In the semi-dilute regime, $1/\ell^3 \ll \nu \ll 1/d\ell^2$, fiber
-rotation is hindered; however, it is found that the statistical
-properties are not significantly altered from the dilute
-regime~\cite{larsoncf}.  Hydrodynamic interactions between particles
-dominate the response, and contacts between fibers are rare. Batchelor's
-theory, suitably modified for multibody hydrodynamic
-interactions~\cite{Shaqfeh1990, Mackaplow1996}, describes the
-empirically observed increase in shear viscosity as a function of $\nu$
-reasonably well~\cite{Stover1992, Bibbo1987, Petrich2000}. The
-contribution of the fibers to the steady shear viscosity is relatively
-modest in non-Brownian suspensions. This is especially true for high
-aspect ratio fibers which rotate and align along the flow direction, and
-contribute to the viscosity only during the occasional
-tumble~\cite{larsoncf}.  Thus, the success of theory and computer models
-in predicting the viscosity change in the semi-dilute regime does not
-automatically validate the underlying fiber interaction model. Indeed
-fiber-fiber interactions are more sensitively reflected in other
-viscometric functions such as first normal stress difference, and
-distribution of orientations as reflected in, for example, the
-dispersion of Jeffery's orbits~\cite{Lindstroem2009}.
-
-Once the concentration increases beyond $\nu \approx 1/d\ell^2$, the
-suspension enters the concentrated regime. Here, excluded volume
-interactions become important and isotropic packing becomes increasingly
-difficult. In this regime, Batchelor's slender body theory and
-constitutive relation~\eqref{eqn:batchelor} are no longer valid as
-mechanical contacts between fibers start to dominate the response. When
-these mechanical interactions are explicitly accounted for, computer
-models are able to reproduce a nonzero first normal stress difference
-that is observed in experiments~\cite{Sundararajakumar1997, Ausias2006,
-Lindstroem2008}. Unlike the dilute and semi-dilute regimes, equation
-\eqref{eqn:batchelor} can no longer be used to estimate rheological
-properties. Instead, stresses in the suspension have to be computed by
-directly summing the forces acting on the fibers~\cite{Ausias2006,
-Lindstroem2008}.
+in contrast to direct numerical simulations where individual particles
+are \emph{explicitly} represented. Typically, rod-like particles are
+modeled as prolate ellipsoids~\cite{Ausias2006}, a set of connected
+beads~\cite{Yamamoto1996, Joung2001},
+rods~\cite{Schmid2000,Lindstroem2007}, or a slender body ($\ell \gg
+d$)~\cite{Fan1998, Rahnama1995, tor-she2004, tor-gus2006, gus-tor2009},
+with suitable first-order corrections to account for finite width. Over
+the years, in addition to long-range hydrodynamic interaction, these
+models have been supplemented with detailed physics including
+short-range lubrication, mechanical contact, and frictional
+forces~\cite{Sundararajakumar1997, Lindstroem2008}.
 
 In this work, we develop and test tools for two-dimensional direct
 numerical simulations of rigid bodies suspended in a viscous fluid.  We
@@ -181,13 +126,135 @@ set of unknowns to the one-dimensional closed curves that form the fluid
 boundary.  Moreover, our BIE fluid solver achieves high-order accuracy.
 The governing Stokes equations prohibit contact between particles,
 however, because of numerical errors, without additional techniques,
-rigid bodies often come into contact or even overlap. Therefore, we
-apply a contact algorithm that allows rigid particles to come very close
-to one another, but guarantees that contact is avoided without
-introducing significant stiffness.  In addition to computing fiber
-trajectories, we compute rheological and statistical properties of the
-fluid and particles to better understand the dispersion of fibers in
-composite materials.
+rigid bodies often come into contact or even overlap.  Therefore, we use
+a globally implicit time stepping method coupled with a contact
+algorithm.  In this manner, rigid particles can come very close to one
+another, but guarantees that contact is avoided without introducing
+significant stiffness.  This contact algorithm results in a flow that is
+not reversible, and we compute and analyze this error.  Finally, we
+compute rheological and statistical properties of the fluid and
+particles to better understand the dispersion of fibers in composite
+materials.
+
+%Dispersions of particulate rods or fibers are used in composite
+%materials to tune mechanical, thermal, and electrical properties.
+%Typically, these materials are processed in the melt or liquid
+%suspension state via operations like injection molding, extrusion,
+%casting, etc. It is important to model fiber suspensions for two
+%reasons: (i) the distribution and orientation of the fibers, which
+%determines the properties of the composite material, are governed by the
+%flow history during processing, and (ii) the rheological properties of
+%the suspension, which influence the flow behavior, in turn, depend on
+%the size, shape, distribution, and orientation of the
+%fibers~\cite{larsoncf}.
+%
+%The theory of rigid fibers in flowing fluids was pioneered by
+%Jeffery~\cite{Jeffery1922} who analyzed the motion of a single
+%spheroidal particle sheared in a Newtonian solvent. At a given shear
+%rate $\dot{\gamma}$, he observed that fibers of length $\ell$ and
+%diameter $d$ underwent periodic motion with a period $\pi/(2|\dot{\gamma}|)
+%(\lambda + 1/\lambda)$, where $\lambda = \ell/d$ is the aspect ratio.
+%The period increases with $\lambda$, and when $\lambda \gg 1$, a
+%particle exhibiting a ``Jeffery's orbit" stays aligned with the flow
+%direction most of the time, before abruptly spinning through a
+%half-revolution. In the dilute regime (number of rods/unit volume $\nu <
+%1/\ell^3$), trajectories of elongated fibers of different shapes, such
+%as cylinders, can be quantitatively described via Jeffery's orbits once
+%corrections are made for particle shape~\cite{Bretherton1962}.
+%
+%As $\nu$ increases, interactions between fibers become significant.
+%Batchelor extended Jeffery's theory for multiple particles, by relating
+%the average stress tensor, $\ssigma$, to the distribution of fiber
+%orientation $\mathbf{p}$, and the deformation tensor $\mathbf{D} =
+%(\nabla \mathbf{u} + \nabla \mathbf{u}^\intercal)/2$. Assuming purely
+%hydrodynamic interactions between fibers, and a slender body
+%approximation ($\lambda \gg 1$)~\cite{Batchelor1970, Batchelor1970a,
+%Doi1978, Dinh1984, Shaqfeh1990},
+%\begin{align}
+%  \ssigma = 2 \mu \mathbf{D} + \nu \zeta 
+%    \langle \mathbf{p p p p} \rangle : \mathbf{D},
+%\label{eqn:batchelor}
+%\end{align}
+%where $\mu$ is the solvent viscosity, and $\zeta$ is a drag
+%coefficient~\cite{Batchelor1971} that depends on the size and
+%concentration of the particles, and the solvent viscosity. The ensemble
+%average $\langle \cdot \rangle = \int \cdot \,
+%\psi(\mathbf{p})\,d\mathbf{p}$ represents a weighted average over the
+%probability distribution of fiber orientations $\psi(\mathbf{p})$. 
+%
+%In computer simulations, the fiber orientation distribution is modeled
+%implicitly or explicitly. In the \emph{implicit} approach, individual
+%fibers are not explicitly represented; instead it relies on averages of
+%second- and fourth-order fiber orientation tensors, $\langle \mathbf{p
+%p} \rangle$ and $\langle \mathbf{p p p p} \rangle$. Fluid flow equations
+%(Stokes or Navier-Stokes) are coupled with evolution equations for the
+%fiber orientation tensors. In order to solve the resulting equations,
+%fiber interaction models and closure approximations have to be specified
+%externally~\cite{Advani1987, Advani1990, Ferec2014, Perez2017}. This is
+%in contrast to direct numerical simulations where individual fibers are
+%\emph{explicitly} represented. Typically, fibers are modeled as
+%prolate ellipsoids~\cite{Ausias2006}, a set of connected
+%beads~\cite{Yamamoto1996, Joung2001}, rods~\cite{Schmid2000,
+%Lindstroem2007}, or a slender body ($\ell \gg d$)~\cite{Fan1998,
+%Rahnama1995, tor-she2004, tor-gus2006, gus-tor2009}, with suitable
+%first-order corrections to account for finite width. Over the years, in
+%addition to long-range hydrodynamic interaction, these models have been
+%supplemented with detailed physics including short-range lubrication,
+%mechanical contact, and frictional forces~\cite{Sundararajakumar1997,
+%Lindstroem2008}.
+%
+%In the semi-dilute regime, $1/\ell^3 \ll \nu \ll 1/d\ell^2$, fiber
+%rotation is hindered; however, it is found that the statistical
+%properties are not significantly altered from the dilute
+%regime~\cite{larsoncf}.  Hydrodynamic interactions between particles
+%dominate the response, and contacts between fibers are rare. Batchelor's
+%theory, suitably modified for multibody hydrodynamic
+%interactions~\cite{Shaqfeh1990, Mackaplow1996}, describes the
+%empirically observed increase in shear viscosity as a function of $\nu$
+%reasonably well~\cite{Stover1992, Bibbo1987, Petrich2000}. The
+%contribution of the fibers to the steady shear viscosity is relatively
+%modest in non-Brownian suspensions. This is especially true for high
+%aspect ratio fibers which rotate and align along the flow direction, and
+%contribute to the viscosity only during the occasional
+%tumble~\cite{larsoncf}.  Thus, the success of theory and computer models
+%in predicting the viscosity change in the semi-dilute regime does not
+%automatically validate the underlying fiber interaction model. Indeed
+%fiber-fiber interactions are more sensitively reflected in other
+%viscometric functions such as first normal stress difference, and
+%distribution of orientations as reflected in, for example, the
+%dispersion of Jeffery's orbits~\cite{Lindstroem2009}.
+%
+%Once the concentration increases beyond $\nu \approx 1/d\ell^2$, the
+%suspension enters the concentrated regime. Here, excluded volume
+%interactions become important and isotropic packing becomes increasingly
+%difficult. In this regime, Batchelor's slender body theory and
+%constitutive relation~\eqref{eqn:batchelor} are no longer valid as
+%mechanical contacts between fibers start to dominate the response. When
+%these mechanical interactions are explicitly accounted for, computer
+%models are able to reproduce a nonzero first normal stress difference
+%that is observed in experiments~\cite{Sundararajakumar1997, Ausias2006,
+%Lindstroem2008}. Unlike the dilute and semi-dilute regimes, equation
+%\eqref{eqn:batchelor} can no longer be used to estimate rheological
+%properties. Instead, stresses in the suspension have to be computed by
+%directly summing the forces acting on the fibers~\cite{Ausias2006,
+%Lindstroem2008}.
+%
+%In this work, we develop and test tools for two-dimensional direct
+%numerical simulations of rigid bodies suspended in a viscous fluid.  We
+%do not make any rigid body assumptions, but rather fully resolve the
+%fiber shape.  To perform the simulations, we use a boundary integral
+%equation (BIE) since it resolves the complex geometry by reducing the
+%set of unknowns to the one-dimensional closed curves that form the fluid
+%boundary.  Moreover, our BIE fluid solver achieves high-order accuracy.
+%The governing Stokes equations prohibit contact between particles,
+%however, because of numerical errors, without additional techniques,
+%rigid bodies often come into contact or even overlap. Therefore, we
+%apply a contact algorithm that allows rigid particles to come very close
+%to one another, but guarantees that contact is avoided without
+%introducing significant stiffness.  In addition to computing fiber
+%trajectories, we compute rheological and statistical properties of the
+%fluid and particles to better understand the dispersion of fibers in
+%composite materials.
 
 \paragraph{Contributions} When deformable bodies, such as vesicles, approach
 one another, the pressure in the lubrication region between the bodies
@@ -225,20 +292,20 @@ interactions semi-implicitly
 \end{align*}
 With this modification, we are able to perform simulations with much
 smaller and more physical minimum separation distances without
-introducing excessive stiffness---a typical minimum separation distance
-is $\mathcal{O}(10^{-2})$ arclength spacings.
+introducing excessive stiffness---we present results with a minimum
+separation distance of $\mathcal{O}(10^{-2})$ arclength spacings.
 
 While maintaining a minimum separation distance is important for stable
-simulations, the contact algorithm developed by Lu et al.~does introduce
-artificial forces that shifts bodies onto different streamlines, and
-this breaks  the reversibility of the Stokes equations.  We examine the
-effect of the contact algorithm on the reversibility of the flow.
-Finally, we use our new time stepping to examine the rheological
-properties of dense rigid body suspensions with small minimum separation
-distances.  In particular, we compute the effective shear viscosity of a
-suspension of rigid bodies in a Couette device, examine the alignment
-angle of elliptical bodies of varying area fraction and aspect ratio,
-and compare the results to analytical Jeffery's orbits.
+simulations, the contact algorithm developed by Lu et al.~introduces
+artificial forces that shift bodies onto different streamlines, and this
+breaks the reversibility of the Stokes equations.  We examine the effect
+of the contact algorithm on the reversibility of the flow.  Finally, we
+use our new time stepping to examine the rheological properties of dense
+rigid body suspensions with small minimum separation distances.  In
+particular, we compute the effective shear viscosity of a suspension of
+rigid bodies in a Couette device, examine the alignment angle of
+elliptical bodies of varying area fraction and aspect ratio, and compare
+the results to analytical Jeffery's orbits.
 
 \paragraph{Limitations} The main limitation is that the method is
 developed in two dimensions.  By limiting ourselves to two dimensions,
@@ -253,10 +320,10 @@ space-time interference volume that integrates a four-dimensional domain
 
 Another limitation is that we only consider elliptical rigid bodies
 whose minor and major axis differ by a factor of no more than six.
-However, in many applications, the aspect ratio of many slender bodies
-is at least an order of magnitude larger.  Our formulation is valid for
-any two-dimensional geometry with a smooth boundary, but the resolution
-must sufficiently large to resolve the geometry, layer potentials, and
+However, in many applications, the aspect ratio of slender bodies is at
+least an order of magnitude larger.  Our formulation is valid for any
+two-dimensional geometry with a smooth boundary, but the resolution must
+be sufficiently large to resolve the geometry, layer potentials, and
 density functions.
 
 \paragraph{Related work} Rather than presenting an exhaustive list of
@@ -277,7 +344,7 @@ number of GMRES iterations is mesh-independent~\cite{Campbell1996}, but
 it is geometry-dependent.  Therefore, preconditioners are often applied.
 There are a variety of preconditioners available for integral
 equations~\cite{cou-pou-dar2017, che2000, qua-cou-dar2018, Quaife2015a,
-bra-lub1990, hem-sch1981}, we apply a simple block-diagonal
+bra-lub1990, hem-sch1981}, and we apply a simple block-diagonal
 preconditioner that was successfully used for vesicle
 suspensions~\cite{Quaife2014}.
 
@@ -338,7 +405,7 @@ error~\cite{Quaife2015, Quaife2015a, Sorgentone2018}.  Such estimates
 require multiple numerical solutions to be formed at each time step, or
 a conserved quantity that can be efficiently computed at each time step
 must be available.  Alternatively, we apply a heuristic method that
-adjusts the time step size when the computation effort is
+adjusts the time step size when the computational effort is
 large~\cite{Kropinski1999}.  Such a heuristic approach does not require
 an estimate of the error, and it tends to decrease and increase the time
 step size in response to the complexity of the dynamics.
@@ -346,9 +413,9 @@ step size in response to the complexity of the dynamics.
 \paragraph{Outline of the paper}
 In Section~\ref{s:formulation} we describe the physical problem and the
 governing equations.  In Section~\ref{s:method}, we describe the
-numerical methods used to form numerical solutions.
-The results are described in Section~\ref{s:results}, and conclusions
-are drawn in Section~\ref{s:conclusions}.
+numerical methods use to form numerical solutions.  The results are
+described in Section~\ref{s:results}, and conclusions are drawn in
+Section~\ref{s:conclusions}.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Formulation}\label{s:formulation} 
@@ -393,17 +460,17 @@ for $M_p$ particles suspended in a bounded $M_w$-connected domain is
   \label{eqn:modelEquations}
   \begin{aligned}
   \mu \Delta \uu = \grad p, &\hspace{20pt} \xx \in \Omega, \gap
-    &&\mbox{\em conservation of momentum,}\\
+    &&\mbox{\it conservation of momentum,}\\
   \grad \cdot \uu = 0, &\hspace{20pt} \xx \in \Omega, \gap
-    &&\mbox{\em conservation of mass,} \\
+    &&\mbox{\it conservation of mass,} \\
   \uu = \UU, &\hspace{20pt} \xx \in \Gamma, \gap 
-    &&\mbox{\em wall velocity,} \\
+    &&\mbox{\it wall velocity,} \\
   \uu = \uu^\tau_j + \omega_j(\xx-\cc^\gamma_j)^\perp,&\hspace{20pt} 
-    \xx \in \gamma, \gap &&\mbox{\em no-slip on the bodies,} \\
+    \xx \in \gamma, \gap &&\mbox{\it no-slip on the bodies,} \\
   \FF_j^\gamma = 0, &\hspace{20pt}j=1,\ldots,M_p, \gap 
-    &&\mbox{\em force-free bodies,} \\
+    &&\mbox{\it force-free bodies,} \\
   L_j^\gamma = 0, &\hspace{20pt}j=1,\ldots,M_p, \gap 
-    &&\mbox{\em torque-free bodies.}
+    &&\mbox{\it torque-free bodies.}
   \end{aligned}
 \end{equation}
 Here, $\uu$ is the velocity, $p$ is the pressure, $\mu$ is the fluid
@@ -427,7 +494,7 @@ $j=1,\ldots,M_p$, satisfy
 \end{align}
 Equations~\eqref{eqn:modelEquations} and~\eqref{eqn:centersAngles} govern
 the dynamics of the rigid body suspensions, and their numerical solution
-is a focus on this paper.
+is a focus of this paper.
 
 We have assumed that the suspension only has hydrodynamic forces.
 However, when rigid bodies are brought sufficiently close together,
@@ -479,9 +546,8 @@ satisfy the incompressible Stokes equations.  Following Power and
 Miranda~\cite{Power1987, Power1993}, this is resolved by introducing
 point forces and torques due to each interior component of the geometry
 $\Gamma_j$, and the strengths of these forces and torques are related to
-the density function $\eeta$.  By introducing the velocity fields due to
-a point force (Stokeslet) and a point torque (rotlet), both centered at
-$\cc$,
+the density function $\eeta$.  The velocity fields due to a point force
+(Stokeslet) and a point torque (rotlet), both centered at $\cc$, are
 \begin{align*}
   \mathbf{S}(\xx,\cc) = \frac{1}{4\pi}\left(-\log\rho\mathbf{I} + 
   \frac{\rr \otimes \rr}{\rho^2}\right), \quad \text{and} \quad
@@ -507,7 +573,7 @@ completed second-kind BIE
 We now introduce a suspension of rigid bodies $\gamma_j$,
 $j=1,\ldots,M_p$.  The double-layer potential now includes contributions
 from both the solid walls and rigid bodies.  Imposing the no-slip
-boundary condition on the rigid bodies, a BIE formulation of the
+boundary condition on the rigid bodies, a BIE formulation for a
 suspension of rigid bodies governed by
 equation~\eqref{eqn:modelEquations} is
 \begin{subequations}
@@ -548,16 +614,16 @@ While~\eqref{eqn:BIEformulation1} and~\eqref{eqn:BIEformulation2} are
 both numerically desirable second-kind Fredholm integral equations
 equations, equation~\eqref{eqn:BIEformulation1} has a rank one null
 space because of the flux-free condition of the boundary data
-$\UU$~\cite{Ladyzhenskaya1963}.  Following~\cite{Power1993}, this null
-space is removed by adding the term 
+$\UU$~\cite{Ladyzhenskaya1963}.  Following Power~\cite{Power1993}, this
+null space is removed by adding the term 
 \begin{align}
 \label{eqn:N0_modification} 
   \mathcal{N}_0[\eeta](\xx) = \int_{\Gamma_0} 
     \nn(\xx)\otimes\nn(\yy)~\text{d}s(\yy)
 \end{align}
 to~\eqref{eqn:BIEformulation1}, but only for points $\xx \in \Gamma_0$.
-Finally, if $\Omega$ is unbounded, equation~\eqref{eqn:BIEformulation}
-has no null space, and the only modification is that
+If $\Omega$ is unbounded, equation~\eqref{eqn:BIEformulation} has no
+null space, and the only modification is that
 equation~\eqref{eqn:BIEformulation1} is removed, and the background
 velocity $\uu_\infty(\xx)$ is added to the right hand side of
 equation~\eqref{eqn:BIEformulation2}.
@@ -612,14 +678,14 @@ After taking a time step, all pairs of bodies whose separation falls
 below a minimum separation distance, which includes those that have
 collided, are flagged.  Then, the space-time interference volume (STIV),
 defined as the volume in space-time distance swept out by the trajectory
-of two bodies, is computed.  Next, equation~\eqref{eqn:stokesEL} is
-supplemented with an additional constraint that the STIV is positive (no
-contact).  As detailed in~\cite{Lu2017, Harmon2011}, the STIV offers a
-metric to quantify collision volumes.  By computing the STIV, rather
-than simply the overlap at the new time step, time steps that result in
-rigid bodies passing through each other are detected and resolved.
-Details for solving~\eqref{eqn:stokesEL} with the STIV inequality
-constraint are given in Section~\ref{sec:contact}.
+of two bodies, is computed.  The STIV offers a metric to quantify the
+amount of collision that occurs between two bodies~\cite{Lu2017,
+Harmon2011}.  Next, equation~\eqref{eqn:stokesEL} is supplemented with
+an additional constraint that the STIV is positive (no contact).  By
+computing the STIV, rather than simply the overlap at the new time step,
+time steps that result in rigid bodies passing through each other are
+detected and resolved.  Details for solving~\eqref{eqn:stokesEL} with
+the STIV inequality constraint are given in Section~\ref{sec:contact}.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %\subsection{Computing the Pressure and Stress}
@@ -695,6 +761,7 @@ constraint are given in Section~\ref{sec:contact}.
 		
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Numerical Methods}\label{s:method}
+\todo[inline]{Bryan leaves off here}
 We are ultimately interested in studying statistical and rheological
 properties of the fiber suspensions.  Therefore, we develop stable
 numerical methods that solve the governing
