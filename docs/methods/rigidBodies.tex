@@ -761,7 +761,6 @@ the STIV inequality constraint are given in Section~\ref{sec:contact}.
 		
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Numerical Methods}\label{s:method}
-\todo[inline]{Bryan leaves off here}
 We are ultimately interested in studying statistical and rheological
 properties of the fiber suspensions.  Therefore, we develop stable
 numerical methods that solve the governing
@@ -781,25 +780,25 @@ discuss a numerical methods for the collision algorithm
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{Spatial Discretization}\label{sec:spatial}
-Let $\xx(\alpha)$, $\alpha \in [0,2\pi)$, be a parameterization of a
-rigid body $\gamma_i$.  We will use a collocation method that requires
-the discretization points $\xx_k$ at $k=1,\ldots,N_p$.  Spectral
-accuracy is achieved by representing functions defined on $\gamma_i$ as
+Let $\xx_j(\alpha)$, $\alpha \in [0,2\pi)$, be a parameterization of a
+rigid body $\gamma_j$.  We use a collocation method that requires
+the discretization points $\xx_k$ for $k=1,\ldots,N_p$.  Spectral
+accuracy is achieved by representing functions defined on $\gamma_j$ as
 a Fourier series
 \begin{align}
-  f(\alpha) = f(\xx_i(\alpha)) = 
+  f(\alpha) = f(\xx_j(\alpha)) = 
     \sum_{k = 0}^{N_p-1} \hat{f}_k e^{ik\alpha}.
 \end{align}
 The rigid walls are identically discretized at $N_w$ points and
-functions defined on the rigid walls are also represented with a Fourier
+functions defined on the rigid walls are also represented as a Fourier
 series.  We use the FFT to compute the Fourier coefficients, and all
 derivatives are computed with spectral accuracy by differentiating in
 Fourier space.
 
-With collocation points defined on the rigid walls and solid bodies, we
+With collocation points defined on the solid bodies and rigid walls, we
 now discretize the layer potentials.  We use a Nystr\"om method by
 approximating the double-layer potentials with the trapezoid rule.
-Equations~\eqref{eqn:BIEformulation} are discretized as
+Equation~\eqref{eqn:BIEformulation} is discretized as
 \begin{equation*}
   \begin{aligned}
   \UU(\xx_i) = -\frac{1}{2}\eeta(\xx_i) + 
@@ -841,7 +840,7 @@ vector of $\bd\Omega$ at $\xx$.
 Since the kernel $K(\xx,\yy)$ is smooth, the trapezoid rule guarantees
 spectral accuracy~\cite{Trefethan2014}.  However, at a fixed resolution
 $N$, the error grows when a target point and a source point on different
-bodies are sufficiently close.  The error is caused by a nearly-singular
+bodies approach one another.  The error is caused by a nearly-singular
 integrand with large derivatives.  To resolve this issue, an algorithm
 for near-singular integration method must be employed.  We use the
 interpolation scheme outlined in~\cite{Quaife2014} that is based off of
@@ -923,7 +922,7 @@ After discretizing this equation with forward Euler, the result is an
 equation for the new center, inclination angle, and density function.
 An equivalent formulation is to solve~\eqref{eqn:BIEformulation} for
 $\uu^\tau_k$, $\omega_k$, and $\eeta$, and then update the position and
-angle of each body by dicretizing the differential equations
+angle of each body by discretizing the differential equations
 \begin{align*}
   \frac{\text{d}}{\text{d}t}\cc_k &= \uu^\tau_k,  
     \quad \cc_k(0) = \cc_k^0, \\
@@ -971,7 +970,7 @@ In Section~\ref{s:results}, we demonstrate that this new time stepping
 method is able to take larger stable time step sizes for dense
 suspensions of rigid bodies.  In addition, when the contact algorithm is
 required, the globally implicit discretization~\eqref{eqn:SemiImplicit}
-requires fewer LCP iteartions to converge to a solution of the NCP when
+requires fewer LCP iterations to converge to a solution of the NCP when
 compared to the locally implicit
 discretization~\eqref{eqn:BlockImplicit}.
 
@@ -994,9 +993,9 @@ the time step and restart with the time step size $\Delta t/2$.
 Conversely, if the LCP iteration converges quickly, then, at the next
 time step, we increase $\Delta t$ to $1.5\Delta t$. This strategy can
 not be used to guarantee a user-specified error bound.  However, it does
-tend to appropriately adjust the time step size according to the
-dynamics, and the result is that simulations are able to reach their
-time horizon without taking wastefully uniform small time step size.
+appropriately adjust the time step size according to the dynamics, and
+the result is that simulations are able to reach their time horizon
+without taking wastefully uniform small time step size.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{Fast Summation and Preconditioning}
@@ -1041,15 +1040,15 @@ Computing the layer potentials for the pressure and stress is more
 challenging than evaluating the velocity double-layer potential.  The
 challenge stems from a singularity that scales as $\mathcal{O}(|\xx -
 \yy|^{-2})$ as a target point approaches a source point.  The pressure
-and stress are computed using a combination of singularity subtraction
-and odd-even integration~\cite{sid-isr1988}.  The result is a spectrally
-accurate method for computing the pressure and stress.  Near-singular
-integration is still required, and our interpolation-based method
-requires limiting values of the layer potentials as $\xx \rightarrow
-\bd\Omega$.  The limiting values and tests of the near-singular
-integration scheme are reported in~\cite{Quaife2014}.  Finally, using
-the divergence theorem, we the volumed average stresses can be expressed
-in terms of boundary integrals~\cite{Pozrikidis1992} (see Section 2.5).
+and stress are computed with spectral accuracy by using a combination of
+singularity subtraction and odd-even integration~\cite{sid-isr1988}.
+Near-singular integration is still required, and our interpolation-based
+method requires limiting values of the layer potentials as $\xx
+\rightarrow \bd\Omega$.  The limiting values and tests of the
+near-singular integration scheme are reported in~\cite{Quaife2014}.
+Finally, using the divergence theorem, the volume average stresses are
+expressed in terms of boundary integrals~\cite{Pozrikidis1992} (see
+Section 2.5).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Results}\label{s:results}
@@ -1057,20 +1056,21 @@ We use our new time stepping method to simulate bounded and unbounded
 suspensions of two-dimensional rigid bodies in a viscous fluid.  The
 main parameters are the minimum separation distance $\delta$, the number
 of discretization points of each body, $N_p$, and each solid wall,
-$N_w$, and the initial time step size $\Delta t$. We perform convergence
-studies and investigate the effect of the STIV algorithm on the
-reversibility of the flow.  To further demonstrate the consequence of
-STIV, we include plots of pathlines that cross whenever the collision
+$N_w$, and the initial time step size $\Delta t$. We perform temporal
+convergence studies and investigate the effect of the STIV algorithm on
+the reversibility of the flow.  To further demonstrate the consequence
+of STIV, we include plots of pathlines that cross whenever the collision
 detection algorithm is applied.  The particular experiments we perform
 are now summarized.
 \begin{itemize}
   \item {\bf Shear Flow}: We consider the standard problem of two
   identical rigid circles in the shear flow $\uu = (y,0)$ with one body
   placed to the left and slightly above the other body.  We report
-  similar results to those presented in~\cite{Lu2017}, but we are able
-  to take smaller initial displacements and minimum separation
-  distances.  The contact algorithm breaks the reversibility of the
-  flow, and this effect is illustrated and quantified.
+  similar results to those presented in~\cite{Lu2017}, but the globally
+  implicit time stepping method allows for smaller initial displacements
+  and minimum separation distances.  The contact algorithm breaks the
+  reversibility of the flow, and this effect is illustrated and
+  quantified.
 
   \item {\bf Taylor-Green Flow}: We simulate a concentrated suspension
   of 48 rigid ellipses in an unbounded Taylor-Green flow. At the
@@ -1202,8 +1202,8 @@ setups.  In Figure~\ref{fig:shear_cross}, we compute the
 trajectory of the left body for three different initial placements.  We
 set $\delta=3h$ for all three simulations.  With this threshold, only
 the bottom-most pathline falls below $\delta$ as the two bodies approach
-one another.  Therefore, as the bodies approach, the pathlines behave
-as expected---they do not cross.  However, when the contact algorithm is
+one another.  Therefore, as the bodies approach, the pathlines behave as
+expected---they do not cross.  However, when the contact algorithm is
 applied to the blue trajectory, the pathlines cross, and the flow is no
 longer reversible.
 
@@ -1278,8 +1278,8 @@ of $T=30$, the total number of NCP iterations is 290 when $\Delta t =
 2.50 \times 10^{-2}$, 559 when $\Delta t = 1.25 \times 10^{-2}$, and 559
 when $\Delta t = 6.25 \times 10^{-3}$.  Therefore, the additional cost
 required by the NCP solver is no more than $16\%$ of the total cost, and
-this cost is more than amortized by the additional cost from the extra GMRES iterations if the
-contact algorithm is not used.
+this cost is more than amortized by the additional cost from the extra
+GMRES iterations if the contact algorithm is not used.
 
 Snapshots of the simulation are shown in Figure~\ref{fig:taylor_green},
 and the bottom right plot of shows the trajectory of one body for
@@ -1597,15 +1597,14 @@ $\lambda$ & 5\% area fraction  & 10\% area fraction  & 15\% area fraction\\
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %\FloatBarrier
 \section{Conclusions}\label{s:conclusions}
-We have developed a stable time stepping method for
-simulating dense suspensions of rigid bodies without introducing
-stiffness or requiring a large minimum separation distance.  A contact
-algorithm is used that is guaranteed to avoid overlap.  Using this new
-time stepper we are able to simulate concentrated suspensions with a
-large time step and a small minimum separation distance.  We verify that
-our new globally implicit time stepping method is able to take
-larger stable time step sizes when compared to a locally implicit
-time stepping method.
+We have developed a stable time stepping method for simulating dense
+suspensions of rigid bodies without introducing stiffness or requiring a
+large minimum separation distance.  A contact algorithm is used that is
+guaranteed to avoid overlap.  Using this new time stepper, we are able
+to simulate concentrated suspensions with a large time step and a small
+minimum separation distance.  We verify that our new globally implicit
+time stepping method is able to take larger stable time step sizes when
+compared to a locally implicit time stepping method.
 
 The contact algorithm is not reversible, and we examine the net effect
 on the reversibility of the flow.  We compare the initial and final
@@ -1642,21 +1641,20 @@ suspensions.
 
 Even with the development of our new time stepping method, we observe
 difficult cases.  First, a good contact model between mobile bodies and
-fixed rigid walls needs to be developed.  Second, the NCP solver can
-converge slowly or not at all to a contact-free suspension.  While the
-adaptive time stepping method helps alleviate some of these instances,
-it is clear that additional algorithms are needed. Moreover, a more
-reliable algorithm for choosing an optimal time step size would help
-avoid instances where the time step size is reduced many times before a
-time step is finally accepted.
+fixed rigid walls needs to be developed.  Second, the LCP solver, which
+converges to a solution of the NCP, can converge slowly or not at all to
+a contact-free suspension.  While the adaptive time stepping method
+helps alleviate some of these instances, it is clear that additional
+algorithms are needed. Moreover, a more reliable algorithm for choosing
+an optimal time step size would help avoid instances where the time step
+size is reduced many times before a time step is finally accepted.
 
 \section*{Acknowledgments}
-This research was supported by the Simons Foundation Program:
-Mathematics and Physical Sciences-Collaboration Grants for
-Mathematicians and startup funds from Florida State University.  The
-authors thank Libin Lu, Abtin Rahimian, and Denis Zorin for supplying
-the STIV code, and Manas Rachh for supplying the Stokes double-layer
-potential FMM.
+This research was supported by the Simons Foundation Mathematics and
+Physical Sciences-Collaboration Grants for Mathematicians 527139 and
+startup funds from Florida State University.  The authors thank Libin
+Lu, Abtin Rahimian, and Denis Zorin for supplying the STIV code, and
+Manas Rachh for supplying the Stokes double-layer potential FMM.
 
 \bibliography{bibliography}%
 
