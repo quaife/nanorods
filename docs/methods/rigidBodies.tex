@@ -1060,7 +1060,7 @@ of discretization points of each body, $N_p$, and each solid wall,
 $N_w$, and the initial time step size $\Delta t$. We perform convergence
 studies and investigate the effect of the STIV algorithm on the
 reversibility of the flow.  To further demonstrate the consequence of
-STIV, we include plots of streamlines that cross whenever the collision
+STIV, we include plots of pathlines that cross whenever the collision
 detection algorithm is applied.  The particular experiments we perform
 are now summarized.
 \begin{itemize}
@@ -1157,10 +1157,10 @@ time step sizes we consider.  The results for various values of $\delta$
 and $\Delta t$ are reported in Table~\ref{tab:reverse}. The contact
 algorithm is not required when $\delta=0$ and when $\delta=h$, and we
 observe the expected first-order convergence.  However, when $\delta
-\geq 2h$, the bodies are deflected onto contact-free streamlines when
+\geq 2h$, the bodies are deflected onto contact-free pathlines when
 their proximity reaches the minimum separation distance.  After the flow
 is reversed, the bodies again pass one another, but they are now on
-contact-free streamlines, so the initial deflection is not reversed.
+contact-free pathlines, so the initial deflection is not reversed.
 Therefore, for these larger values of $\delta$, there is a decrease in
 the error when the error is dominated by the time step size, but as
 $\Delta t$ decreases, the error is dominated by the contact algorithm,
@@ -1202,7 +1202,7 @@ setups.  In Figure~\ref{fig:shear_cross}, we compute the
 trajectory of the left body for three different initial placements.  We
 set $\delta=3h$ for all three simulations.  With this threshold, only
 the bottom-most pathline falls below $\delta$ as the two bodies approach
-one another.  Therefore, as the bodies approach, the streamlines behave
+one another.  Therefore, as the bodies approach, the pathlines behave
 as expected---they do not cross.  However, when the contact algorithm is
 applied to the blue trajectory, the pathlines cross, and the flow is no
 longer reversible.
@@ -1500,9 +1500,7 @@ Independent of shear rate, for $\lambda= 3$ the theoretical $\langle
 S\rangle$ is 1/2 and for $\lambda=6$ it is  5/7. Table \ref{tab:order}
 shows the time and space averaged order parameter for the Couette
 apparatus.We see that in all cases our computed time averaged order
-parameter is higher than the theoretical single fiber case. This could
-be due to the hydrodynamic interactions between the bodies, or the
-effect of the solid walls.
+parameter is higher than the theoretical single fiber case. 
 
 In the absence of solid walls and hydrodynamic interactions between
 bodies, a suspension will align and disalign. The period of the order
@@ -1644,7 +1642,7 @@ suspensions.
 
 Even with the development of our new time stepping method, we observe
 difficult cases.  First, a good contact model between mobile bodies and
-fixed rigid walls needs to be developed.  Second, the LCP solver can
+fixed rigid walls needs to be developed.  Second, the NCP solver can
 converge slowly or not at all to a contact-free suspension.  While the
 adaptive time stepping method helps alleviate some of these instances,
 it is clear that additional algorithms are needed. Moreover, a more
