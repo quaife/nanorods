@@ -921,15 +921,18 @@ suspension of rigid bodies satisfies
       \mathbf{R}(\xx,\cc^\gamma_j)L^\gamma_j\right).
 \end{align*}
 After discretizing this equation with forward Euler, the result is an
-equation for the new center, inclination angle, and density function.
-An equivalent formulation is to solve~\eqref{eqn:BIEformulation} for
-$\uu^\tau_k$, $\omega_k$, and $\eeta$, and then update the position and
-angle of each body by discretizing the differential equations
+equation for the new center, inclination angle, and density function
+(including the rotlets and Stokeslets) in terms of the old centers,
+inclination angles, net forces, and net torques.  An equivalent
+formulation is to freeze the rigid bodies at the current time step,
+solve~\eqref{eqn:BIEformulation} for $\uu^\tau_k$, $\omega_k$, and
+$\eeta$, and then update the position and angle of each body by
+discretizing the differential equations
 \begin{align*}
   \frac{\text{d}}{\text{d}t}\cc_k &= \uu^\tau_k,  
-    \quad \cc_k(0) = \cc_k^0, \\
+    \quad \cc_k(t^N) = \cc_k^N, \\
   \frac{\text{d}}{\text{d}t}\theta_k &= \omega_k,
-    \quad \theta_k(0) = \theta_k^0,
+    \quad \theta_k(t^N) = \theta_k^N,
 \end{align*}
 with the first-order explicit Euler method
 \begin{align*}
@@ -946,29 +949,39 @@ The main factors that determine the stiffness of the system are the
 minimum separation distance and the discretization of the double-layer
 potential $\DD[\eeta](\xx)$.  The leading source of stiffness is the
 velocity field caused by the body itself. This stiffness can be
-controlled with the {\em locally implicit} discretization
+controlled by discretizing the double-layer potential as
 \begin{align}
   \DD[\eeta](\xx) \approx \DD^{N}_{i,i}\left[\eeta_i^{N+1}\right](\xx) + 
     \sum_{k \neq i} \DD^{N}_{i,k}\left[\eeta_k^{N}\right](\xx),
     \quad \xx \in \gamma_i,
   \label{eqn:BlockImplicit}
 \end{align}
-where $D_{i,k}^N$ is the double-layer potential due to body $\gamma_k$
+where $\DD_{i,k}^N$ is the double-layer potential due to body $\gamma_k$
 evaluated on $\gamma_i$, with both these bodies discretized at time $N$.
-This time stepping method is the focus of the work of Lu et
-al.~\cite{Lu2017}.  The next source of stiffness is caused by
-nearly-touching bodies, which can be controlled by maintaining a
-sufficiently large minimum separation distance~\cite{Lu2017}.
-Alternatively, to allow for small minimum separation distances, we
-discretize the interaction between nearly-touching bodies implicitly
-with the {\em globally implicit} discretization
+This time stepping method has the advantage that only the density
+function due to intra-particle interactions are treated implicitly,
+while the density function computed at the previous time step is used to
+approximate the inter-particle interactions.  The result is a
+block-diagonal system for the new density function.  This time stepping
+method is the focus of the work of Lu et al.~\cite{Lu2017}, and since
+only the intra-particle interactions are discretized implicitly, they
+call the method a {\em locally implicit} discretization.  The next
+source of stiffness is caused by nearly-touching bodies, which can be
+controlled by maintaining a sufficiently large minimum separation
+distance~\cite{Lu2017}.  Alternatively, to allow for small minimum
+separation distances, we discretize the interaction between
+nearly-touching bodies implicitly as
 \begin{align}
   \DD[\eeta](\xx) \approx \DD^{N}_{i,i}\left[\eeta_i^{N+1}\right](\xx) + 
     \sum_{k \neq i} \DD^{N}_{i,k}\left[\eeta_k^{N+1}\right](\xx),
     \quad \xx \in \gamma_i.
   \label{eqn:SemiImplicit}
 \end{align}
-In Section~\ref{s:results}, we demonstrate that this new time stepping
+Rather than using the density function from the previous time step, this
+method solves for the density function corresponding to the current
+rigid body suspension.  Since all the bodies are coupled, the method is
+called a {\em globally implicit} discretization.  In
+Section~\ref{s:results}, we demonstrate that this new time stepping
 method is able to take larger stable time step sizes for dense
 suspensions of rigid bodies.  In addition, when the contact algorithm is
 required, the globally implicit discretization~\eqref{eqn:SemiImplicit}
