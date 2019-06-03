@@ -1,0 +1,497 @@
+\documentclass[11pt]{article}
+
+\usepackage{fullpage}
+\usepackage{todonotes}
+\usepackage{amsmath,amsfonts,amssymb,stmaryrd}
+\usepackage{color}
+\newcommand{\comment}[1]{{\color{blue} #1}}
+
+\begin{document}
+\noindent
+Dear Dr.~Dumbser,
+\\ \\ \noindent 
+Thank you for handling the manuscript, and we would like to thank the
+reviewers for their constructive comments. The attached manuscript
+addresses all the reviewers’ comments and the result is what we believe
+is a stronger manuscript.
+\\ \\ \noindent 
+We also note that a few typos from the manuscript’s original form have
+been addressed. An itemized list of the changes addressing the
+reviewers’ comments are below.
+\\ \\ \noindent 
+Sincerely, \\ \noindent
+Lukas Bystricky, Sachin Shanbhag, and Bryan Quaife
+
+\section*{Reviewer 1}
+\noindent
+\comment{In section 3.2, it says that one Lagrange multiplier is used.
+Are you using one contact volume constraint among all particles or one
+contact volume constraint per contact region?}
+\begin{itemize}
+  \item The reviewer is correct that there is a single Lagrange
+    multiplier for each pair of colliding bodies.  The text has been
+    modified in Section 3.2.
+\end{itemize}
+
+\noindent
+\comment{The locally implicit time stepping breaks on the Taylor-Green
+  flow even with dt = $1e-8$. You can also decrease the time step size
+  with globally implicit time stepping without using contact constraint.
+  Is there a stable time step size comparison between globally implicit
+  time stepping without contact constraint and globally implicit time
+  stepping with contact constraint? What is the ratio between time spent
+  on the NCP solve stage and the time spent on globally implicit time
+  stepping without NCP solve?}
+\begin{itemize}
+  \item The globally implicit time stepper can be used without the
+    contact constraint with an acceptable time step size.  While this
+    results in a savings because no NCP solvers are required, it results
+    in two additional computational costs.  First, more time steps must
+    be taken.  Second, because the bodies come closer together,
+    additional GMRES iterations are required to perform each time step.
+    We describe this in detail in the Taylor-Green section.
+
+  \item We quantify the additional cost of NCP as a percentage of the
+    total computational effort
+\end{itemize}
+
+\noindent
+\comment{Typo on equation 7e, the torque $L$.}
+\begin{itemize}
+  \item This is corrected
+\end{itemize}
+
+\noindent
+\comment{Typos around page 8 line 27 and line 34 '$d_j$' in Rotlet and the
+torque $L$?}
+\begin{itemize}
+  \item There were several typos in these equations.  The $\mathbf{d}_j$
+    should have been $\mathbf{c}_j$ since these correspond to the center
+    of the rigid bodies or the interior solid walls.  The typo for the
+    torque $L$ is also corrected.
+\end{itemize}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section*{Reviewer 2}
+\noindent
+\comment{The introduction opens with a discussion about rods and fibers
+  and the average stress tensor in Eq.~(1). This is not extended any
+  further in the text or the results section. At its current state, it
+  seems unrelated to the text. After only reading the introduction, one
+  expects to see some analysis related to fibers and effective
+viscosity, which is entirely missing from the text. Please revise the
+introduction to reflect the current work.}
+\begin{itemize}
+  \item We have rewritten much of the Introduction so that it better
+    reflects what we present in the paper.
+
+  \item The general logic is that rigid body suspensions are important
+    in material sciences.  The dynamics of a single body undergoes
+    Jeffery orbits, but if their are multiple bodies, one has to either resort
+    to an implicit method that uses average orientation angles, or use
+    an explicit direct numerical simulation (DNS).
+
+  \item To perform DNS with bodies that are very close to another, which
+    is typical in many applications, a new time stepping method must be
+    coupled with a contact algorithm.
+
+  \item In addition to developing the time stepping method, we analyze
+    the effects of the collision on the reversibility of the flow, and
+    we give preliminary results on the rheological properties of the
+    flow.
+
+\end{itemize}
+
+
+\noindent
+\comment{The contribution of the paper is declared to be time stepping
+strategy, going from locally-implicit to globally implicit. At the face
+of it, this does not seem to be novel. This makes the interaction matrix
+fully dense and more costly to apply, but seems trivial to implement
+otherwise. For instance, Malhotra et al.~(cited by the authors) use a
+similar scheme in 3D.
+\\ \\ \noindent
+Later in that section, it is mentioned that ``we use our new time
+stepping to examine the rheological properties of dense rigid body
+suspensions." However, there is no in-depth discussion about these and
+the results section briefly goes over some example.
+\\ \\ \noindent
+In summary, if this is a ``method paper", I fail to see any significant
+mathematical/computational contributions. If it is an ``application
+paper", it lacks depth in its analysis.}
+\begin{itemize}
+  \item There are several differences regarding the paper by Malhotra et
+    al.~that we point out.  First, they consider vesicle suspensions
+    which have the ability to use deformability to create additional
+    separation (this is discussed in detail in a forthcoming revision).
+    The result is that contact happens less frequently when compared
+    with rigid body suspensions.  Second, they use a heuristic repulsion
+    force rather than the STIV to maintain a contact-free suspension.
+    Their method results in stiffness when the vesicles are very close
+    together, and they are forced to reduce their time step size.  With
+    the proximities we consider, we expect that such a repulsion force
+    would require time step sizes that are impractical for our
+    simulations.
+
+  \item As this is our first paper for this project, we have focused on
+    the methods in this manuscript. It is true that a lot of the
+    concepts (rigid body suspensions, globally implicit time stepping,
+    STIV contact, preconditioner, fast summation, etc.) have been
+    presented elsewhere, but to the best of our knowledge, no other
+    group has combined these techniques and presented results that allow
+    for such small minimum separation distances and large time step
+    sizes.  For example, Malholtra et al.~use a stiff repulsion force,
+    while Lu et al.~use a large minimum separation distance.  In
+    addition, the effect of the contact algorithm on the reversibility
+    of the flow has not been investigated to the best of our knowledge.
+
+  \item Our problem is motivated by rheological applications involving
+    microrods in material science applications.  We wish to demonstrate
+    to the readers that our method can be used to compute rheological
+    properties (alignment angle, order parameter, effective viscosity,
+    and shear stress) which are very important in such applications.
+    However, the physics is not the focus of this paper.  A follow-up
+    physics paper will be written focusing on the rheology.  However,
+    without the techniques presented in this manuscript, high-fidelity
+    dense suspensions with a small minimum separation distance are not
+    possible.
+    
+\end{itemize}
+
+\noindent
+\comment{In related work and then later in the text, authors mention
+  they use a block-diagonal preconditioner. However, when particles are
+  close to touching, the main source of ill-conditioning is the
+  interaction between those two particles and not the self interaction.
+  I do not believe that the block-diagonal preconditioner is of any
+  (considerable) help in this setting.  For vesicles, it is a different
+  story, because one major source of ill-conditioning is the bending
+force.  Please quantify the effect of the preconditioner.}
+\begin{itemize}
+  \item The reviewer is correct that the high-order derivatives that
+    govern vesicle suspensions can greatly increase the number of GMRES
+    iterations, and a preconditioner is very important.  However, as we
+    argue below, the same preconditioner is helpful for rigid body
+    suspensions.
+
+  \item We did a comparison of the number of GMRES iterations required
+    for a rigid body suspension with and without the block-diagonal
+    preconditioner.  For the Taylor-Green flow, there is a 2X reduction
+    in the number of iterations.
+
+  \item In addition, because we are simulating rigid bodies, the
+    block-diagonal preconditioner can be updated at each time step by
+    simply applying a rotation matrix to the preconditioner from the
+    previous time step.  This significantly reduces the cost of
+    constructing the preconditioner and justifies its use.  In contrast,
+    for deformable bodies such as vesicles, if an exact block-diagonal
+    preconditioner is used, it must be constructed from scratch at every
+    time step, so the preconditioner does not payoff unless there is a
+    significant reduction in the number of GMRES iterations.
+
+  \item This is discussed in detail in Section 3.4.
+\end{itemize}
+
+\noindent
+\comment{Page 10, last line: ``semi-implicit time integrator proposed by
+  Lu et al.~results in the STIV algorithm stalling." This should be
+  elaborated more.  It is unclear why small minimal separation break the
+  algorithm.  Is it due the semi-implicit scheme, the LCP solver, the
+  linear solver?  Lu et al.~use spectral deferred correction for rigid
+  bodies, is that effective here?}
+\begin{itemize}
+  \item The itemized environment in the start of Section 4 is meant to
+    only offer the reader a brief summary of the examples to come.
+    We slightly elaborated this section, but we reserve a more thorough
+    discussion of the behavior for Section 4.2.
+
+  \item In Section 4.2, we compare the contact algorithm with the two
+    different time stepping schemes.  Since all other variables are held
+    fixed (LCP solver, linear solver, etc.), we argue that it is the
+    time stepping scheme that results in the stalling of the contact
+    algorithm. That is, it is the inaccuracy of the locally implicit
+    time stepper that causes the sequence of LCP problems to not
+    converge to the NCP solution.
+
+  \item Regarding a higher-order time stepping method such as SDC, we
+    expect that it is convergent for dense suspensions only if the
+    globally implicit method is used.  This prediction is based on a
+    previous work of one author (Quaife) who developed the SDC framework
+    for vesicle suspensions.  While this is not a complete picture
+    regarding SDC with small minimum separation distances, we leave more
+    careful analysis, experiments, and discussions to future work.
+
+\end{itemize}
+
+\noindent
+\comment{Section 4.1: The conclusion of the section is unclear.  It is
+  indeed expected that extra force in the system breaks
+  time-reversibility.  The question is whether the method is convergent,
+  i.e., using higher resolution (smaller h) it converges to the true
+  solution and maintains reversibility.  Please clarify the significance
+of this result.}
+\begin{itemize}
+  \item We agree that the extra force in the system will break the
+    time-reversibility.  There are three main sources of this error: 1)
+    the time step size; 2) the contact force; and 3) the spatial
+    resolution (ie.~$h$).  Since we are using a high-order methods in
+    space, the third source of error is negligible when compared to the
+    other two sources.
+
+  \item The conclusion is that the time-reversibility is first-order if
+    the contact algorithm is not necessary which happens for
+    sufficiently small minimum separation distances $\delta$.  However,
+    for larger values of $\delta$, the first-order accuracy is only
+    achieved for large $\Delta t$ where the time stepping error
+    dominates.  However, as $\Delta t$ is decreased, the error plateaus
+    at the error introduced by the contact algorithm.
+
+  \item The presentation of this behavior has been clarified in the
+    manuscript.
+\end{itemize}
+
+\noindent
+\comment{Also, in Figure 3, what is drawn are not streamlines.  They are
+Pathlines.}
+\begin{itemize}
+  \item The reviewer is correct.  The language in the caption of Figure
+    3 and in the text that refers to Figure 3 has been modified.
+\end{itemize}
+
+
+\noindent
+\comment{What is the limitation of the method with respect to the aspect
+ratio $\lambda$?  What range of aspect ratio is feasible with this
+method?  What causes the limitation.}
+\begin{itemize}
+  \item In theory the method works for any aspect ratio, but the cost is
+    that additional resolution is required.  The resolution has to be
+    sufficiently large to describe the geometry (curvature, arclength,
+    etc.) and the hydrodynamic interactions of the rigid bodies with the
+    other rigid bodies and the solid wall (ie.~resolve the density
+    functions).
+    
+  \item We state in the {\em Limitations} section that larger aspect
+    ratios our often present in applications, and such problems require
+    higher resolutions than those we consider.
+
+  \item In the {\em Taylor-Couette flow} section, we report the
+    resolutions we used and state that higher resolutions are required
+    to consider more slender bodies.
+
+\end{itemize}
+
+\noindent
+\comment{Page 2, line 47, ``Deformable bodies, such as vesicles, deform as
+they approach one another, and this creates a natural minimum separation
+distance." Why is this true?  does this depend on flow/particle type?}
+\begin{itemize}
+  \item This depends on the particle type.  For flexible bodies, such as
+    vesicles, the pressure in the lubrication layer between two nearly
+    bodies causes the interface to flatten, and this results in an
+    increase in the minimum separation.  In contrast, rigid bodies do
+    not have the ability to create additional separation through
+    deformation.
+
+  \item We have added a citation that discusses this effect: \newline
+    Lac, E., Morel, A.~and Barthès-Biesel, D., 2007.~Hydrodynamic
+    interaction between two identical capsules in simple shear flow.
+    Journal of Fluid Mechanics, 573, pp.149-169.
+
+\end{itemize}
+
+\noindent
+\comment{Page 3, line 53, repulsion force in the context of contact
+  algorithms typically refers to a force with a pre-defined potential.
+  From what I understand for the work of Lu et al., they use a
+  Lagrangian to impose the collision-free constraint and not a repulsion
+  force.  Please rephrase.}
+\begin{itemize}
+  \item The reviewer is correct.  The work of Lu et al.~is a Lagrange
+    multiplier method which acts as an {\em artificial repulsion force}
+    (as described by Lu et al.).  We have modified the text to make it
+    clear that the method is not a repulsion force in the traditional
+    sense.
+\end{itemize}
+
+\noindent
+\comment{Page 4, line 54, the symbol for torque is missing.}
+\begin{itemize}
+  \item This was a latex error that occurred in several locations---they
+    have all been corrected.
+\end{itemize}
+
+\noindent
+\comment{Page 5, line 25, ``To avoid contact, we will later relax the
+  force- and torque-free conditions ...".  This is not correct.  In
+  quasi-static Stokes flow, all freely suspended particles are always
+  force-free, that is how the solution is computed.}
+\begin{itemize}
+  \item The reviewer is correct that our simulations are always
+    force-free and torque-free.  We have revised this paragraph to state
+    that equation (2) assumes that all forces are hydrodynamic.  Then,
+    an additional contact force is added to avoid the unphysical
+    contact.
+\end{itemize}
+
+\noindent
+\comment{Section 2.4 is well known and is better suited for the
+appendix.}
+\begin{itemize}
+  \item We agree that this section is not necessary as it is described
+    in many references.  We have removed the section entirely.  Instead,
+    we added a small paragraph at the end of Section 2.2 that describes
+    how the pressure and stress are simply new layer potentials, and the
+    expressions are found in: \newline
+    Power H. The completed double layer boundary integral equation
+    method for two-dimensional Stokes flow.  IMA J Appl Math.
+    1993;51(2):123--145.
+
+  \item We briefly  describe how the pressure and stress are computed
+    numerically in Section 3.5.  However, the method has already been
+    described in previous work of one of the authors in: \newline
+    Quaife B, Biros G. High-volume fraction simulations of
+    two-dimensional vesicle suspensions. J Comput Phys.
+    2014;274:245--267.
+\end{itemize}
+
+
+\noindent
+\comment{Equation 9, is just the Stokes equation in energy form, which
+is already given in Eq.~2.}
+\begin{itemize}
+  \item We agree that equations (9) and (2) are identical.  However, to
+    address the constraint that the STIV is zero, one approach is to
+    formulate the problem as a constrained optimization problem.  This
+    is the approach taken by Liu et al.  Note, however, that we are only
+    trying to highlight the relevant and key points of the work of Liu
+    et al.
+\end{itemize}
+
+\noindent
+\comment{Page 7, as a reference for ``Finally, using the divergence
+theorem, the volumed average stresses can be expressed in terms of
+boundary integrals" a book is used.  Please add page number/section that
+clearly support the claim.}
+\begin{itemize}
+  \item This is described in Section 2.5 of {\em Boundary integral and
+    singularity methods} by Pozrikidis.
+
+  \item Note that the section containing the above mentioned sentence
+    has been removed.  We have moved the discussion of computing average
+    stresses to Section 3.5.
+\end{itemize}
+
+\noindent
+\comment{Page 9, line 19, the force balance is addressed by increasing
+the force on one particle.  Why is this not added as a constraint so
+that the resulting force is balanced?}
+\begin{itemize}
+  \item The language in the previous version may have led to some
+    confusion.  We do enforce a net force balance of zero.  The reviewer
+    is right that this could be done by imposing this as a constraint.
+    However, this would require an addition Lagrange multiplier and the
+    result would be a modification to Equation (7).  
+    
+  \item We take a different, but simpler approach.  We simply modify one
+    of the forces of a cluster of rigid bodies in near-contact so that
+    it balances with the sum of the others.  By only modifying the
+    smallest force, this makes sure that we are only modifying the least
+    significant force.
+
+  \item We have described both these techniques in the text.
+
+\end{itemize}
+
+\noindent
+\comment{Section 3.3, the proposed adaptive time stepping scheme seems
+  to be a heuristic.  What is the error bound for this method?  Given
+  target accuracy at the final time, can it meet that error?  Is it
+  effective in bringing down the cost of simulation for fixed target
+accuracy?}
+\begin{itemize}
+  \item The reviewer is right that the method is heuristic.
+
+  \item The issue with using a method that estimates the error is that
+    the error estimates are expensive to compute.  For suspensions with
+    conserved quantities, such as the area inside a vesicle, such an
+    estimate can be efficiently computed.  However, for rigid body
+    suspensions, such a physical quantity to efficiently estimate the
+    error is not available.  Therefore, the error would need to be
+    estimated using two numerical solutions with, for example, different
+    time step sizes, and this is too expensive.  
+
+  \item Since our method is heuristic, it cannot be used to achieve
+    guaranteed user-specified tolerance.  However, the heuristic method
+    does increase/decrease the time step size when the dynamics become
+    less/more complicated.  Therefore, our adaptive time stepping method
+    is able to successfully reach desired time horizons without having
+    to take a uniformly small time step size which would be
+    computationally wasteful.
+
+  \item The above discussion is now included in the manuscript.
+
+\end{itemize}
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section*{Reviewer 3}
+\noindent
+\comment{While the paper gives a lot of details regarding various
+  components of their solver, I feel that the paper is lacking in detail
+  when it comes to discussing their main contribution, i.e.~how all
+  interactions are handled implicitly. It is particularly confusing
+  since the novelty of the approach is the fully-implicit handling of
+  all hydrodynamic interactions, but the only time discretized equations
+  in the manuscript are the update equations of the rigid body center of
+  masses and orientations which are handled explicitly. It might be more
+  instructive/clearer if the authors presented the complete discretized
+  equations in section 3.3. This would also clarify the discussion of
+the computational complexity of their approach in the subsequent
+section.}
+\begin{itemize}
+  \item We agree with the reviewer that it appears that the update
+    equations are linear.  However, this is not the case.  In Section
+    3.3, we present a formulation that clearly shows how the method is
+    implicit.  From here, it can be seen that this new formulation and
+    the original one in the manuscript are equivalent.
+
+  \item The main difference is the decision of how to discretize the
+    double-layer potential.  The choice is between using treating the
+    intra-body interactions explicitly (locally implicit) or implicitly
+    (globally implicit).
+
+  \item We have restructured and revised Section 3.3 to improve the
+    presentation of our main contribution with respect to the time
+    stepping method.
+\end{itemize}
+
+\noindent
+\comment{Section 3.2, page 9, line 3, not only do bodies not intersect..
+(missing ``not")}
+\begin{itemize}
+  \item Thank you for catching this typo.  The text is adjusted.
+\end{itemize}
+
+\noindent
+\comment{The same symbol is used for describing self hydrodynamic
+interactions and the hydrodynamic interactions between different
+particle in equations 13,14 on Page 10.}
+\begin{itemize}
+  \item Thank you for pointing out this flaw in the notation.  We have
+    updated equations (13) and (14) so that it is clear how the integral
+    equation is discretized.
+\end{itemize}
+
+\noindent
+\comment{In equation 14, there is an inconsistent subscript as opposed
+to a superscript for $\eta^{N+1}$}
+\begin{itemize}
+  \item Thank you for catching this typo.  The equation is corrected.
+\end{itemize}
+
+
+
+\end{document}

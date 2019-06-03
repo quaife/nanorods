@@ -1,0 +1,15 @@
+This paper deals with the numerical study of a suspension of rigid
+particles in concentrated regime. A key difficulty when using a boundary
+integral formulation to simulate this problem is dealing with contacts
+between the rigid particles and domain boundary. Especially, the
+concentrated suspension poses a formidable challenge for the simulation.
+This paper contributes significantly to this issue by treating all
+inter-particle interaction implicitly(globally implicit instead of
+locally implicit) and augmenting the simulation with constraints that
+prevent any two bodies from coming within a certain small distance from
+each other. The constraint contact force is also balanced in the system.
+Using this novel time stepping method, the simulation shows high
+fidelity with condensed suspension. I find the approach to be
+compellingly motivated, clearly presented, and well demonstrated.
+Overall I find the work convincing and would be comfortable accepting it
+in essentially its present form.

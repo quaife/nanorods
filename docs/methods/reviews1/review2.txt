@@ -1,0 +1,101 @@
+Reviewer: 2 
+
+Comments to the Author 
+The paper considers the simulation of dense rigid particles in Stokes
+flow. Due to the rigidity of particles and their high volume fraction,
+collision is prevalent and if not handled properly, the time step is
+severely restricted. The paper is well-written, however I have some
+comments and concerns that are listed below. 
+
+Major comments and questions: 
+
+1. The introduction opens with a discussion about rods and fibers and
+the average stress tensor in Eq. (1). This is not extended any further
+in the text or the results section. At its current state, it seems
+unrelated to the text. After only reading the introduction, one expects
+to see some analysis related to fibers and effective viscosity, which is
+entirely missing from the text. Please revise the introduction to
+reflect the current work. 
+
+2. The contribution of the paper is declared to be time stepping
+strategy, going from locally-implicit to globally implicit. At the face
+of it, this does not seem to be novel. This makes the interaction matrix
+fully dense and more costly to apply, but seems trivial to implement
+otherwise. For instance, Malhotra et al. (cited by the authors) use a
+similar scheme in 3D. 
+
+Lather in that section, it is mentioned that "we use our new time
+stepping to examine the rheological properties of dense rigid body
+suspensions." However, there is no in-depth discussion about these and
+the results section briefly goes over some example. 
+
+In summary, if this is a "method paper", I fail to see any significant
+mathematical/computational contributions. If it is an "application
+paper", it lacks depth in its analysis. 
+
+2. In related work and then later in the text, authors mention they use
+a block-diagonal preconditioner. However, when particles are close to
+touching, the main source of ill-conditioning is the interaction between
+those two particles and not the self interaction. I do not believe that
+the block-diagonal preconditioner is of any (considerable) help in this
+setting.  For vesicles, it is a different story, because one major
+source of ill-conditioning is the bending force.  Please quantify the
+effect of the preconditioner. 
+
+3. Page 10, last line: "semi-implicit time integrator proposed by Lu et
+al.results in the STIV algorithm stalling." This should be elaborated
+more.  It is unclear why small minimal separation break the algorithm.
+Is it due the semi-implicit scheme, the LCP solver, the linear solver?
+Lu et al. use spectral deferred correction for rigid bodies, is that
+effective here? 
+
+1.  Section 4.1: The conclusion of the section is unclear.  It is indeed
+expected that extra force in the system breaks time-reversibility.  The
+question is whether the method is convergent, i.e., using higher
+resolution (smaller h) it converges to the true solution and maintains
+reversibility.  Please clarify the significance of this result. 
+
+Also, in Figure 3, what is drawn are not streamlines.  They are
+Pathlines. 
+
+Some minor comments and questions: 
+
+1.  What is the limitation of the method with respect to the aspect
+ratio $\lambda$?  What range of aspect ratio is feasible with this
+method?  What causes the limitation. 
+
+2.  Page 2, line 47, "Deformable bodies, such as vesicles, deform as
+they approach one another, and this creates a natural minimum separation
+distance." Why is this true?  does this depend on flow/particle type? 
+
+3.  Page 3, line 53, repulsion force in the context of contact
+algorithms typically refers to a force with a pre-defined potential.
+From what I understand for the work of Lu et al., they use a Lagrangian
+to impose the collision-free constraint and not a repulsion force.
+Please rephrase. 
+
+1.  Page 4, line 54, the symbol for torque is missing. 
+
+1.  Page 5, line 25, "To avoid contact, we will later relax the force-
+and torque-free conditions ...".  This is not correct.  In quasi-static
+Stokes flow, all freely suspended particles are always force-free, that
+is how the solution is computed. 
+
+1.  Section 2.4 is well known and is better suited for the appendix. 
+
+1.  Equation 9, is just the Stokes equation in energy form, which is
+already given in Eq.  2. 
+
+1.  Page 7, as a reference for "Finally, using the divergence theorem,
+the volumed average stresses can be expressed in terms of boundary
+integrals" a book is used.  Please add page number/section that clearly
+support the claim. 
+
+1.  Page 9, line 19, the force balance is addressed by increasing the
+force on one particle.  Why is this not added as a constraint so that
+the resulting force is balanced? 
+
+1.  Section 3.3, the proposed adaptive time stepping scheme seems to be
+a heuristic.  What is the error bound for this method?  Given target
+accuracy at the final time, can it meet that error?  Is it effective in
+bringing down the cost of simulation for fixed target accuracy? 
