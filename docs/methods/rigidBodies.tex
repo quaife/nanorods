@@ -922,30 +922,30 @@ suspension of rigid bodies satisfies
     +\sum_{j=1}^{M_p} \left(\mathbf{S}(\xx,\cc^\gamma_j)\FF^\gamma_j +
       \mathbf{R}(\xx,\cc^\gamma_j)L^\gamma_j\right).
 \end{align*}
-After discretizing this equation with \cancel{forward Euler} \textcolor{red}{an explicit time-stepper}, the result is an
-equation for the new center, inclination angle, and density function
-(including the rotlets and Stokeslets) in terms of the old centers,
-inclination angles, net forces, and net torques.  An equivalent
+After discretizing this equation with an explicit time-stepper, the
+result is an equation for the new center, inclination angle, and density
+function (including the rotlets and Stokeslets) in terms of the old
+centers, inclination angles, net forces, and net torques.  An equivalent
 formulation is to freeze the rigid bodies at the current time step,
 solve~\eqref{eqn:BIEformulation} for $\uu^\tau_k$, $\omega_k$, and
 $\eeta$, and then update the position and angle of each body by
 discretizing the differential equations
 \begin{align*}
   \frac{\text{d}}{\text{d}t}\cc_k &= \uu^\tau_k,  
-    \quad \cc_k(t^N) = \cc_k^N, \\
+    \quad \cc_k\left(t^N\right) = \cc_k^N, \\
   \frac{\text{d}}{\text{d}t}\theta_k &= \omega_k,
-    \quad \theta_k(t^N) = \theta_k^N,
+    \quad \theta_k\left(t^N\right) = \theta_k^N,
 \end{align*}
-with the first-order explicit Euler method
+with the explicit time-stepper.  Since we are interested in statistical,
+rheological, and bulk quantities rather than the individual trajectories
+of the rigid bodies, we use the low cost first-order time stepper
+explicit Euler method
 \begin{align*}
   \cc_k^{N+1} &= \cc_k^N + \Delta t \left(\uu_k^\tau\right)^N, \\
   \theta_k^{N+1} &= \theta_k^N + \Delta t \left(\omega_k\right)^N.
 \end{align*}
-A low cost first-order time stepper is justified since we are interested
-in statistical, rheological, and bulk quantities rather than the
-individual trajectories of the rigid bodies.  If high-order accuracy is
-desired, a Runge-Kutta or deferred correction method~\cite{Quaife2015,
-qua-bir2016} can be applied.
+If high-order accuracy is desired, a Runge-Kutta or deferred correction
+method~\cite{Quaife2015, qua-bir2016} can be applied.
 
 The main factors that determine the stiffness of the system are the
 minimum separation distance and the discretization of the double-layer
@@ -971,7 +971,7 @@ call the method a {\em locally implicit} discretization.  The next
 source of stiffness is caused by nearly-touching bodies, which can be
 controlled by maintaining a sufficiently large minimum separation
 distance~\cite{Lu2017}.  Alternatively, to allow for small minimum
-separation distances, we discretize the interaction between
+separation distances, we discretize the interactions between
 nearly-touching bodies implicitly as
 \begin{align}
   \DD[\eeta](\xx) \approx \DD^{N}_{i,i}\left[\eeta_i^{N+1}\right](\xx) + 
